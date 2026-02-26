@@ -2,6 +2,7 @@ import asyncio
 from database import engine, Base
 from models.user import User  # ensures users table exists
 from models.couple import Couple  # ensures couples table exists
+from models.mood import Mood
 
 
 async def main():
