@@ -1,0 +1,8 @@
+lovelink-backend/venv/
+lovelink-backend/__pycache__/
+lovelink-backend/.env
+lovelink-backend/*.pyc
+lovelink-frontend/node_modules/
+lovelink-frontend/build/
+.DS_Store
+*.log
