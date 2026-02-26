@@ -49,6 +49,8 @@ def generate_otp() -> str:
 async def get_user_by_identifier(identifier: str, db: AsyncSession) -> User | None:
     if "@" in identifier:
         result = await db.execute(select(User).where(User.email == identifier))
+    elif identifier.isdigit() and len(identifier) == 10:
+        result = await db.execute(select(User).where(User.phone == f"+91{identifier}"))
     else:
         result = await db.execute(select(User).where(User.phone == identifier))
     return result.scalars().first()
@@ -60,12 +62,12 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
     if data.email:
         result = await db.execute(select(User).where(User.email == data.email))
         if result.scalars().first():
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(status_code=400, detail="An account with this email already exists")
 
     if data.phone:
         result = await db.execute(select(User).where(User.phone == data.phone))
         if result.scalars().first():
-            raise HTTPException(status_code=400, detail="Phone already registered")
+            raise HTTPException(status_code=400, detail="An account with this phone already exists")
 
     otp = generate_otp()
     expires_at = datetime.utcnow() + timedelta(minutes=10)
@@ -98,7 +100,7 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
                 detail="Failed to send verification email. Please try again.",
             )
 
-    return {"message": "OTP sent to your email/phone", "user_id": user.id}
+    return {"message": f"OTP sent to your email {user.email}", "user_id": user.id}
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
@@ -135,7 +137,7 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_identifier(data.identifier, db)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="No account found with this email or phone")
 
     # Password login
     if data.password:
@@ -166,7 +168,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
             raise HTTPException(
                 status_code=403,
-                detail="User not verified. We have sent a new OTP to your email.",
+                detail="Account not verified. We sent a new OTP. Please verify first.",
             )
 
         token = create_token(user.id)
@@ -192,7 +194,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="Failed to send login OTP. Please try again.",
             )
 
-    return {"message": "OTP sent", "requires_otp": True}
+    return {"message": f"OTP sent to your email {user.email}", "requires_otp": True}
 
 
 @router.post("/login-verify-otp", response_model=TokenResponse)
@@ -248,7 +250,7 @@ async def send_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
                 detail="Failed to send OTP. Please try again.",
             )
 
-    return {"message": "OTP sent"}
+    return {"message": f"OTP sent to your email {user.email}"}
 
 
 @router.post("/forgot-password")
@@ -274,7 +276,7 @@ async def forgot_password(
                 detail="Failed to send password reset OTP. Please try again.",
             )
 
-    return {"message": "Password reset OTP sent"}
+    return {"message": f"OTP sent to your email {user.email}"}
 
 
 @router.post("/reset-password")

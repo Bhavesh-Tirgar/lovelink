@@ -12,9 +12,21 @@ class SignupRequest(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str | None) -> str | None:
-        if v and not v.startswith("+"):
-            raise ValueError("Phone must include country code e.g. +91")
-        return v
+        if not v:
+            return v
+        
+        # strip spaces
+        v = v.replace(" ", "")
+        
+        # if 10 digits exactly, auto format to +91
+        if v.isdigit() and len(v) == 10:
+            return f"+91{v}"
+        
+        # if it starts with + and has digits, keep as is (plus potential basic length check)
+        if v.startswith("+") and v[1:].isdigit() and len(v) >= 11:
+            return v
+            
+        raise ValueError("Invalid phone format. Please provide a valid 10-digit number.")
 
     @model_validator(mode="after")
     def check_email_or_phone(self):
