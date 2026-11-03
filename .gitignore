@@ -6,3 +6,7 @@ lovelink-frontend/node_modules/
 lovelink-frontend/build/
 .DS_Store
 *.log
+
+lovelink-backend/firebase_credentials.json
+
+lovelink-backend/append_firebase_env.py

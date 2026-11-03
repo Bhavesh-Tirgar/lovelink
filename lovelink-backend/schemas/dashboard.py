@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class UserSummary(BaseModel):
+    id: str | None = None
     name: str
     email: str
     timezone: str
@@ -13,4 +14,5 @@ class DashboardResponse(BaseModel):
     partner_user: UserSummary | None
     days_together: int
     linked: bool
+    couple_id: str | None = None
 

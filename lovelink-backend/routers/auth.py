@@ -9,6 +9,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from database import get_db
 from models.user import User
@@ -135,8 +136,10 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
 
 @router.post("/login")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    print(f"LOGIN ATTEMPT: identifier={data.identifier}, password={'PROVIDED' if data.password else 'NONE'}")
     user = await get_user_by_identifier(data.identifier, db)
     if not user:
+        print("LOGIN ATTEMPT: User not found")
         raise HTTPException(status_code=404, detail="No account found with this email or phone")
 
     # Password login
@@ -326,6 +329,23 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_from_token(token: str, db: AsyncSession) -> User:
+    """Validate a raw JWT string (used by WebSocket endpoints)."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str | None = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token expired or invalid")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
 @router.get("/me")
 async def me(
     current_user: User = Depends(get_current_user),
@@ -392,9 +412,27 @@ async def test_email():
     otp = generate_otp()
     try:
         await send_otp_email(to, otp, purpose="test")
-    except Exception as exc:
+    except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to send test email: {exc}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
         )
     return {"message": f"Test email sent to {to}", "otp_preview": otp}
+
+
+class FCMTokenRequest(BaseModel):
+    fcm_token: str
+
+
+@router.post("/fcm-token")
+async def register_fcm_token(
+    payload: FCMTokenRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Registers a Firebase Cloud Messaging token for push notifications."""
+    current_user.fcm_token = payload.fcm_token
+    db.add(current_user) # Add the user object back to the session to track changes
+    await db.commit()
+    await db.refresh(current_user) # Refresh to get the updated state
+    return {"saved": True}

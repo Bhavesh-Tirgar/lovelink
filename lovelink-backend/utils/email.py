@@ -5,21 +5,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-)
-
-print(
-    f"ENV CHECK: MAIL_USERNAME={conf.MAIL_USERNAME}, "
-    f"MAIL_FROM={conf.MAIL_FROM}"
-)
+def get_fastmail():
+    conf = ConnectionConfig(
+        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+        MAIL_FROM=os.getenv("MAIL_FROM"),
+        MAIL_PORT=587,
+        MAIL_SERVER="smtp.gmail.com",
+        MAIL_STARTTLS=True,
+        MAIL_SSL_TLS=False,
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
+    )
+    return FastMail(conf)
 
 
 async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
@@ -52,8 +50,8 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
         body=body,
         subtype="html",
     )
-    fm = FastMail(conf)
     try:
+        fm = get_fastmail()
         print(f"Sending OTP email to {email} for {purpose}...")
         await fm.send_message(message)
         print("Email sent successfully.")
