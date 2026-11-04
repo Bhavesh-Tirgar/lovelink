@@ -10,3 +10,9 @@ lovelink-frontend/build/
 lovelink-backend/firebase_credentials.json
 
 lovelink-backend/append_firebase_env.py
+
+# Frontend dependencies and build files
+**/node_modules/
+**/build/
+lovelink-frontend/*.log
+lovelink-frontend/*_log.txt
