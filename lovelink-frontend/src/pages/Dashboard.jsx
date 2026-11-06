@@ -4,6 +4,7 @@ import api from '../api';
 import DailyQuestion from '../components/DailyQuestion';
 import NotificationBell from '../components/NotificationBell';
 import TimeWidget from '../components/TimeWidget';
+import LoveRadarWidget from '../components/LoveRadarWidget';
 
 const MOODS = ['😊', '😢', '😍', '😤', '😴', '🥰', '😰', '🎉'];
 const MOOD_LABELS = ['Happy', 'Sad', 'In Love', 'Frustrated', 'Tired', 'Grateful', 'Anxious', 'Excited'];
@@ -279,6 +280,13 @@ function Dashboard() {
             )}
           </div>
         </section >
+
+        {/* Where is My Love? Live Distance & Battery Status */}
+        {data && data.linked && (
+          <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <LoveRadarWidget partner={data.partner_user} coupleId={data.couple_id} />
+          </section>
+        )}
 
         {/* Row 2: Mood Check-in */}
         <section className="glass-card p-6 md:p-8">

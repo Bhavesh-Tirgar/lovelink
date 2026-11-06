@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
-from database import get_db
+from database import get_db, AsyncSessionLocal
 from models.user import User
 from models.couple import Couple
 from routers.auth import get_current_user
@@ -165,6 +165,17 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
     room = f"games_{couple_id}"
     await manager.connect(websocket, room)
 
+    # Resolve partner user ID for turn switching
+    other_user_id = None
+    try:
+        async with AsyncSessionLocal() as db:
+            c_res = await db.execute(select(Couple).where(Couple.id == couple_id))
+            couple = c_res.scalars().first()
+            if couple:
+                other_user_id = str(couple.user2_id) if str(couple.user1_id) == user_id else str(couple.user1_id)
+    except Exception as e:
+        print(f"Error fetching couple for game session: {e}")
+
     # Initialize couple session if not present
     if couple_id not in game_sessions:
         game_sessions[couple_id] = {
@@ -266,8 +277,18 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
             elif game == "truth_or_dare":
                 tod_session = session.setdefault("tod", {"turn": user_id, "current_challenge": None, "completed_count": 0})
                 
-                if action == "set_turn":
-                    target_turn = data.get("turn", user_id)
+                if action in ("set_turn", "claim_turn", "pass_turn"):
+                    if action == "claim_turn":
+                        target_turn = user_id
+                    elif action == "pass_turn":
+                        target_turn = other_user_id or "other"
+                    else:
+                        target_turn = data.get("turn", user_id)
+                        if target_turn in ("partner", "other") and other_user_id:
+                            target_turn = other_user_id
+                        elif target_turn in ("me", "self"):
+                            target_turn = user_id
+
                     tod_session["turn"] = target_turn
                     await manager.broadcast(room, {
                         "type": "tod_turn_changed",
@@ -330,7 +351,11 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
 
                 elif action == "next_round":
                     tod_session["current_challenge"] = None
-                    new_turn = data.get("next_turn") or user_id
+                    curr_turn = tod_session.get("turn")
+                    if other_user_id:
+                        new_turn = other_user_id if curr_turn == user_id else user_id
+                    else:
+                        new_turn = data.get("next_turn") or user_id
                     tod_session["turn"] = new_turn
                     await manager.broadcast(room, {
                         "type": "tod_round_reset",

@@ -230,7 +230,7 @@ export default function Games() {
     const [todActiveChallenge, setTodActiveChallenge] = useState(null);
     const [todAnswerInput, setTodAnswerInput] = useState('');
 
-    const isMyTurn = (!todTurn || todTurn === userId);
+    const isMyTurn = (!todTurn || todTurn === userId || todTurn === 'me');
 
     const fetchTodPrompt = async (selectedType = todType, selectedCat = todCategory) => {
         try {
@@ -320,28 +320,43 @@ export default function Games() {
         setTodAnswerInput('');
     };
 
-    const nextTodRound = () => {
+    const claimMyTodTurn = () => {
         playSound('click');
-        const nextUser = todTurn === userId ? 'partner' : userId;
         sendWs({
             game: 'truth_or_dare',
-            action: 'next_round',
-            next_turn: nextUser
+            action: 'claim_turn'
+        });
+        setTodTurn(userId);
+        setTodMode('custom');
+        toast.success("It's your turn! Write your question or dare ✍️");
+    };
+
+    const passTodTurn = () => {
+        playSound('click');
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'pass_turn'
+        });
+        setTodTurn('partner');
+        toast("Turn passed to partner! ⏳");
+    };
+
+    const nextTodRound = () => {
+        playSound('click');
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'next_round'
         });
         setTodActiveChallenge(null);
         setTodAnswerInput('');
-        setTodTurn(nextUser);
     };
 
     const switchTodTurn = (targetUserId) => {
-        playSound('click');
-        sendWs({
-            game: 'truth_or_dare',
-            action: 'set_turn',
-            turn: targetUserId
-        });
-        setTodTurn(targetUserId);
-        toast("Turn changed! 👑");
+        if (targetUserId === userId || targetUserId === 'me') {
+            claimMyTodTurn();
+        } else {
+            passTodTurn();
+        }
     };
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -865,18 +880,29 @@ export default function Games() {
                                     {isMyTurn ? '👑 Your Turn to Ask / Dare!' : '⏳ Partner’s Turn to Challenge You'}
                                 </h4>
                                 <p className="text-xs text-gray-400">
-                                    {isMyTurn ? 'Pick a deck prompt or write your own custom challenge.' : 'Waiting for partner to send you a challenge...'}
+                                    {isMyTurn ? 'Type your own custom question/dare or choose from decks below.' : 'Waiting for partner to prepare a challenge for you...'}
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => switchTodTurn(isMyTurn ? 'partner' : userId)}
-                            className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5"
-                            title="Switch turn manually"
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            {isMyTurn ? 'Pass' : 'Take Turn'}
-                        </button>
+                        {isMyTurn ? (
+                            <button
+                                onClick={passTodTurn}
+                                className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5"
+                                title="Pass turn to partner"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                Pass Turn
+                            </button>
+                        ) : (
+                            <button
+                                onClick={claimMyTodTurn}
+                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 border border-pink-400/30 text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-md shadow-pink-500/20"
+                                title="Claim turn and write challenge"
+                            >
+                                <Crown className="w-3.5 h-3.5" />
+                                My Turn! Let Me Write
+                            </button>
+                        )}
                     </div>
 
                     {/* ── CASE 1: ACTIVE CHALLENGE IN PROGRESS ── */}
@@ -974,8 +1000,29 @@ export default function Games() {
                                 </div>
                             )}
                         </div>
+                    ) : !isMyTurn ? (
+                        /* ── CASE 2A: PARTNER'S TURN (WAITING & CLAIM OPTION) ── */
+                        <div className="p-8 sm:p-10 rounded-3xl border border-purple-500/20 bg-gradient-to-b from-purple-950/30 via-black/50 to-black/80 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-in">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-3xl animate-pulse">
+                                ⏳
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2 font-serif">
+                                Partner's Turn to Ask You!
+                            </h3>
+                            <p className="text-sm text-gray-300 max-w-sm mx-auto mb-6">
+                                Your partner is choosing or typing a custom Truth or Dare for you. Get ready!
+                            </p>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <button
+                                    onClick={claimMyTodTurn}
+                                    className="w-full sm:w-auto px-7 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2 hover:scale-105"
+                                >
+                                    <Crown className="w-4 h-4" /> It's My Turn! Let Me Write / Ask
+                                </button>
+                            </div>
+                        </div>
                     ) : (
-                        /* ── CASE 2: NO ACTIVE CHALLENGE ── */
+                        /* ── CASE 2B: MY TURN (WRITE MY OWN OR PICK FROM DECKS) ── */
                         <div className="space-y-6">
                             {/* Mode Switcher: Cards vs Write My Own */}
                             <div className="flex justify-center gap-2">
@@ -1058,12 +1105,43 @@ export default function Games() {
                                         onChange={e => setTodCustomText(e.target.value)}
                                         placeholder={
                                             todType === 'truth'
-                                                ? "Write your personal question... e.g. What is the one thing about me that always makes your heart melt?"
+                                                ? "Write your personal question... e.g. What was the exact moment you realized you loved me?"
                                                 : "Write your dare challenge... e.g. Send me a 15-second voice note singing our song!"
                                         }
                                         rows={4}
-                                        className="w-full px-4 py-3 bg-black/50 border border-white/15 rounded-2xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/80 transition-all resize-none mb-4 shadow-inner"
+                                        className="w-full px-4 py-3 bg-black/50 border border-white/15 rounded-2xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/80 transition-all resize-none mb-3 shadow-inner"
                                     />
+
+                                    {/* Quick Inspiration Chips */}
+                                    <div className="mb-4">
+                                        <p className="text-[10px] uppercase tracking-wider text-pink-300 font-bold mb-2">
+                                            💡 Quick Suggestions (Tap to use):
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {(todType === 'truth' ? [
+                                                "What made you fall for me?",
+                                                "Favorite memory of us together?",
+                                                "One thing you love most about me?",
+                                                "What is your dream date with me?",
+                                                "What is one secret fantasy of ours?"
+                                            ] : [
+                                                "Send a 10s voice note singing!",
+                                                "Send a cute silly selfie right now!",
+                                                "Give me 3 love compliments in 20s!",
+                                                "Blow a sweet kiss into your camera!",
+                                                "Do your best impression of me!"
+                                            ]).map((chip, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setTodCustomText(chip)}
+                                                    className="px-2.5 py-1 rounded-full text-[11px] bg-white/5 hover:bg-white/15 border border-white/10 text-gray-300 hover:text-white transition-all"
+                                                >
+                                                    {chip}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={sendTodChallenge}
                                         className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 font-bold text-sm text-white shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2"
