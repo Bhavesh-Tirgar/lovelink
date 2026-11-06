@@ -38,7 +38,8 @@ export default function VideoCall() {
     useEffect(() => {
         if (!callState?.token || !containerRef.current) return;
 
-        const { token, room_id, zego_app_id, user_id, user_name } = callState;
+        const { token, room_id, zego_app_id, user_id, user_name, call_type } = callState;
+        const isVoice = (call_type === 'voice');
 
         try {
             const kitToken = ZegoUIKitPrebuilt.generateKitTokenForProduction(
@@ -57,8 +58,11 @@ export default function VideoCall() {
                     mode: ZegoUIKitPrebuilt.OneONoneCall,
                 },
                 showPreJoinView: false,
-                turnOnCameraWhenJoining: true,
+                turnOnCameraWhenJoining: !isVoice,
                 turnOnMicrophoneWhenJoining: true,
+                showCameraToggleButton: !isVoice,
+                showMyCameraToggleButton: !isVoice,
+                showAudioVideoSettingsButton: true,
                 showRoomDetailsButton: false,
                 showScreenSharingButton: false,
                 onLeaveRoom: async () => {

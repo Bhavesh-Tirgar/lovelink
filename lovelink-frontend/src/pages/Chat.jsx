@@ -291,18 +291,19 @@ function Chat() {
         setIsRecording(false);
     };
 
-    const startCall = async () => {
+    const startCall = async (callType = 'video') => {
         if (calling) return;
         setCalling(true);
         try {
-            const res = await api.post('/calls/initiate', { call_type: 'video' });
+            const res = await api.post('/calls/initiate', { call_type: callType });
             navigate(`/call/${res.data.call_id}`, {
                 state: {
                     token: res.data.token,
                     room_id: res.data.room_id,
                     zego_app_id: res.data.zego_app_id,
                     user_id: res.data.user_id,
-                    user_name: res.data.user_name
+                    user_name: res.data.user_name,
+                    call_type: callType
                 }
             });
         } catch (err) {
@@ -363,15 +364,20 @@ function Chat() {
                 {partner && (
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={startCall}
+                            onClick={() => startCall('voice')}
                             disabled={calling}
-                            className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-pink-300 border border-pink-500/20 hover:border-pink-500/50 hover:bg-pink-500/30 transition-all disabled:opacity-50"
+                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white/5 text-gray-200 border border-white/10 hover:bg-white/15 hover:text-white transition-all disabled:opacity-50"
+                            title="Voice Call"
+                        >
+                            <Phone size={18} />
+                        </button>
+                        <button
+                            onClick={() => startCall('video')}
+                            disabled={calling}
+                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-pink-300 border border-pink-500/20 hover:border-pink-500/50 hover:bg-pink-500/30 transition-all disabled:opacity-50 shadow-sm"
                             title="Video Call"
                         >
                             <Video size={18} />
-                        </button>
-                        <button className="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 text-gray-300 border border-white/5 hover:bg-white/10 hover:text-white transition-all hidden sm:flex">
-                            <Phone size={18} />
                         </button>
                     </div>
                 )}

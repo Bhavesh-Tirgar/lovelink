@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
@@ -168,11 +169,26 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
     if couple_id not in game_sessions:
         game_sessions[couple_id] = {
             "rps": {"moves": {}, "scores": {}},
-            "ttt": {"board": [""] * 9, "turn": user_id, "scores": {}, "symbol": {user_id: "X"}}
+            "ttt": {"board": [""] * 9, "turn": user_id, "scores": {}, "symbol": {user_id: "X"}},
+            "tod": {
+                "turn": user_id,
+                "current_challenge": None,
+                "completed_count": 0
+            }
         }
 
     session = game_sessions[couple_id]
-    await manager.send_personal(websocket, {"type": "session_init", "user_id": user_id})
+    if "tod" not in session:
+        session["tod"] = {
+            "turn": user_id,
+            "current_challenge": None,
+            "completed_count": 0
+        }
+    await manager.send_personal(websocket, {
+        "type": "session_init",
+        "user_id": user_id,
+        "tod": session["tod"]
+    })
 
     try:
         while True:
@@ -246,13 +262,88 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
                     session["ttt"]["board"] = [""] * 9
                     await manager.broadcast(room, {"type": "ttt_reset", "by_user": user_id})
 
-            # ── 3. TRUTH OR DARE ─────────────────────
+            # ── 3. TRUTH OR DARE (INTERACTIVE & REALISTIC) ─────────────────────
             elif game == "truth_or_dare":
-                await manager.broadcast(room, {
-                    "type": "truth_or_dare_sync",
-                    "payload": data.get("payload"),
-                    "by_user": user_id
-                }, exclude=websocket)
+                tod_session = session.setdefault("tod", {"turn": user_id, "current_challenge": None, "completed_count": 0})
+                
+                if action == "set_turn":
+                    target_turn = data.get("turn", user_id)
+                    tod_session["turn"] = target_turn
+                    await manager.broadcast(room, {
+                        "type": "tod_turn_changed",
+                        "turn": target_turn,
+                        "by_user": user_id
+                    })
+
+                elif action == "send_challenge":
+                    challenge_type = data.get("challenge_type", "truth")
+                    prompt = data.get("prompt", "").strip()
+                    category = data.get("category", "romantic")
+                    is_custom = bool(data.get("is_custom", False))
+                    
+                    challenge_obj = {
+                        "id": str(uuid.uuid4())[:8],
+                        "type": challenge_type,
+                        "prompt": prompt,
+                        "category": category,
+                        "is_custom": is_custom,
+                        "from_user": user_id,
+                        "answer": None,
+                        "status": "pending"
+                    }
+                    tod_session["current_challenge"] = challenge_obj
+                    await manager.broadcast(room, {
+                        "type": "tod_challenge_received",
+                        "challenge": challenge_obj,
+                        "from_user": user_id
+                    })
+
+                elif action == "submit_answer":
+                    answer = data.get("answer", "").strip()
+                    if tod_session.get("current_challenge"):
+                        tod_session["current_challenge"]["answer"] = answer
+                        tod_session["current_challenge"]["status"] = "answered"
+                    tod_session["completed_count"] = tod_session.get("completed_count", 0) + 1
+                    
+                    await manager.broadcast(room, {
+                        "type": "tod_answer_revealed",
+                        "answer": answer,
+                        "by_user": user_id,
+                        "challenge": tod_session.get("current_challenge"),
+                        "completed_count": tod_session["completed_count"]
+                    })
+
+                elif action == "complete_dare":
+                    note = data.get("note", "").strip()
+                    if tod_session.get("current_challenge"):
+                        tod_session["current_challenge"]["status"] = "completed"
+                        tod_session["current_challenge"]["answer"] = note
+                    tod_session["completed_count"] = tod_session.get("completed_count", 0) + 1
+                    
+                    await manager.broadcast(room, {
+                        "type": "tod_dare_completed",
+                        "note": note,
+                        "by_user": user_id,
+                        "challenge": tod_session.get("current_challenge"),
+                        "completed_count": tod_session["completed_count"]
+                    })
+
+                elif action == "next_round":
+                    tod_session["current_challenge"] = None
+                    new_turn = data.get("next_turn") or user_id
+                    tod_session["turn"] = new_turn
+                    await manager.broadcast(room, {
+                        "type": "tod_round_reset",
+                        "turn": new_turn,
+                        "by_user": user_id
+                    })
+
+                elif action == "sync":
+                    await manager.broadcast(room, {
+                        "type": "truth_or_dare_sync",
+                        "payload": data.get("payload"),
+                        "by_user": user_id
+                    }, exclude=websocket)
 
             # ── 4. WOULD YOU RATHER ─────────────────────
             elif game == "would_you_rather":

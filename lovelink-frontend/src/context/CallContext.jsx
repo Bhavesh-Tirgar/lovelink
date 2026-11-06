@@ -118,6 +118,7 @@ export const CallProvider = ({ children }) => {
     useWebSocket(wsUrl, handleWsMessage);
 
     const answerCall = async (callId) => {
+        const callData = incomingCall;
         clearIncoming();
         try {
             // Get our token for the room
@@ -128,7 +129,8 @@ export const CallProvider = ({ children }) => {
                     room_id: res.data.room_id,
                     zego_app_id: res.data.zego_app_id,
                     user_id: res.data.user_id,
-                    user_name: res.data.user_name
+                    user_name: res.data.user_name,
+                    call_type: callData?.call_type || res.data.call_type || 'video'
                 }
             });
         } catch (err) {
@@ -161,8 +163,8 @@ export const CallProvider = ({ children }) => {
 
                         <h2 className="text-xl font-semibold text-white mb-1">{incomingCall.caller_name}</h2>
                         <p className="text-gray-400 mb-8 flex items-center gap-2">
-                            {incomingCall.call_type === 'video' ? <Video size={16} /> : <Phone size={16} />}
-                            is calling...
+                            {incomingCall.call_type === 'video' ? <Video size={16} className="text-pink-400" /> : <Phone size={16} className="text-emerald-400" />}
+                            {incomingCall.call_type === 'video' ? 'Incoming Video Call...' : 'Incoming Voice Call...'}
                         </p>
 
                         <div className="flex items-center gap-6">

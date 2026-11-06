@@ -107,7 +107,8 @@ async def initiate_call(
         "token": caller_token,
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
-        "user_name": current_user.name
+        "user_name": current_user.name,
+        "call_type": str(payload.call_type)
     }
 
 
@@ -131,7 +132,8 @@ async def answer_call(
         "room_id": call.room_id,
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
-        "user_name": current_user.name
+        "user_name": current_user.name,
+        "call_type": str(call.call_type.value if hasattr(call.call_type, 'value') else call.call_type)
     }
 
 @router.get("/{call_id}/token")
@@ -154,7 +156,8 @@ async def get_call_token(
         "room_id": call.room_id,
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
-        "user_name": current_user.name
+        "user_name": current_user.name,
+        "call_type": str(call.call_type.value if hasattr(call.call_type, 'value') else call.call_type)
     }
 
 

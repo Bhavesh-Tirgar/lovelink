@@ -79,18 +79,19 @@ function Dashboard() {
     }
   };
 
-  const startCall = async () => {
+  const startCall = async (callType = 'video') => {
     if (calling || !data?.linked) return;
     setCalling(true);
     try {
-      const res = await api.post('/calls/initiate', { call_type: 'video' });
+      const res = await api.post('/calls/initiate', { call_type: callType });
       navigate(`/call/${res.data.call_id}`, {
         state: {
           token: res.data.token,
           room_id: res.data.room_id,
           zego_app_id: res.data.zego_app_id,
           user_id: res.data.user_id,
-          user_name: res.data.user_name
+          user_name: res.data.user_name,
+          call_type: callType
         }
       });
     } catch (err) {
@@ -550,9 +551,26 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Action 4: Video Call */}
+            {/* Action 4: Voice Call */}
             <div
-              onClick={startCall}
+              onClick={() => startCall('voice')}
+              className="glass-card p-5 group cursor-pointer hover:-translate-y-1 hover:border-emerald-500/50 hover:shadow-[0_10px_30px_rgba(16,185,129,0.2)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="flex flex-col gap-3 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner">
+                  📞
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-200 tracking-tight">Voice Call</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">Hear partner's voice</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action 5: Video Call */}
+            <div
+              onClick={() => startCall('video')}
               className="glass-card p-5 group cursor-pointer hover:-translate-y-1 hover:border-red-500/50 hover:shadow-[0_10px_30px_rgba(239,68,68,0.2)]"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

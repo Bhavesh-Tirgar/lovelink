@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     Gamepad2, Flame, Heart, Sparkles, RotateCcw, 
-    CheckCircle2, Shuffle, Trophy, Zap
+    CheckCircle2, Shuffle, Trophy, Zap, Crown, Send, Edit3
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
@@ -211,10 +211,13 @@ export default function Games() {
     };
 
     // ───────────────────────────────────────────────────────────────────────────
-    // GAME 2: TRUTH OR DARE STATE & LOGIC
+    // GAME 2: REALISTIC TURN-BASED TRUTH OR DARE STATE & LOGIC
     // ───────────────────────────────────────────────────────────────────────────
+    const [todTurn, setTodTurn] = useState(null); // userId of who is asking/challenging
+    const [todMode, setTodMode] = useState('cards'); // 'cards' (deck) or 'custom' (write my own)
     const [todCategory, setTodCategory] = useState('romantic');
-    const [todType, setTodType] = useState('truth');
+    const [todType, setTodType] = useState('truth'); // 'truth' or 'dare'
+    const [todCustomText, setTodCustomText] = useState('');
     const [todPrompt, setTodPrompt] = useState({
         type: 'truth',
         category: 'romantic',
@@ -222,6 +225,12 @@ export default function Games() {
     });
     const [todIsFlipping, setTodIsFlipping] = useState(false);
     const [todCompletedCount, setTodCompletedCount] = useState(0);
+
+    // Active challenge state: null or { id, type, prompt, category, is_custom, from_user, answer, status }
+    const [todActiveChallenge, setTodActiveChallenge] = useState(null);
+    const [todAnswerInput, setTodAnswerInput] = useState('');
+
+    const isMyTurn = (!todTurn || todTurn === userId);
 
     const fetchTodPrompt = async (selectedType = todType, selectedCat = todCategory) => {
         try {
@@ -231,13 +240,6 @@ export default function Games() {
             setTimeout(() => {
                 setTodPrompt(res.data);
                 setTodIsFlipping(false);
-
-                // Sync with partner
-                sendWs({
-                    game: 'truth_or_dare',
-                    action: 'sync',
-                    payload: res.data
-                });
             }, 300);
         } catch (e) {
             setTodIsFlipping(false);
@@ -245,11 +247,101 @@ export default function Games() {
         }
     };
 
-    const handleTodComplete = () => {
+    const sendTodChallenge = () => {
+        const promptText = todMode === 'custom' ? todCustomText.trim() : todPrompt.prompt;
+        if (!promptText) {
+            toast.error("Please write a question or choose a card first!");
+            return;
+        }
+        playSound('flip');
+        const challengeData = {
+            challenge_type: todType,
+            prompt: promptText,
+            category: todMode === 'custom' ? 'Custom' : todCategory,
+            is_custom: todMode === 'custom'
+        };
+
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'send_challenge',
+            ...challengeData
+        });
+
+        const newChallenge = {
+            id: 'tod-' + Date.now().toString(36),
+            type: todType,
+            prompt: promptText,
+            category: challengeData.category,
+            is_custom: challengeData.is_custom,
+            from_user: userId,
+            status: 'pending',
+            answer: null
+        };
+        setTodActiveChallenge(newChallenge);
+        setTodCustomText('');
+        toast.success("Challenge sent to your partner! 💌");
+    };
+
+    const submitTodAnswer = () => {
+        if (!todAnswerInput.trim()) {
+            toast.error("Please type your answer!");
+            return;
+        }
         playSound('win');
-        confetti({ particleCount: 50, spread: 50, origin: { y: 0.7 } });
-        setTodCompletedCount(c => c + 1);
-        toast.success("Awesome! Challenge completed 💕");
+        confetti({ particleCount: 75, spread: 65 });
+        const answerText = todAnswerInput.trim();
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'submit_answer',
+            answer: answerText
+        });
+        setTodActiveChallenge(prev => ({
+            ...(prev || {}),
+            answer: answerText,
+            status: 'answered'
+        }));
+        setTodAnswerInput('');
+    };
+
+    const completeTodDare = () => {
+        playSound('win');
+        confetti({ particleCount: 85, spread: 75 });
+        const noteText = todAnswerInput.trim() || 'Dare completed like a champion! 💋';
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'complete_dare',
+            note: noteText
+        });
+        setTodActiveChallenge(prev => ({
+            ...(prev || {}),
+            answer: noteText,
+            status: 'completed'
+        }));
+        setTodAnswerInput('');
+    };
+
+    const nextTodRound = () => {
+        playSound('click');
+        const nextUser = todTurn === userId ? 'partner' : userId;
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'next_round',
+            next_turn: nextUser
+        });
+        setTodActiveChallenge(null);
+        setTodAnswerInput('');
+        setTodTurn(nextUser);
+    };
+
+    const switchTodTurn = (targetUserId) => {
+        playSound('click');
+        sendWs({
+            game: 'truth_or_dare',
+            action: 'set_turn',
+            turn: targetUserId
+        });
+        setTodTurn(targetUserId);
+        toast("Turn changed! 👑");
     };
 
     // ───────────────────────────────────────────────────────────────────────────
@@ -461,12 +553,71 @@ export default function Games() {
                 setTttTurn('❤️');
                 break;
 
+            case 'session_init':
+                if (data.tod) {
+                    if (data.tod.turn) setTodTurn(data.tod.turn);
+                    if (data.tod.current_challenge) setTodActiveChallenge(data.tod.current_challenge);
+                    if (data.tod.completed_count) setTodCompletedCount(data.tod.completed_count);
+                }
+                break;
+
+            case 'tod_turn_changed':
+                setTodTurn(data.turn);
+                toast(`Turn passed to ${data.turn === userId ? 'You' : 'Partner'}! 👑`, { icon: '✨' });
+                break;
+
+            case 'tod_challenge_received':
+                setTodActiveChallenge(data.challenge);
+                playSound('flip');
+                if (data.from_user !== userId) {
+                    toast(
+                        data.challenge.type === 'truth' 
+                            ? 'Partner asked you a Truth question! 💭' 
+                            : 'Partner challenged you to a Dare! 🔥',
+                        { icon: '💌' }
+                    );
+                }
+                break;
+
+            case 'tod_answer_revealed':
+                setTodActiveChallenge(prev => ({
+                    ...(prev || data.challenge || {}),
+                    answer: data.answer,
+                    status: 'answered'
+                }));
+                playSound('win');
+                confetti({ particleCount: 80, spread: 70 });
+                if (data.completed_count) setTodCompletedCount(data.completed_count);
+                if (data.by_user !== userId) {
+                    toast("Partner revealed their confession! 💖", { icon: '✨' });
+                }
+                break;
+
+            case 'tod_dare_completed':
+                setTodActiveChallenge(prev => ({
+                    ...(prev || data.challenge || {}),
+                    answer: data.note || 'Completed!',
+                    status: 'completed'
+                }));
+                playSound('win');
+                confetti({ particleCount: 90, spread: 80 });
+                if (data.completed_count) setTodCompletedCount(data.completed_count);
+                if (data.by_user !== userId) {
+                    toast("Partner completed the dare! 💋", { icon: '🎉' });
+                }
+                break;
+
+            case 'tod_round_reset':
+                setTodActiveChallenge(null);
+                setTodAnswerInput('');
+                setTodTurn(data.turn);
+                break;
+
             case 'truth_or_dare_sync':
                 setTodPrompt(data.payload);
                 setTodType(data.payload.type);
                 setTodCategory(data.payload.category);
                 playSound('flip');
-                toast("Partner drew a card! 💌", { icon: '✨' });
                 break;
 
             case 'would_you_rather_card':
@@ -699,111 +850,301 @@ export default function Games() {
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* 2. TRUTH OR DARE */}
+            {/* 2. REALISTIC & TURN-BASED TRUTH OR DARE */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'tod' && (
-                <div className="space-y-6">
-                    {/* Category Selector */}
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                        {[
-                            { id: 'romantic', label: '💖 Romantic' },
-                            { id: 'deep', label: '💭 Deep & Soulful' },
-                            { id: 'spicy', label: '🌶️ Spicy & Flirty' },
-                            { id: 'funny', label: '😂 Funny & Wild' }
-                        ].map(c => (
-                            <button
-                                key={c.id}
-                                onClick={() => {
-                                    playSound('click');
-                                    setTodCategory(c.id);
-                                    fetchTodPrompt(todType, c.id);
-                                }}
-                                className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${
-                                    todCategory === c.id
-                                        ? 'bg-white/20 border-pink-400/60 text-white shadow-lg shadow-pink-500/20'
-                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                                }`}
-                            >
-                                {c.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Mode Toggle: Truth vs Dare */}
-                    <div className="flex justify-center">
-                        <div className="inline-flex p-1 bg-black/40 border border-white/10 rounded-2xl">
-                            <button
-                                onClick={() => {
-                                    playSound('click');
-                                    setTodType('truth');
-                                    fetchTodPrompt('truth', todCategory);
-                                }}
-                                className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${
-                                    todType === 'truth'
-                                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
-                                        : 'text-gray-400 hover:text-white'
-                                }`}
-                            >
-                                💬 TRUTH
-                            </button>
-                            <button
-                                onClick={() => {
-                                    playSound('click');
-                                    setTodType('dare');
-                                    fetchTodPrompt('dare', todCategory);
-                                }}
-                                className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${
-                                    todType === 'dare'
-                                        ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-lg'
-                                        : 'text-gray-400 hover:text-white'
-                                }`}
-                            >
-                                🔥 DARE
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 3D Prompt Card */}
-                    <div className="perspective-1000 max-w-lg mx-auto">
-                        <div className={`p-8 sm:p-12 rounded-3xl border transition-all duration-500 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl ${
-                            todType === 'truth'
-                                ? 'bg-gradient-to-b from-blue-900/30 via-indigo-900/20 to-black/50 border-blue-500/30'
-                                : 'bg-gradient-to-b from-rose-900/30 via-pink-900/20 to-black/50 border-pink-500/30'
-                        } ${todIsFlipping ? 'scale-95 opacity-50 rotate-y-90' : 'scale-100 opacity-100'}`}>
-                            
-                            {/* Card badge */}
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-6 bg-white/10 border border-white/15">
-                                {todType === 'truth' ? '💬 Truth Prompt' : '🔥 Dare Challenge'} • {todCategory}
+                <div className="space-y-6 max-w-xl mx-auto">
+                    {/* Turn Status Banner */}
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl shadow-lg">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2.5 rounded-xl ${isMyTurn ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white shadow-md shadow-pink-500/25' : 'bg-white/5 text-gray-400'}`}>
+                                <Crown className="w-5 h-5" />
                             </div>
-
-                            {/* Prompt text */}
-                            <p className="text-lg sm:text-2xl font-serif leading-relaxed text-gray-100 mb-8 min-h-[5rem] flex items-center justify-center">
-                                "{todPrompt.prompt}"
-                            </p>
-
-                            {/* Actions */}
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                                <button
-                                    onClick={() => fetchTodPrompt(todType, todCategory)}
-                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-all hover:scale-105"
-                                >
-                                    <Shuffle className="w-4 h-4" /> Next Prompt
-                                </button>
-                                <button
-                                    onClick={handleTodComplete}
-                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-semibold shadow-lg shadow-teal-500/20 transition-all hover:scale-105"
-                                >
-                                    <CheckCircle2 className="w-4 h-4" /> Completed!
-                                </button>
-                            </div>
-
-                            {todCompletedCount > 0 && (
-                                <p className="text-[11px] text-gray-400 mt-4">
-                                    ❤️ {todCompletedCount} challenges completed together this session!
+                            <div>
+                                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                    {isMyTurn ? '👑 Your Turn to Ask / Dare!' : '⏳ Partner’s Turn to Challenge You'}
+                                </h4>
+                                <p className="text-xs text-gray-400">
+                                    {isMyTurn ? 'Pick a deck prompt or write your own custom challenge.' : 'Waiting for partner to send you a challenge...'}
                                 </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => switchTodTurn(isMyTurn ? 'partner' : userId)}
+                            className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white transition-all flex items-center gap-1.5"
+                            title="Switch turn manually"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            {isMyTurn ? 'Pass' : 'Take Turn'}
+                        </button>
+                    </div>
+
+                    {/* ── CASE 1: ACTIVE CHALLENGE IN PROGRESS ── */}
+                    {todActiveChallenge ? (
+                        <div className="perspective-1000">
+                            {/* Subcase 1A: Challenge Completed / Answer Revealed */}
+                            {todActiveChallenge.status === 'answered' || todActiveChallenge.status === 'completed' ? (
+                                <div className="p-8 sm:p-10 rounded-3xl border border-pink-500/30 bg-gradient-to-b from-purple-950/40 via-pink-950/30 to-black/80 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl animate-fade-in">
+                                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                        ✨ Challenge Complete!
+                                    </div>
+                                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">The Question / Challenge</p>
+                                    <p className="text-base sm:text-lg font-serif text-gray-200 mb-6 italic">
+                                        "{todActiveChallenge.prompt}"
+                                    </p>
+
+                                    <div className="p-5 rounded-2xl bg-white/5 border border-pink-500/20 mb-8 text-left shadow-inner">
+                                        <p className="text-[11px] uppercase tracking-wider text-pink-400 font-bold mb-1.5 flex items-center gap-1.5">
+                                            <span>{todActiveChallenge.type === 'truth' ? '💬 Confession' : '🔥 Dare Result'}</span>
+                                        </p>
+                                        <p className="text-base text-white font-medium leading-relaxed">
+                                            "{todActiveChallenge.answer}"
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={nextTodRound}
+                                        className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 font-bold text-xs sm:text-sm text-white shadow-lg shadow-purple-500/25 transition-all hover:scale-105 flex items-center justify-center gap-2 mx-auto"
+                                    >
+                                        Next Round (Switch Turn) ➡️
+                                    </button>
+                                </div>
+                            ) : todActiveChallenge.from_user !== userId ? (
+                                /* Subcase 1B: I am the Receiver - Answer the Challenge */
+                                <div className={`p-8 sm:p-10 rounded-3xl border transition-all duration-500 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl ${
+                                    todActiveChallenge.type === 'truth'
+                                        ? 'bg-gradient-to-b from-blue-900/30 via-indigo-900/20 to-black/80 border-blue-500/30'
+                                        : 'bg-gradient-to-b from-rose-900/30 via-pink-900/20 to-black/80 border-pink-500/30'
+                                }`}>
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-5 bg-white/10 border border-white/15">
+                                        {todActiveChallenge.type === 'truth' ? '💬 Incoming Truth Question' : '🔥 Incoming Dare Challenge'} • {todActiveChallenge.category}
+                                    </div>
+
+                                    <p className="text-lg sm:text-2xl font-serif text-white mb-6 leading-relaxed">
+                                        "{todActiveChallenge.prompt}"
+                                    </p>
+
+                                    {todActiveChallenge.type === 'truth' ? (
+                                        <div className="space-y-3 mt-4">
+                                            <textarea
+                                                value={todAnswerInput}
+                                                onChange={e => setTodAnswerInput(e.target.value)}
+                                                placeholder="Type your honest confession / answer here..."
+                                                rows={3}
+                                                className="w-full px-4 py-3 bg-black/50 border border-white/15 rounded-2xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500/80 transition-all resize-none shadow-inner"
+                                            />
+                                            <button
+                                                onClick={submitTodAnswer}
+                                                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 font-bold text-sm text-white shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Send className="w-4 h-4" /> Reveal My Truth to Partner 💖
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 mt-4">
+                                            <input
+                                                type="text"
+                                                value={todAnswerInput}
+                                                onChange={e => setTodAnswerInput(e.target.value)}
+                                                placeholder="Optional note: e.g. Just did it on camera! 💋"
+                                                className="w-full px-4 py-3 bg-black/50 border border-white/15 rounded-2xl text-white placeholder-gray-500 text-xs sm:text-sm focus:outline-none focus:border-pink-500/80 transition-all shadow-inner"
+                                            />
+                                            <button
+                                                onClick={completeTodDare}
+                                                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 hover:opacity-95 font-bold text-sm text-white shadow-lg shadow-pink-500/25 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 className="w-5 h-5" /> I Did It! Mark Completed 💋
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                /* Subcase 1C: I am the Asker - Waiting for Partner to Respond */
+                                <div className="p-8 sm:p-10 rounded-3xl border border-purple-500/30 bg-gradient-to-b from-purple-950/40 via-black/60 to-black/80 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-5 bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                        {todActiveChallenge.type === 'truth' ? '💬 Sent Truth' : '🔥 Sent Dare'} • {todActiveChallenge.category}
+                                    </div>
+                                    <p className="text-xl sm:text-2xl font-serif text-white mb-6 leading-relaxed">
+                                        "{todActiveChallenge.prompt}"
+                                    </p>
+                                    <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs text-purple-200 animate-pulse">
+                                        <span className="w-2 h-2 rounded-full bg-purple-400" />
+                                        Waiting for partner to {todActiveChallenge.type === 'truth' ? 'reveal their confession' : 'complete the dare'}...
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    </div>
+                    ) : (
+                        /* ── CASE 2: NO ACTIVE CHALLENGE ── */
+                        <div className="space-y-6">
+                            {/* Mode Switcher: Cards vs Write My Own */}
+                            <div className="flex justify-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        playSound('click');
+                                        setTodMode('cards');
+                                    }}
+                                    className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 border ${
+                                        todMode === 'cards'
+                                            ? 'bg-purple-600/40 border-purple-500/60 text-white shadow-lg shadow-purple-500/20'
+                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                                    Surprise Decks
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        playSound('click');
+                                        setTodMode('custom');
+                                    }}
+                                    className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 border ${
+                                        todMode === 'custom'
+                                            ? 'bg-pink-600/40 border-pink-500/60 text-white shadow-lg shadow-pink-500/20'
+                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Edit3 className="w-3.5 h-3.5 text-pink-400" />
+                                    Write My Own
+                                </button>
+                            </div>
+
+                            {/* Type Toggle: Truth vs Dare */}
+                            <div className="flex justify-center">
+                                <div className="inline-flex p-1 bg-black/40 border border-white/10 rounded-2xl">
+                                    <button
+                                        onClick={() => {
+                                            playSound('click');
+                                            setTodType('truth');
+                                            if (todMode === 'cards') fetchTodPrompt('truth', todCategory);
+                                        }}
+                                        className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${
+                                            todType === 'truth'
+                                                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                                                : 'text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        💬 TRUTH
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            playSound('click');
+                                            setTodType('dare');
+                                            if (todMode === 'cards') fetchTodPrompt('dare', todCategory);
+                                        }}
+                                        className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${
+                                            todType === 'dare'
+                                                ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-lg'
+                                                : 'text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        🔥 DARE
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content based on Mode */}
+                            {todMode === 'custom' ? (
+                                /* Write My Own Card */
+                                <div className="p-7 sm:p-9 rounded-3xl border border-pink-500/30 bg-gradient-to-b from-purple-950/30 via-pink-950/20 to-black/80 shadow-2xl backdrop-blur-xl">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Edit3 className="w-4 h-4 text-pink-400" />
+                                        <h3 className="text-sm font-bold text-white">
+                                            Write Custom {todType === 'truth' ? 'Truth Question' : 'Dare Task'}
+                                        </h3>
+                                    </div>
+                                    <textarea
+                                        value={todCustomText}
+                                        onChange={e => setTodCustomText(e.target.value)}
+                                        placeholder={
+                                            todType === 'truth'
+                                                ? "Write your personal question... e.g. What is the one thing about me that always makes your heart melt?"
+                                                : "Write your dare challenge... e.g. Send me a 15-second voice note singing our song!"
+                                        }
+                                        rows={4}
+                                        className="w-full px-4 py-3 bg-black/50 border border-white/15 rounded-2xl text-white placeholder-gray-500 text-sm focus:outline-none focus:border-pink-500/80 transition-all resize-none mb-4 shadow-inner"
+                                    />
+                                    <button
+                                        onClick={sendTodChallenge}
+                                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 font-bold text-sm text-white shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Send className="w-4 h-4" /> Send Challenge to Partner 💌
+                                    </button>
+                                </div>
+                            ) : (
+                                /* Deck Card */
+                                <div className="space-y-5">
+                                    {/* Category Selector */}
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        {[
+                                            { id: 'romantic', label: '💖 Romantic' },
+                                            { id: 'deep', label: '💭 Deep & Soulful' },
+                                            { id: 'spicy', label: '🌶️ Spicy & Flirty' },
+                                            { id: 'funny', label: '😂 Funny & Wild' }
+                                        ].map(c => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => {
+                                                    playSound('click');
+                                                    setTodCategory(c.id);
+                                                    fetchTodPrompt(todType, c.id);
+                                                }}
+                                                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                                                    todCategory === c.id
+                                                        ? 'bg-white/20 border-pink-400/60 text-white shadow-lg shadow-pink-500/20'
+                                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                                }`}
+                                            >
+                                                {c.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* 3D Prompt Card */}
+                                    <div className="perspective-1000">
+                                        <div className={`p-8 sm:p-10 rounded-3xl border transition-all duration-500 text-center relative overflow-hidden shadow-2xl backdrop-blur-xl ${
+                                            todType === 'truth'
+                                                ? 'bg-gradient-to-b from-blue-900/30 via-indigo-900/20 to-black/50 border-blue-500/30'
+                                                : 'bg-gradient-to-b from-rose-900/30 via-pink-900/20 to-black/50 border-pink-500/30'
+                                        } ${todIsFlipping ? 'scale-95 opacity-50 rotate-y-90' : 'scale-100 opacity-100'}`}>
+                                            
+                                            {/* Card badge */}
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-5 bg-white/10 border border-white/15">
+                                                {todType === 'truth' ? '💬 Truth Prompt' : '🔥 Dare Challenge'} • {todCategory}
+                                            </div>
+
+                                            {/* Prompt text */}
+                                            <p className="text-lg sm:text-2xl font-serif leading-relaxed text-gray-100 mb-8 min-h-[4.5rem] flex items-center justify-center">
+                                                "{todPrompt.prompt}"
+                                            </p>
+
+                                            {/* Actions */}
+                                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                                <button
+                                                    onClick={() => fetchTodPrompt(todType, todCategory)}
+                                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-all hover:scale-105"
+                                                >
+                                                    <Shuffle className="w-4 h-4" /> Next Card
+                                                </button>
+                                                <button
+                                                    onClick={sendTodChallenge}
+                                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white text-xs font-semibold shadow-lg shadow-purple-500/20 transition-all hover:scale-105"
+                                                >
+                                                    <Send className="w-4 h-4" /> Send Challenge 💌
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {todCompletedCount > 0 && (
+                        <p className="text-center text-[11px] text-gray-400 mt-6">
+                            ❤️ {todCompletedCount} challenges completed together this session!
+                        </p>
+                    )}
                 </div>
             )}
 
