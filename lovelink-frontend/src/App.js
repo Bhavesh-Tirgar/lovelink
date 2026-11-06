@@ -19,6 +19,8 @@ import Coupons from './pages/Coupons';
 import CreateCoupon from './pages/CreateCoupon';
 import DoodleBoard from './pages/DoodleBoard';
 import Games from './pages/Games';
+import HeartbeatTouch from './pages/HeartbeatTouch';
+import OurUniverse from './pages/OurUniverse';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import { CallProvider } from './context/CallContext';
@@ -58,6 +60,8 @@ function App() {
                 <Route path="/coupons/new" element={<ProtectedRoute><CreateCoupon /></ProtectedRoute>} />
                 <Route path="/doodle" element={<ProtectedRoute><DoodleBoard /></ProtectedRoute>} />
                 <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
+                <Route path="/touch" element={<ProtectedRoute><HeartbeatTouch /></ProtectedRoute>} />
+                <Route path="/universe" element={<ProtectedRoute><OurUniverse /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

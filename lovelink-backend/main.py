@@ -16,6 +16,7 @@ from routers.chat import router as chat_router, ws_router as chat_ws_router
 from routers.notes import router as notes_router
 from routers.countdowns import router as countdowns_router
 from routers.games import router as games_router
+from routers.universe import router as universe_router
 from routers.media import router as media_router
 from routers.movies import router as movies_router
 from routers.calls import router as calls_router
@@ -26,6 +27,7 @@ from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
 from routers.music import router as music_router
 from routers.games import router as games_router
+from routers.universe import router as universe_router
 from scheduler.jobs import deliver_scheduled_notes, check_milestones
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -43,6 +45,13 @@ async def lifespan(app: FastAPI):
     )
     scheduler.add_job(check_milestones, "cron", hour=9, minute=0, timezone="Asia/Kolkata")
     scheduler.start()
+    try:
+        from database import engine, Base
+        import models.universe
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Error creating tables on startup: {e}")
     yield
     scheduler.shutdown()
 
@@ -129,6 +138,7 @@ app.include_router(notifs_router, prefix="/notifications", tags=["notifications"
 app.include_router(coupons_router, prefix="/coupons", tags=["coupons"])
 app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
+app.include_router(universe_router, prefix="/universe", tags=["universe"])
 
 # Mount uploads directory for images, media, and voice notes
 from fastapi.staticfiles import StaticFiles

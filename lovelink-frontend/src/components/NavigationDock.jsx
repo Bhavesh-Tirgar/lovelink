@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, HeartHandshake, CalendarClock, Camera, Film, Ticket, ListTodo, Heart, LogOut, Headphones, Gamepad2 } from 'lucide-react';
+import { Home, MessageCircle, HeartHandshake, CalendarClock, Camera, Film, Ticket, ListTodo, Heart, LogOut, Headphones, Gamepad2, Flame, Sparkles } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
 
 export default function NavigationDock() {
@@ -11,11 +11,13 @@ export default function NavigationDock() {
     const navItems = [
         { name: 'Home', path: '/dashboard', icon: Home },
         { name: 'Chat', path: '/chat', icon: MessageCircle },
+        { name: 'Heartbeat Touch', path: '/touch', icon: Flame },
+        { name: 'Our Universe', path: '/universe', icon: Sparkles },
+        { name: 'Games', path: '/games', icon: Gamepad2 },
         { name: 'Notes', path: '/notes', icon: HeartHandshake },
         { name: 'Albums', path: '/album', icon: Camera },
         { name: 'Movies', path: '/movies', icon: Film },
         { name: 'Coupons', path: '/coupons', icon: Ticket },
-        { name: 'Games', path: '/games', icon: Gamepad2 },
         { name: 'Comfort', path: '/comfort', icon: Heart },
         { name: 'Bucket List', path: '/bucket-list', icon: ListTodo },
         { name: 'Countdowns', path: '/countdowns', icon: CalendarClock },
@@ -26,9 +28,9 @@ export default function NavigationDock() {
         navigate('/login', { replace: true });
     };
 
-    // Hide dock on unauthenticated pages or fullscreen routes like calling
+    // Hide dock on unauthenticated pages or fullscreen routes like calling, touch, universe
     const hiddenPaths = ['/login', '/signup', '/link'];
-    if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/call/')) {
+    if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/call/') || location.pathname === '/touch' || location.pathname === '/universe') {
         return null;
     }
 

@@ -410,6 +410,63 @@ function Dashboard() {
           </div>
         </section>
 
+        {/* Intimacy & Magic Fold: Heartbeat Touch & Our Universe */}
+        {data && data.linked && (
+          <section className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* 1. Heartbeat Touch */}
+            <div
+              onClick={() => navigate('/touch')}
+              className="glass-card p-6 md:p-8 cursor-pointer relative overflow-hidden group border-pink-500/30 bg-gradient-to-br from-pink-950/40 via-purple-950/30 to-black/80 hover:border-pink-500/60 transition-all duration-500 hover:scale-[1.01] shadow-xl"
+            >
+              <div className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full bg-pink-500/20 blur-3xl group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-600 flex items-center justify-center text-2xl shadow-lg shadow-pink-500/30 group-hover:rotate-12 transition-transform">
+                  💋
+                </div>
+                <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-pink-500/20 text-pink-300 border border-pink-500/30 animate-pulse">
+                  Live Haptic
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-pink-200 transition-colors">
+                Heartbeat Touch
+              </h3>
+              <p className="text-xs text-gray-300 leading-relaxed mb-4">
+                Hold thumbs on screen together. Feel each other's heartbeat and live haptic vibration across any distance.
+              </p>
+              <div className="flex items-center gap-2 text-xs font-bold text-pink-400 group-hover:translate-x-1 transition-transform">
+                <span>Hold thumbs together</span>
+                <span>→</span>
+              </div>
+            </div>
+
+            {/* 2. Our Universe */}
+            <div
+              onClick={() => navigate('/universe')}
+              className="glass-card p-6 md:p-8 cursor-pointer relative overflow-hidden group border-purple-500/30 bg-gradient-to-br from-purple-950/40 via-indigo-950/30 to-black/80 hover:border-purple-500/60 transition-all duration-500 hover:scale-[1.01] shadow-xl"
+            >
+              <div className="absolute -right-8 -bottom-8 w-36 h-36 rounded-full bg-purple-500/20 blur-3xl group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-2xl shadow-lg shadow-purple-500/30 group-hover:rotate-12 transition-transform">
+                  🌌
+                </div>
+                <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  3D Cosmos
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-purple-200 transition-colors">
+                Our Universe
+              </h3>
+              <p className="text-xs text-gray-300 leading-relaxed mb-4">
+                Explore your personal 3D night sky. Name permanent stars after your dates, memories, and secret promises.
+              </p>
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-400 group-hover:translate-x-1 transition-transform">
+                <span>Enter our sky</span>
+                <span>→</span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Row 4: Next Countdown Widget */}
         <section
           onClick={() => navigate('/countdowns')}

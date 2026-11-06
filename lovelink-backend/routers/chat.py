@@ -262,6 +262,30 @@ async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Quer
                     "type": "read_receipt",
                     "reader_id": user_id
                 })
+
+            # ── REAL-TIME HEARTBEAT TOUCH / THUMBKISS ───────────────────────
+            elif msg_type == "touch_move":
+                await manager.broadcast(couple_id, {
+                    "type": "touch_move",
+                    "user_id": user_id,
+                    "x": data.get("x"),
+                    "y": data.get("y"),
+                    "is_touching": data.get("is_touching", True)
+                }, exclude=websocket)
+
+            elif msg_type == "touch_end":
+                await manager.broadcast(couple_id, {
+                    "type": "touch_end",
+                    "user_id": user_id
+                }, exclude=websocket)
+
+            elif msg_type == "touch_kiss":
+                await manager.broadcast(couple_id, {
+                    "type": "touch_kiss",
+                    "user_id": user_id,
+                    "x": data.get("x"),
+                    "y": data.get("y")
+                })
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket, couple_id)
