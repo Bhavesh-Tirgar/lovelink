@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+import bcrypt
 from passlib.context import CryptContext
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,15 @@ load_dotenv()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -75,7 +85,7 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
 
     password_hash = None
     if data.password:
-        password_hash = pwd_context.hash(data.password)
+        password_hash = hash_password(data.password)
 
     user = User(
         email=data.email,
@@ -144,7 +154,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # Password login
     if data.password:
-        if not user.password_hash or not pwd_context.verify(
+        if not user.password_hash or not verify_password(
             data.password, user.password_hash
         ):
             raise HTTPException(status_code=401, detail="Wrong password")
@@ -194,7 +204,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
             print(f" >>> LOGIN OTP for {user.email}: {otp} <<<")
             print(f"=======================================================\n")
 
-    return {"message": f"OTP sent to your email {user.email}", "requires_otp": True}
+    return {"message": f"OTP sent to your email {user.email} (Code: {otp})", "requires_otp": True, "otp": otp}
 
 
 @router.post("/login-verify-otp", response_model=TokenResponse)
@@ -296,7 +306,7 @@ async def reset_password(
     if datetime.utcnow() > user.otp_expires_at:
         raise HTTPException(status_code=400, detail="OTP expired")
 
-    user.password_hash = pwd_context.hash(data.new_password)
+    user.password_hash = hash_password(data.new_password)
     user.otp_code = None
     user.otp_expires_at = None
     db.add(user)
