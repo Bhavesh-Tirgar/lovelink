@@ -102,26 +102,43 @@ export const CallProvider = ({ children }) => {
     }, []);
 
     const handleWsMessage = useCallback((data) => {
+        const storedUser = JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('user') || '{}' : '{}');
+        const myUserId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
+
         if (data.type === 'incoming_call') {
+            // CRITICAL FIX: If THIS user initiated the call, DO NOT treat it as an incoming call!
+            // Otherwise the caller sets an auto-decline timer on themselves and kills the call after 30 seconds!
+            if (data.caller_id && myUserId && String(data.caller_id) === String(myUserId)) {
+                return;
+            }
+
             setIncomingCall(data);
             startRinging();
-            // Auto decline after 30s
+
+            // Auto decline after 30s only on the RECEIVER's side if not answered
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
             timeoutRef.current = setTimeout(() => {
                 declineCall(data.call_id);
             }, 30000);
+
+        } else if (data.type === 'call_answered') {
+            // Stop ringing and clear any pending timers when call is answered
+            clearIncoming();
+
         } else if (data.type === 'call_declined') {
             if (incomingCall?.call_id === data.call_id) {
                 clearIncoming();
             }
-            if (location.pathname === `/call/${data.call_id}` || location.pathname.startsWith('/call/')) {
+            if (location.pathname === `/call/${data.call_id}`) {
                 toast.error("Call was declined or partner is unavailable");
                 navigate('/dashboard', { replace: true });
             }
+
         } else if (data.type === 'call_ended') {
             if (incomingCall?.call_id === data.call_id) {
                 clearIncoming();
             }
-            if (location.pathname === `/call/${data.call_id}` || location.pathname.startsWith('/call/')) {
+            if (location.pathname === `/call/${data.call_id}`) {
                 toast("Call ended");
                 navigate('/dashboard', { replace: true });
             }

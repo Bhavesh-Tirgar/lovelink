@@ -130,6 +130,14 @@ app.include_router(coupons_router, prefix="/coupons", tags=["coupons"])
 app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
 
+# Mount uploads directory for images, media, and voice notes
+from fastapi.staticfiles import StaticFiles
+uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(os.path.join(uploads_dir, "chat"), exist_ok=True)
+os.makedirs(os.path.join(uploads_dir, "media"), exist_ok=True)
+os.makedirs(os.path.join(uploads_dir, "thumbnails"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 
 @app.get("/health")
 async def health():

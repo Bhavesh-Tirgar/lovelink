@@ -50,14 +50,27 @@ async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
     return couple
 
 
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+BASE_URL = os.getenv("API_BASE_URL", "https://lovelink-sfzx.onrender.com")
+
 def _upload_to_r2(file_obj, key: str, content_type: str) -> str:
-    if CLOUDFLARE_ACCOUNT_ID:
-        s3_client.upload_fileobj(
-            file_obj, R2_BUCKET_NAME, key,
-            ExtraArgs={"ContentType": content_type},
-        )
-        return f"{R2_PUBLIC_URL}/{key}"
-    return f"https://mock-storage.com/{key}"
+    if CLOUDFLARE_ACCOUNT_ID and s3_client and R2_PUBLIC_URL:
+        try:
+            s3_client.upload_fileobj(
+                file_obj, R2_BUCKET_NAME, key,
+                ExtraArgs={"ContentType": content_type},
+            )
+            return f"{R2_PUBLIC_URL.rstrip('/')}/{key}"
+        except Exception as e:
+            print(f"R2 upload failed: {e}")
+
+    # Fallback to local static storage served via /uploads
+    local_path = os.path.join(UPLOAD_DIR, key)
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    file_obj.seek(0)
+    with open(local_path, "wb") as f:
+        f.write(file_obj.read())
+    return f"{BASE_URL.rstrip('/')}/uploads/{key}"
 
 
 def _make_thumbnail(file_bytes: bytes) -> Optional[bytes]:

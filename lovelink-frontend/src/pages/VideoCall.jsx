@@ -11,6 +11,7 @@ export default function VideoCall() {
     const navigate = useNavigate();
     const containerRef = useRef(null);
     const zpRef = useRef(null);
+    const remoteUserJoinedRef = useRef(false);
 
     const [callState, setCallState] = useState(() => location.state || null);
     const [loading, setLoading] = useState(!location.state);
@@ -94,12 +95,24 @@ export default function VideoCall() {
                     showTextChat: false,
                 },
                 sharedLinks: [],
+                onJoinRoom: () => {
+                    console.log("Joined call room successfully");
+                },
+                onUserJoin: (users) => {
+                    if (users && users.length > 0) {
+                        remoteUserJoinedRef.current = true;
+                        toast.success("Partner connected! ❤️", { duration: 3000 });
+                    }
+                },
                 onLeaveRoom: () => {
                     handleEndCall();
                 },
-                onUserLeave: () => {
-                    toast("Call ended by partner");
-                    handleEndCall();
+                onUserLeave: (users) => {
+                    // Only auto-cut if partner was actually in the call and left
+                    if (remoteUserJoinedRef.current) {
+                        toast("Partner ended the call");
+                        handleEndCall();
+                    }
                 }
             });
         } catch (err) {

@@ -16,6 +16,7 @@ from routers.auth import get_current_user, ALGORITHM, SECRET_KEY
 from crud.message import get_messages, create_message, mark_messages_read
 from utils.firebase import send_push
 from ws_manager.manager import manager
+from utils.storage import save_file
 
 router = APIRouter()
 ws_router = APIRouter()
@@ -136,20 +137,8 @@ async def upload_file(
     else:
         raise HTTPException(status_code=400, detail="Unsupported file format")
         
-    file_id = str(uuid.uuid4())
-    object_key = f"chat/{couple.id}/{file_id}.{ext}"
-    
     try:
-        if CLOUDFLARE_ACCOUNT_ID:
-            s3_client.upload_fileobj(
-                file.file,
-                R2_BUCKET_NAME,
-                object_key,
-                ExtraArgs={"ContentType": file.content_type}
-            )
-            file_url = f"{R2_PUBLIC_URL}/{object_key}"
-        else:
-            file_url = f"https://mock-storage.com/{object_key}"
+        file_url, _ = await save_file(file, subfolder="chat")
     except Exception as e:
         print(f"Error uploading file: {e}")
         raise HTTPException(status_code=500, detail="Could not upload file")

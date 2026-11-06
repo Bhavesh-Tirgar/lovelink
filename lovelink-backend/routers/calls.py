@@ -126,6 +126,15 @@ async def answer_call(
         ZEGO_APP_ID, ZEGO_SERVER_SECRET,
         str(current_user.id), call.room_id
     )
+
+    await manager.broadcast(
+        str(call.couple_id),
+        {
+            'type': 'call_answered',
+            'call_id': call_id,
+            'answered_by': str(current_user.id)
+        }
+    )
     
     return {
         "token": token,
