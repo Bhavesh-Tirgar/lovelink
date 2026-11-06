@@ -6,8 +6,8 @@ from sqlalchemy import select, or_
 from database import get_db
 from models.user import User
 from models.couple import Couple
-from models.universe import MemoryStar
-from schemas.universe import StarCreate, StarResponse
+from models.universe import MemoryStar, CosmicWish
+from schemas.universe import StarCreate, StarResponse, WishCreate, WishResponse
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 
@@ -26,6 +26,8 @@ async def _get_user_couple(db: AsyncSession, user_id: str) -> Couple:
     return couple
 
 
+# ── 1. MEMORY STARS ─────────────────────────────────────────────────────────
+
 @router.get("/stars", response_model=list[StarResponse])
 async def get_stars(
     current_user: User = Depends(get_current_user),
@@ -37,7 +39,6 @@ async def get_stars(
     )
     stars = result.scalars().all()
     
-    # Enrich with creator name
     responses = []
     for s in stars:
         resp = StarResponse.from_orm(s)
@@ -54,7 +55,7 @@ async def create_star(
 ):
     couple = await _get_user_couple(db, str(current_user.id))
     
-    # Generate spherical 3D coordinates if none provided
+    # Generate 3D coordinates if none provided
     cx = payload.coord_x if payload.coord_x is not None else round(random.uniform(-80.0, 80.0), 2)
     cy = payload.coord_y if payload.coord_y is not None else round(random.uniform(-80.0, 80.0), 2)
     cz = payload.coord_z if payload.coord_z is not None else round(random.uniform(-60.0, 60.0), 2)
@@ -66,6 +67,8 @@ async def create_star(
         memory_text=payload.memory_text.strip(),
         date_str=payload.date_str.strip() if payload.date_str else None,
         color=payload.color or "gold",
+        star_type=payload.star_type or "single",
+        photo_url=payload.photo_url.strip() if payload.photo_url else None,
         coord_x=cx,
         coord_y=cy,
         coord_z=cz,
@@ -85,6 +88,8 @@ async def create_star(
             "memory_text": new_star.memory_text,
             "date_str": new_star.date_str,
             "color": new_star.color,
+            "star_type": new_star.star_type,
+            "photo_url": new_star.photo_url,
             "coord_x": new_star.coord_x,
             "coord_y": new_star.coord_y,
             "coord_z": new_star.coord_z,
@@ -113,3 +118,79 @@ async def delete_star(
     await db.delete(star)
     await db.commit()
     return {"deleted": True}
+
+
+# ── 2. SHOOTING STAR SECRET WISHES ──────────────────────────────────────────
+
+@router.get("/wishes", response_model=list[WishResponse])
+async def get_wishes(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, str(current_user.id))
+    result = await db.execute(
+        select(CosmicWish).where(CosmicWish.couple_id == str(couple.id)).order_by(CosmicWish.created_at.desc())
+    )
+    wishes = result.scalars().all()
+    responses = []
+    for w in wishes:
+        resp = WishResponse.from_orm(w)
+        resp.creator_name = current_user.name if str(w.creator_id) == str(current_user.id) else "Partner"
+        responses.append(resp)
+    return responses
+
+
+@router.post("/wishes", response_model=WishResponse)
+async def create_wish(
+    payload: WishCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, str(current_user.id))
+    
+    wish = CosmicWish(
+        couple_id=str(couple.id),
+        creator_id=str(current_user.id),
+        wish_text=payload.wish_text.strip(),
+        is_revealed=False
+    )
+    db.add(wish)
+    await db.commit()
+    await db.refresh(wish)
+
+    # Broadcast wish to partner
+    await manager.broadcast(str(couple.id), {
+        "type": "cosmic_wish_made",
+        "creator_name": current_user.name,
+        "wish_id": wish.id
+    })
+
+    resp = WishResponse.from_orm(wish)
+    resp.creator_name = current_user.name
+    return resp
+
+
+@router.post("/wishes/{wish_id}/reveal")
+async def reveal_wish(
+    wish_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, str(current_user.id))
+    result = await db.execute(
+        select(CosmicWish).where(CosmicWish.id == wish_id, CosmicWish.couple_id == str(couple.id))
+    )
+    wish = result.scalars().first()
+    if not wish:
+        raise HTTPException(status_code=404, detail="Wish not found")
+
+    wish.is_revealed = True
+    await db.commit()
+
+    await manager.broadcast(str(couple.id), {
+        "type": "cosmic_wish_revealed",
+        "revealed_by": current_user.name,
+        "wish_id": wish_id
+    })
+
+    return {"revealed": True}
