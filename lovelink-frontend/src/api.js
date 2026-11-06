@@ -25,8 +25,13 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        window.localStorage.clear();
-        window.location.href = '/login';
+        const path = window.location.pathname;
+        window.localStorage.removeItem('token');
+        window.localStorage.removeItem('user');
+        // Prevent infinite reload loops if already on login/signup page!
+        if (path !== '/login' && path !== '/signup') {
+          window.location.replace('/login');
+        }
       }
     }
     return Promise.reject(error);
@@ -35,7 +40,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// â”€â”€ Firebase Web Push Initialization â”€â”€
+// Firebase Web Push Initialization
 const firebaseConfig = {
   apiKey: "AIzaSyDRGkpcR78KzJ2rau_Q_5PiDWErm_afTmY",
   authDomain: "love-link-48830.firebaseapp.com",
@@ -62,9 +67,9 @@ export const initFirebasePush = async () => {
           return null;
         });
 
-      if (token) {
-        console.log("FCM Token obtained");
-        await api.post('/auth/fcm-token', { fcm_token: token }).catch(err => console.error("Failed to save FCM token", err));
+      // ONLY sync FCM token if the user is already authenticated!
+      if (token && typeof window !== 'undefined' && window.localStorage.getItem('token')) {
+        await api.post('/auth/fcm-token', { fcm_token: token }).catch(() => {});
       }
 
       onMessage(messaging, (payload) => {
