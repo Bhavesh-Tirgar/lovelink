@@ -1,9 +1,9 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
 });
 
 api.interceptors.request.use(
@@ -35,7 +35,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// ── Firebase Web Push Initialization ──
+// â”€â”€ Firebase Web Push Initialization â”€â”€
 const firebaseConfig = {
   apiKey: "AIzaSyDRGkpcR78KzJ2rau_Q_5PiDWErm_afTmY",
   authDomain: "love-link-48830.firebaseapp.com",

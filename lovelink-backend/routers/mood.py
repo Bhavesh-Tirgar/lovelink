@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, desc
 from database import get_db
 from models.user import User
@@ -9,7 +9,6 @@ from routers.auth import get_current_user
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, timedelta
-import uuid
 
 router = APIRouter()
 
@@ -23,17 +22,18 @@ class MoodResponse(BaseModel):
     created_at: str
 
 @router.post("/checkin")
-def checkin_mood(
+async def checkin_mood(
     request: MoodRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     # Find couple
-    couple = db.execute(
+    res = await db.execute(
         select(Couple).where(
             or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
         )
-    ).scalar_one_or_none()
+    )
+    couple = res.scalar_one_or_none()
 
     if not couple:
         raise HTTPException(
@@ -43,21 +43,21 @@ def checkin_mood(
     
     today = date.today()
     # Check if mood exists for today
-    existing_mood = db.execute(
+    res = await db.execute(
         select(Mood).where(
             and_(
                 Mood.user_id == current_user.id,
-                # In SQLite/Postgres we can cast to date, but let's just do a date range for safety to avoid DB specific func
                 Mood.created_at >= today,
                 Mood.created_at < today + timedelta(days=1)
             )
         )
-    ).scalar_one_or_none()
+    )
+    existing_mood = res.scalar_one_or_none()
 
     if existing_mood:
         existing_mood.emoji = request.emoji
         existing_mood.note = request.note
-        db.commit()
+        await db.commit()
         return {"message": "Mood saved!", "emoji": request.emoji, "note": request.note}
     else:
         new_mood = Mood(
@@ -67,19 +67,20 @@ def checkin_mood(
             note=request.note
         )
         db.add(new_mood)
-        db.commit()
+        await db.commit()
         return {"message": "Mood saved!", "emoji": request.emoji, "note": request.note}
 
 @router.get("/today")
-def get_today_mood(
+async def get_today_mood(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    couple = db.execute(
+    res = await db.execute(
         select(Couple).where(
             or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
         )
-    ).scalar_one_or_none()
+    )
+    couple = res.scalar_one_or_none()
 
     if not couple:
         return {"my_mood": None, "partner_mood": None}
@@ -87,7 +88,7 @@ def get_today_mood(
     partner_id = couple.user2_id if couple.user1_id == current_user.id else couple.user1_id
     today = date.today()
 
-    my_mood_db = db.execute(
+    res_my = await db.execute(
         select(Mood).where(
             and_(
                 Mood.user_id == current_user.id,
@@ -95,9 +96,10 @@ def get_today_mood(
                 Mood.created_at < today + timedelta(days=1)
             )
         )
-    ).scalar_one_or_none()
+    )
+    my_mood_db = res_my.scalar_one_or_none()
 
-    partner_mood_db = db.execute(
+    res_partner = await db.execute(
         select(Mood).where(
             and_(
                 Mood.user_id == partner_id,
@@ -105,7 +107,8 @@ def get_today_mood(
                 Mood.created_at < today + timedelta(days=1)
             )
         )
-    ).scalar_one_or_none()
+    )
+    partner_mood_db = res_partner.scalar_one_or_none()
 
     my_mood = None
     if my_mood_db:
@@ -126,15 +129,16 @@ def get_today_mood(
     return {"my_mood": my_mood, "partner_mood": partner_mood}
 
 @router.get("/history")
-def get_mood_history(
+async def get_mood_history(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    couple = db.execute(
+    res = await db.execute(
         select(Couple).where(
             or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
         )
-    ).scalar_one_or_none()
+    )
+    couple = res.scalar_one_or_none()
 
     if not couple:
         return {"my_moods": [], "partner_moods": []}
@@ -142,23 +146,25 @@ def get_mood_history(
     partner_id = couple.user2_id if couple.user1_id == current_user.id else couple.user1_id
     seven_days_ago = date.today() - timedelta(days=7)
 
-    my_moods = db.execute(
+    res_my = await db.execute(
         select(Mood).where(
             and_(
                 Mood.user_id == current_user.id,
                 Mood.created_at >= seven_days_ago
             )
         ).order_by(desc(Mood.created_at))
-    ).scalars().all()
+    )
+    my_moods = res_my.scalars().all()
 
-    partner_moods = db.execute(
+    res_partner = await db.execute(
         select(Mood).where(
             and_(
                 Mood.user_id == partner_id,
                 Mood.created_at >= seven_days_ago
             )
         ).order_by(desc(Mood.created_at))
-    ).scalars().all()
+    )
+    partner_moods = res_partner.scalars().all()
 
     return {
         "my_moods": [{"emoji": m.emoji, "note": m.note, "created_at": m.created_at.isoformat()} for m in my_moods],

@@ -1,4 +1,5 @@
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, messaging
 import logging
@@ -9,8 +10,24 @@ logger = logging.getLogger(__name__)
 _CRED_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "firebase_credentials.json")
 
 def init_firebase():
-    """Initializes the Firebase Admin SDK from local credentials file."""
+    """Initializes the Firebase Admin SDK from local credentials file or environment variable."""
     if not firebase_admin._apps:
+        # Check env var first
+        env_cred = os.getenv("FIREBASE_CREDENTIALS_JSON")
+        if env_cred:
+            try:
+                clean_env = env_cred.strip()
+                if (clean_env.startswith("'") and clean_env.endswith("'")) or (clean_env.startswith('"') and clean_env.endswith('"')):
+                    clean_env = clean_env[1:-1]
+                cred_dict = json.loads(clean_env)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase Admin SDK initialized successfully from environment variable.")
+                return
+            except Exception as e:
+                logger.error(f"Failed to initialize Firebase Admin SDK from environment variable: {e}")
+
+        # Fallback to local credentials file
         if os.path.exists(_CRED_FILE):
             try:
                 cred = credentials.Certificate(_CRED_FILE)

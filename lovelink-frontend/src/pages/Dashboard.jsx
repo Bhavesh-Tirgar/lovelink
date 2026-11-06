@@ -475,7 +475,23 @@ function Dashboard() {
         {/* Quick Actions Component is still intact beneath */}
         <section>
           <h2 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-4 ml-2">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Action 0: Games */}
+            <div
+              onClick={() => navigate('/games')}
+              className="glass-card p-5 group cursor-pointer hover:-translate-y-1 hover:border-pink-500/50 hover:shadow-[0_10px_30px_rgba(236,72,153,0.2)]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="flex flex-col gap-3 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-pink-500/10 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:bg-pink-500 group-hover:text-white transition-all shadow-inner">
+                  🎮
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-200 tracking-tight">Couple Games</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">Truth/Dare, RPS, TTT</p>
+                </div>
+              </div>
+            </div>
             {/* Action 1: Send Note */}
             <div
               onClick={() => navigate('/notes/write')}

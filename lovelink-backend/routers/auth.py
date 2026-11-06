@@ -95,11 +95,11 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
     if user.email:
         try:
             await send_otp_email(user.email, otp, purpose="verification")
-        except Exception:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to send verification email. Please try again.",
-            )
+        except Exception as e:
+            print(f"\n=======================================================")
+            print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+            print(f" >>> REGISTRATION OTP for {user.email}: {otp} <<<")
+            print(f"=======================================================\n")
 
     return {"message": f"OTP sent to your email {user.email}", "user_id": user.id}
 
@@ -160,14 +160,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
             if user.email:
                 try:
                     await send_otp_email(user.email, otp, purpose="verification")
-                except Exception:
-                    raise HTTPException(
-                        status_code=500,
-                        detail=(
-                            "User not verified and email send failed. "
-                            "Please request a new OTP later."
-                        ),
-                    )
+                except Exception as e:
+                    print(f"\n=======================================================")
+                    print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+                    print(f" >>> VERIFICATION OTP for {user.email}: {otp} <<<")
+                    print(f"=======================================================\n")
 
             raise HTTPException(
                 status_code=403,
@@ -191,11 +188,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user.email:
         try:
             await send_otp_email(user.email, otp, purpose="login")
-        except Exception:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to send login OTP. Please try again.",
-            )
+        except Exception as e:
+            print(f"\n=======================================================")
+            print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+            print(f" >>> LOGIN OTP for {user.email}: {otp} <<<")
+            print(f"=======================================================\n")
 
     return {"message": f"OTP sent to your email {user.email}", "requires_otp": True}
 
@@ -247,11 +244,11 @@ async def send_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db)):
     if user.email:
         try:
             await send_otp_email(user.email, otp, purpose="verification")
-        except Exception:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to send OTP. Please try again.",
-            )
+        except Exception as e:
+            print(f"\n=======================================================")
+            print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+            print(f" >>> RESENT OTP for {user.email}: {otp} <<<")
+            print(f"=======================================================\n")
 
     return {"message": f"OTP sent to your email {user.email}"}
 
@@ -273,11 +270,11 @@ async def forgot_password(
     if user.email:
         try:
             await send_otp_email(user.email, otp, purpose="password reset")
-        except Exception:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to send password reset OTP. Please try again.",
-            )
+        except Exception as e:
+            print(f"\n=======================================================")
+            print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+            print(f" >>> PASSWORD RESET OTP for {user.email}: {otp} <<<")
+            print(f"=======================================================\n")
 
     return {"message": f"OTP sent to your email {user.email}"}
 

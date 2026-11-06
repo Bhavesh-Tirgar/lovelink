@@ -15,6 +15,7 @@ from routers.mood import router as mood_router
 from routers.chat import router as chat_router, ws_router as chat_ws_router
 from routers.notes import router as notes_router
 from routers.countdowns import router as countdowns_router
+from routers.games import router as games_router
 from routers.media import router as media_router
 from routers.movies import router as movies_router
 from routers.calls import router as calls_router
@@ -23,7 +24,8 @@ from routers.questions import router as questions_router
 from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
-from routers.countdowns import router as countdowns_router
+from routers.music import router as music_router
+from routers.games import router as games_router
 from scheduler.jobs import deliver_scheduled_notes, check_milestones
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -31,6 +33,8 @@ scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from utils.firebase import init_firebase
+    init_firebase()
     scheduler.add_job(
         deliver_scheduled_notes,
         "interval",
@@ -122,6 +126,8 @@ app.include_router(questions_router, prefix="/questions", tags=["questions"])
 app.include_router(comfort_router, prefix="/comfort", tags=["comfort"])
 app.include_router(notifs_router, prefix="/notifications", tags=["notifications"])
 app.include_router(coupons_router, prefix="/coupons", tags=["coupons"])
+app.include_router(music_router, prefix="/music", tags=["music"])
+app.include_router(games_router, prefix="/games", tags=["games"])
 
 
 @app.get("/health")

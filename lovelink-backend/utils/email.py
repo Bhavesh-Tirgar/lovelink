@@ -1,8 +1,10 @@
 import os
-
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from dotenv import load_dotenv
 
+# Ensure .env is loaded from backend directory
+_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(_ENV_PATH)
 load_dotenv()
 
 def get_fastmail():
@@ -58,4 +60,3 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
     except Exception as exc:  # pragma: no cover - logging only
         print(f"Email send failed: {exc}")
         raise
-

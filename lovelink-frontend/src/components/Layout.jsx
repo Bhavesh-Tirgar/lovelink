@@ -1,5 +1,6 @@
 import React from 'react';
 import NavigationDock from './NavigationDock';
+import FloatingMusicPlayer from './FloatingMusicPlayer';
 import { useLocation } from 'react-router-dom';
 
 export default function Layout({ children }) {
@@ -25,6 +26,9 @@ export default function Layout({ children }) {
             <main className="relative z-10 min-h-screen pb-32">
                 {children}
             </main>
+
+            {/* Floating Synchronized Music Player */}
+            <FloatingMusicPlayer />
 
             {/* Persistent Floating Dock */}
             <NavigationDock />
