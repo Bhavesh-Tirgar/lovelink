@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Crosshair, Users, MapPin } from 'lucide-react';
+import { Navigation, Crosshair, Users, MapPin, Layers } from 'lucide-react';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
 
@@ -26,6 +26,8 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
     const [partnerBattery, setPartnerBattery] = useState({ level: null, charging: null });
     const [distanceKm, setDistanceKm] = useState(null);
     const [partnerAddress, setPartnerAddress] = useState('');
+    const [mapTheme, setMapTheme] = useState('dark'); // 'dark' | 'satellite' | 'voyager'
+    const tileLayerRef = useRef(null);
 
     const partnerName = partner?.name || "Partner";
     const myName = user?.name || "You";
@@ -85,13 +87,6 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
             attributionControl: false
         });
 
-        // Sleek CartoDB Voyager tiles with user's official API Key
-        const cartoKey = 'cb1_53pa_1_5a018e2cbb4fe0260c5d225c';
-        L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`, {
-            maxZoom: 19,
-            subdomains: 'abcd',
-        }).addTo(map);
-
         mapInstanceRef.current = map;
 
         return () => {
@@ -99,6 +94,43 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
             mapInstanceRef.current = null;
         };
     }, []);
+
+    // 4b. Update Tile Layer when mapTheme changes
+    useEffect(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+
+        if (tileLayerRef.current) {
+            map.removeLayer(tileLayerRef.current);
+            tileLayerRef.current = null;
+        }
+
+        const cartoKey = 'cb1_53pa_1_5a018e2cbb4fe0260c5d225c';
+        let newLayer;
+
+        if (mapTheme === 'satellite') {
+            // High-detail Satellite Hybrid: Real 3D buildings, rooftops, houses & streets from aerial imagery
+            newLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google Satellite Hybrid'
+            });
+        } else if (mapTheme === 'voyager') {
+            // Clean CartoDB Voyager
+            newLayer = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`, {
+                maxZoom: 19,
+                subdomains: 'abcd',
+            });
+        } else {
+            // Default: CartoDB Dark Matter with building footprints, dark roads & neon highlights
+            newLayer = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${cartoKey}`, {
+                maxZoom: 19,
+                subdomains: 'abcd',
+            });
+        }
+
+        newLayer.addTo(map);
+        tileLayerRef.current = newLayer;
+    }, [mapTheme]);
 
     // 5. Create Custom Avatar Icon
     const createAvatarIcon = (name, photo, isUser, battery) => {
@@ -393,8 +425,18 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                     </div>
                 </div>
 
-                {/* Camera Buttons */}
+                {/* Camera Buttons & Layer Switcher */}
                 <div className="flex items-center gap-2 pointer-events-auto">
+                    {/* Map Theme Toggle: Dark Matter with Buildings vs Satellite 3D Buildings */}
+                    <button
+                        onClick={() => setMapTheme(prev => prev === 'dark' ? 'satellite' : prev === 'satellite' ? 'voyager' : 'dark')}
+                        className="px-3 py-3 rounded-2xl bg-black/80 hover:bg-black border border-white/20 text-white backdrop-blur-md shadow-xl transition-all hover:scale-105 flex items-center gap-1.5 text-xs font-semibold"
+                        title="Switch between Dark Mode with Buildings, Satellite 3D Buildings, or Street View"
+                    >
+                        <Layers className="w-4 h-4 text-amber-400" />
+                        <span>{mapTheme === 'dark' ? '🌙 Dark' : mapTheme === 'satellite' ? '🛰️ Satellite' : '🗺️ Streets'}</span>
+                    </button>
+
                     <button
                         onClick={centerOnMe}
                         className="p-3 rounded-2xl bg-black/80 hover:bg-black border border-white/20 text-white backdrop-blur-md shadow-xl transition-all hover:scale-105"
