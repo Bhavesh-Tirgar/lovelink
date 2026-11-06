@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Sparkles, Plus, ArrowLeft, Star, X, Calendar, User, Trash2,
-    Volume2, VolumeX, Eye, Heart, Camera, Compass, RefreshCw
+    Volume2, VolumeX, Eye, Heart, Camera, Compass, RefreshCw,
+    Globe, Orbit
 } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
@@ -23,6 +24,171 @@ const STAR_TYPES = {
     diamond: { label: 'Diamond Promise', desc: 'Crystalline cross-sparkle of forever' },
 };
 
+// ── CELESTIAL BODIES OF THE WHOLE UNIVERSE ─────────────────────────────────
+const SOLAR_SYSTEM_BODIES = [
+    {
+        id: 'sun',
+        name: 'The Sun (Sol) ☀️',
+        type: 'sun',
+        x: 0,
+        y: 0,
+        z: 0,
+        radius: 28,
+        color: '#f59e0b',
+        glow: 'rgba(245, 158, 11, 0.85)',
+        title: 'Source of All Warmth',
+        desc: '150 million kilometers away, Sol fuels every sunrise and warms every memory you two have ever shared.',
+        quote: 'You are the sun that melts my darkest days.'
+    },
+    {
+        id: 'earth',
+        name: 'Earth (Our Home) 🌍',
+        type: 'earth',
+        x: 95,
+        y: -25,
+        z: 45,
+        radius: 14,
+        color: '#38bdf8',
+        glow: 'rgba(56, 189, 248, 0.8)',
+        title: 'Where You & Partner Live',
+        desc: 'Out of 8 billion humans scattered across 510 million km² of this pale blue dot, fate brought the two of you together.',
+        quote: 'My favorite spot in the entire universe is anywhere next to you.'
+    },
+    {
+        id: 'moon',
+        name: 'The Moon (Luna) 🌙',
+        type: 'moon',
+        x: 116,
+        y: -36,
+        z: 52,
+        radius: 7,
+        color: '#f1f5f9',
+        glow: 'rgba(241, 245, 249, 0.65)',
+        title: 'Keeper of Midnight Secrets',
+        desc: 'Reflecting starlight on late-night calls, whispering quiet dreams when the rest of the world is asleep.',
+        quote: 'I love you to the moon and back a million times.'
+    },
+    {
+        id: 'mars',
+        name: 'Mars (The Red Planet) 🔴',
+        type: 'mars',
+        x: 155,
+        y: 40,
+        z: -60,
+        radius: 10,
+        color: '#ef4444',
+        glow: 'rgba(239, 68, 68, 0.75)',
+        title: 'Unstoppable Passion',
+        desc: 'Ancient rust dunes and volcanic peaks, representing fierce devotion that withstands any distance.',
+        quote: 'Our love could ignite life on a barren world.'
+    },
+    {
+        id: 'jupiter',
+        name: 'Jupiter (The Giant) 🪐',
+        type: 'jupiter',
+        x: -170,
+        y: 85,
+        z: 110,
+        radius: 22,
+        color: '#fbbf24',
+        glow: 'rgba(251, 191, 36, 0.7)',
+        title: 'The Great Celestial Shield',
+        desc: 'The giant guardian of the inner solar system, deflecting comets just as your bond protects one another.',
+        quote: 'Fierce storms outside, infinite peace within.'
+    },
+    {
+        id: 'saturn',
+        name: 'Saturn & Rings 🪐',
+        type: 'saturn',
+        x: -225,
+        y: -85,
+        z: -125,
+        radius: 17,
+        color: '#fef08a',
+        glow: 'rgba(254, 240, 138, 0.7)',
+        title: 'Rings of Eternal Commitment',
+        desc: 'Adorned with shimmering rings of ice crystals, symbolizing rings of everlasting promise.',
+        quote: 'Like Saturn, our promise is encircled in stardust.'
+    },
+    {
+        id: 'blackhole',
+        name: 'Gargantua Singularity 🕳️',
+        type: 'blackhole',
+        x: 10,
+        y: -230,
+        z: 170,
+        radius: 20,
+        color: '#000000',
+        glow: 'rgba(244, 63, 94, 0.9)',
+        title: 'Infinite Gravitational Pull',
+        desc: 'A supermassive cosmic portal where time itself slows down. An attraction so profound that not even light escapes.',
+        quote: 'Time may stretch across galaxies, but my heart stays with you.'
+    }
+];
+
+// ── REAL FAMOUS CONSTELLATIONS ─────────────────────────────────────────────
+const FAMOUS_CONSTELLATIONS = [
+    {
+        name: 'Orion (The Hunter)',
+        stars: [
+            { id: 'orion_betelgeuse', name: 'Betelgeuse', x: -140, y: 150, z: -180, color: '#f97316' },
+            { id: 'orion_bellatrix', name: 'Bellatrix', x: -190, y: 140, z: -170, color: '#38bdf8' },
+            { id: 'orion_alnitak', name: 'Alnitak (Belt)', x: -168, y: 175, z: -175, color: '#67e8f9' },
+            { id: 'orion_alnilam', name: 'Alnilam (Belt)', x: -160, y: 179, z: -176, color: '#67e8f9' },
+            { id: 'orion_mintaka', name: 'Mintaka (Belt)', x: -152, y: 183, z: -177, color: '#67e8f9' },
+            { id: 'orion_saiph', name: 'Saiph', x: -142, y: 215, z: -182, color: '#38bdf8' },
+            { id: 'orion_rigel', name: 'Rigel', x: -188, y: 210, z: -172, color: '#93c5fd' },
+        ],
+        connections: [
+            ['orion_betelgeuse', 'orion_bellatrix'],
+            ['orion_betelgeuse', 'orion_alnitak'],
+            ['orion_bellatrix', 'orion_mintaka'],
+            ['orion_alnitak', 'orion_alnilam'],
+            ['orion_alnilam', 'orion_mintaka'],
+            ['orion_alnitak', 'orion_saiph'],
+            ['orion_mintaka', 'orion_rigel'],
+            ['orion_saiph', 'orion_rigel'],
+        ]
+    },
+    {
+        name: 'Ursa Major (The Big Dipper / Saptarishi)',
+        stars: [
+            { id: 'um_alkaid', name: 'Alkaid', x: 160, y: -160, z: -160, color: '#a78bfa' },
+            { id: 'um_mizar', name: 'Mizar', x: 140, y: -175, z: -155, color: '#e0e7ff' },
+            { id: 'um_alioth', name: 'Alioth', x: 120, y: -182, z: -152, color: '#e0e7ff' },
+            { id: 'um_megrez', name: 'Megrez', x: 95, y: -185, z: -150, color: '#e0e7ff' },
+            { id: 'um_phecda', name: 'Phecda', x: 85, y: -205, z: -148, color: '#e0e7ff' },
+            { id: 'um_merak', name: 'Merak', x: 60, y: -200, z: -145, color: '#e0e7ff' },
+            { id: 'um_dubhe', name: 'Dubhe', x: 70, y: -180, z: -146, color: '#fbbf24' },
+        ],
+        connections: [
+            ['um_alkaid', 'um_mizar'],
+            ['um_mizar', 'um_alioth'],
+            ['um_alioth', 'um_megrez'],
+            ['um_megrez', 'um_phecda'],
+            ['um_phecda', 'um_merak'],
+            ['um_merak', 'um_dubhe'],
+            ['um_dubhe', 'um_megrez'],
+        ]
+    },
+    {
+        name: 'Cassiopeia (The Cosmic Queen W)',
+        stars: [
+            { id: 'cas_caph', name: 'Caph', x: -80, y: -210, z: -140, color: '#fbcfe8' },
+            { id: 'cas_schedar', name: 'Schedar', x: -50, y: -225, z: -145, color: '#fbcfe8' },
+            { id: 'cas_navi', name: 'Navi', x: -20, y: -205, z: -142, color: '#fbcfe8' },
+            { id: 'cas_ruchbah', name: 'Ruchbah', x: 10, y: -220, z: -146, color: '#fbcfe8' },
+            { id: 'cas_segin', name: 'Segin', x: 35, y: -210, z: -143, color: '#fbcfe8' },
+        ],
+        connections: [
+            ['cas_caph', 'cas_schedar'],
+            ['cas_schedar', 'cas_navi'],
+            ['cas_navi', 'cas_ruchbah'],
+            ['cas_ruchbah', 'cas_segin'],
+        ]
+    }
+];
+
 export default function OurUniverse() {
     const navigate = useNavigate();
     const canvasRef = useRef(null);
@@ -30,6 +196,7 @@ export default function OurUniverse() {
     const [stars, setStars] = useState([]);
     const [wishes, setWishes] = useState([]);
     const [selectedStar, setSelectedStar] = useState(null);
+    const [selectedPlanet, setSelectedPlanet] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isWishModalOpen, setIsWishModalOpen] = useState(false);
     const [isWishListOpen, setIsWishListOpen] = useState(false);
@@ -49,6 +216,7 @@ export default function OurUniverse() {
 
     // Controls
     const [showConstellations, setShowConstellations] = useState(true);
+    const [showSolarSystem, setShowSolarSystem] = useState(true);
     const [audioEnabled, setAudioEnabled] = useState(false);
     const [isTourRunning, setIsTourRunning] = useState(false);
     const [activeMeteorNotice, setActiveMeteorNotice] = useState(false);
@@ -59,10 +227,10 @@ export default function OurUniverse() {
 
     // 3D Celestial Camera State
     const cameraRef = useRef({
-        rotX: 0,
-        rotY: 0,
-        targetRotX: 0,
-        targetRotY: 0,
+        rotX: 0.15,
+        rotY: -0.25,
+        targetRotX: 0.15,
+        targetRotY: -0.25,
         zoom: 1.0,
         targetZoom: 1.0,
         isDragging: false,
@@ -70,9 +238,9 @@ export default function OurUniverse() {
         lastMouseY: 0,
     });
 
-    // Background ambient stars
+    // Background ambient stars & milky way particles
     const ambientStarsRef = useRef([]);
-    // Shooting stars array
+    const milkyWayRef = useRef([]);
     const meteorsRef = useRef([]);
 
     // Fetch memory stars from backend
@@ -100,26 +268,44 @@ export default function OurUniverse() {
         fetchWishes();
     }, [fetchStars, fetchWishes]);
 
-    // Initialize 400 background ambient stars
+    // Initialize 600 Background Stars and Milky Way Spiral Dust Lane
     useEffect(() => {
+        // 1. Omnidirectional background starfield
         const arr = [];
-        for (let i = 0; i < 400; i++) {
+        for (let i = 0; i < 550; i++) {
             const u = Math.random();
             const v = Math.random();
             const theta = u * 2.0 * Math.PI;
             const phi = Math.acos(2.0 * v - 1.0);
-            const r = 250 + Math.random() * 50;
+            const r = 260 + Math.random() * 60;
 
             arr.push({
                 x: r * Math.sin(phi) * Math.cos(theta),
                 y: r * Math.sin(phi) * Math.sin(theta),
                 z: r * Math.cos(phi),
-                baseSize: Math.random() * 1.6 + 0.6,
+                baseSize: Math.random() * 1.6 + 0.5,
                 twinkleSpeed: Math.random() * 0.04 + 0.01,
                 phase: Math.random() * Math.PI * 2,
             });
         }
         ambientStarsRef.current = arr;
+
+        // 2. Milky Way Galactic Band Particles
+        const mw = [];
+        for (let j = 0; j < 350; j++) {
+            const angle = (j / 350) * Math.PI * 2;
+            const dist = 60 + Math.random() * 220;
+            const spread = (Math.random() - 0.5) * 35;
+            mw.push({
+                x: Math.cos(angle) * dist + (Math.random() - 0.5) * 20,
+                y: spread + Math.sin(angle) * 15,
+                z: Math.sin(angle) * dist + (Math.random() - 0.5) * 20,
+                color: j % 3 === 0 ? '#ec4899' : j % 3 === 1 ? '#06b6d4' : '#fbbf24',
+                size: Math.random() * 2.5 + 1.0,
+                alpha: Math.random() * 0.4 + 0.15,
+            });
+        }
+        milkyWayRef.current = mw;
     }, []);
 
     // Ambient Space Drone Sound Synthesizer (Web Audio API)
@@ -145,8 +331,8 @@ export default function OurUniverse() {
             masterGain.gain.setValueAtTime(0.08, ctx.currentTime);
             masterGain.connect(ctx.destination);
 
-            // Create ethereal warm chord (F major 7 / C celestial pad: 174Hz, 261Hz, 349Hz, 440Hz)
-            const freqs = [174.61, 261.63, 349.23, 440.00, 523.25];
+            // Ethereal chord (174Hz Solfeggio, 261Hz C, 349Hz F, 432Hz Cosmic A, 523Hz C5)
+            const freqs = [174.61, 261.63, 349.23, 432.00, 523.25];
             const nodes = [];
 
             freqs.forEach((freq, idx) => {
@@ -157,10 +343,9 @@ export default function OurUniverse() {
                 osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
                 osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
-                // Subtle slow LFO shimmer
                 const lfo = ctx.createOscillator();
                 const lfoGain = ctx.createGain();
-                lfo.frequency.setValueAtTime(0.1 + idx * 0.05, ctx.currentTime);
+                lfo.frequency.setValueAtTime(0.1 + idx * 0.04, ctx.currentTime);
                 lfoGain.gain.setValueAtTime(0.02, ctx.currentTime);
                 lfo.connect(gain.gain);
                 lfo.start();
@@ -204,11 +389,9 @@ export default function OurUniverse() {
             if (canvasRef.current) {
                 const w = canvasRef.current.width;
                 const h = canvasRef.current.height;
-                const startX = Math.random() * (w * 0.7);
-                const startY = Math.random() * (h * 0.3);
                 meteorsRef.current.push({
-                    x: startX,
-                    y: startY,
+                    x: Math.random() * (w * 0.7),
+                    y: Math.random() * (h * 0.3),
                     vx: 7 + Math.random() * 6,
                     vy: 4 + Math.random() * 4,
                     length: 120 + Math.random() * 80,
@@ -242,6 +425,18 @@ export default function OurUniverse() {
         setTimeout(() => setActiveMeteorNotice(false), 5000);
     };
 
+    // Smooth Fly / Teleport Camera To Celestial Target
+    const flyToTarget = (x, y, z) => {
+        setIsTourRunning(false);
+        const dist = Math.hypot(x, z);
+        const targetRY = -Math.atan2(x, z);
+        const targetRX = Math.atan2(y, dist);
+
+        cameraRef.current.targetRotY = targetRY;
+        cameraRef.current.targetRotX = targetRX;
+        cameraRef.current.targetZoom = 1.35;
+    };
+
     // Main 3D Canvas Render Loop
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -263,7 +458,7 @@ export default function OurUniverse() {
             const height = canvas.height;
             const cx = width / 2;
             const cy = height / 2;
-            const fov = 340 * cameraRef.current.zoom;
+            const fov = 350 * cameraRef.current.zoom;
 
             // Handle Galaxy Tour Mode Camera Orbit
             if (isTourRunning) {
@@ -284,45 +479,48 @@ export default function OurUniverse() {
             const cosY = Math.cos(ry);
             const sinY = Math.sin(ry);
 
-            // Deep Space Background Gradient with Nebula
-            const bgGradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(width, height) * 0.85);
-            bgGradient.addColorStop(0, '#0f0c1b');
-            bgGradient.addColorStop(0.4, '#090814');
-            bgGradient.addColorStop(1, '#020205');
+            // 1. Deep Space Cosmic Void Canvas
+            const bgGradient = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(width, height) * 0.85);
+            bgGradient.addColorStop(0, '#0d0a1a');
+            bgGradient.addColorStop(0.35, '#060510');
+            bgGradient.addColorStop(1, '#010104');
             ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, width, height);
 
-            // Draw Subtle Nebula Clouds
-            ctx.save();
-            ctx.globalAlpha = 0.12;
-            const nebulaGrad1 = ctx.createRadialGradient(cx - 150, cy - 100, 20, cx - 150, cy - 100, 320);
-            nebulaGrad1.addColorStop(0, '#ec4899');
-            nebulaGrad1.addColorStop(0.5, '#7c3aed');
-            nebulaGrad1.addColorStop(1, 'transparent');
-            ctx.fillStyle = nebulaGrad1;
-            ctx.beginPath();
-            ctx.arc(cx - 150, cy - 100, 320, 0, Math.PI * 2);
-            ctx.fill();
-
-            const nebulaGrad2 = ctx.createRadialGradient(cx + 200, cy + 120, 20, cx + 200, cy + 120, 350);
-            nebulaGrad2.addColorStop(0, '#06b6d4');
-            nebulaGrad2.addColorStop(0.6, '#3b82f6');
-            nebulaGrad2.addColorStop(1, 'transparent');
-            ctx.fillStyle = nebulaGrad2;
-            ctx.beginPath();
-            ctx.arc(cx + 200, cy + 120, 350, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // 1. Draw Background Ambient Stars
             const timeNow = Date.now() * 0.001;
+
+            // 2. Project & Render Milky Way Galactic Spiral Dust Band
+            milkyWayRef.current.forEach((p) => {
+                const x1 = p.x * cosY - p.z * sinY;
+                const z1 = p.x * sinY + p.z * cosY;
+                const y1 = p.y * cosX - z1 * sinX;
+                const z2 = p.y * sinX + z1 * cosX;
+
+                const depth = z2 + 320;
+                if (depth > 10) {
+                    const scale = fov / depth;
+                    const px = cx + x1 * scale;
+                    const py = cy + y1 * scale;
+
+                    if (px >= -20 && px <= width + 20 && py >= -20 && py <= height + 20) {
+                        ctx.fillStyle = p.color;
+                        ctx.globalAlpha = p.alpha;
+                        ctx.beginPath();
+                        ctx.arc(px, py, p.size * scale, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+            });
+
+            // 3. Render 550 Background Ambient Stars
             ambientStarsRef.current.forEach((s) => {
                 const x1 = s.x * cosY - s.z * sinY;
                 const z1 = s.x * sinY + s.z * cosY;
                 const y1 = s.y * cosX - z1 * sinX;
                 const z2 = s.y * sinX + z1 * cosX;
 
-                const depth = z2 + 350;
+                const depth = z2 + 360;
                 if (depth > 10) {
                     const scale = fov / depth;
                     const px = cx + x1 * scale;
@@ -330,7 +528,7 @@ export default function OurUniverse() {
 
                     if (px >= 0 && px <= width && py >= 0 && py <= height) {
                         const twinkle = (Math.sin(timeNow * 2 + s.phase) + 1) * 0.5;
-                        const alpha = 0.2 + twinkle * 0.65;
+                        const alpha = 0.2 + twinkle * 0.7;
                         const size = Math.max(0.6, s.baseSize * (scale * 0.8));
 
                         ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -341,7 +539,96 @@ export default function OurUniverse() {
                 }
             });
 
-            // 2. Project Memory Stars
+            // 4. Render Famous Real Constellations (Orion, Ursa Major, Cassiopeia)
+            if (showConstellations) {
+                FAMOUS_CONSTELLATIONS.forEach((constell) => {
+                    const projMap = {};
+                    constell.stars.forEach((cs) => {
+                        const x1 = cs.x * cosY - cs.z * sinY;
+                        const z1 = cs.x * sinY + cs.z * cosY;
+                        const y1 = cs.y * cosX - z1 * sinX;
+                        const z2 = cs.y * sinX + z1 * cosX;
+                        const depth = z2 + 340;
+                        if (depth > 10) {
+                            const scale = fov / depth;
+                            projMap[cs.id] = {
+                                px: cx + x1 * scale,
+                                py: cy + y1 * scale,
+                                depth,
+                                color: cs.color,
+                                name: cs.name,
+                            };
+                        }
+                    });
+
+                    // Draw connecting lines
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(147, 197, 253, 0.35)';
+                    ctx.lineWidth = 1.0;
+                    ctx.setLineDash([3, 4]);
+
+                    constell.connections.forEach(([idA, idB]) => {
+                        const pA = projMap[idA];
+                        const pB = projMap[idB];
+                        if (pA && pB) {
+                            ctx.beginPath();
+                            ctx.moveTo(pA.px, pA.py);
+                            ctx.lineTo(pB.px, pB.py);
+                            ctx.stroke();
+                        }
+                    });
+
+                    // Draw Constellation Star Dots
+                    Object.values(projMap).forEach((p) => {
+                        ctx.fillStyle = p.color;
+                        ctx.shadowColor = p.color;
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.arc(p.px, p.py, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    });
+
+                    // Constellation Title Label near center
+                    const starVals = Object.values(projMap);
+                    if (starVals.length > 0) {
+                        const avgX = starVals.reduce((acc, s) => acc + s.px, 0) / starVals.length;
+                        const avgY = starVals.reduce((acc, s) => acc + s.py, 0) / starVals.length;
+                        ctx.font = '500 10px Inter, sans-serif';
+                        ctx.fillStyle = 'rgba(199, 210, 254, 0.55)';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(constell.name, avgX, avgY - 14);
+                    }
+                    ctx.restore();
+                });
+            }
+
+            // 5. Project & Render Solar System Bodies & Black Hole
+            const renderedBodies = [];
+            if (showSolarSystem) {
+                SOLAR_SYSTEM_BODIES.forEach((body) => {
+                    const x1 = body.x * cosY - body.z * sinY;
+                    const z1 = body.x * sinY + body.z * cosY;
+                    const y1 = body.y * cosX - z1 * sinX;
+                    const z2 = body.y * sinX + z1 * cosX;
+
+                    const depth = z2 + 250;
+                    if (depth > 15) {
+                        const scale = fov / depth;
+                        const px = cx + x1 * scale;
+                        const py = cy + y1 * scale;
+                        renderedBodies.push({
+                            ...body,
+                            px,
+                            py,
+                            depth,
+                            scale,
+                        });
+                    }
+                });
+            }
+
+            // 6. Project & Render Couple Memory Stars
             const projectedStars = [];
             stars.forEach((star) => {
                 const sx = star.coord_x;
@@ -368,14 +655,15 @@ export default function OurUniverse() {
                 }
             });
 
-            // Sort memory stars back-to-front
-            projectedStars.sort((a, b) => b.depth - a.depth);
+            // Combine all depth-sorted renderables (planets + stars)
+            const allCelestial = [...renderedBodies, ...projectedStars];
+            allCelestial.sort((a, b) => b.depth - a.depth);
 
-            // 3. Draw Constellation Lines between Memory Stars
+            // Draw Constellation Lines between couple's memory stars
             if (showConstellations && projectedStars.length >= 2) {
                 ctx.save();
-                ctx.strokeStyle = 'rgba(236, 72, 153, 0.28)';
-                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = 'rgba(236, 72, 153, 0.35)';
+                ctx.lineWidth = 1.3;
                 ctx.setLineDash([4, 6]);
 
                 for (let i = 0; i < projectedStars.length - 1; i++) {
@@ -387,88 +675,207 @@ export default function OurUniverse() {
                     ctx.lineTo(p2.px, p2.py);
                     ctx.stroke();
 
-                    // Tiny distance midpoint heart or glow
                     const midX = (p1.px + p2.px) / 2;
                     const midY = (p1.py + p2.py) / 2;
-                    ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
+                    ctx.fillStyle = 'rgba(244, 63, 94, 0.45)';
                     ctx.beginPath();
-                    ctx.arc(midX, midY, 1.8, 0, Math.PI * 2);
+                    ctx.arc(midX, midY, 2, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 ctx.restore();
             }
 
-            // 4. Render Memory Stars
-            projectedStars.forEach((star) => {
-                const colorDef = STAR_COLORS[star.color] || STAR_COLORS.gold;
-                const baseRadius = Math.max(5, 9 * (star.scale * 0.95));
-                const pulse = Math.sin(timeNow * 3 + star.id.charCodeAt(0)) * 2;
-                const radius = baseRadius + pulse;
+            // Draw Celestial Entities
+            allCelestial.forEach((ent) => {
+                if (ent.type && SOLAR_SYSTEM_BODIES.some(b => b.id === ent.id)) {
+                    // ── RENDER PLANET / SUN / BLACK HOLE ──
+                    const r = Math.max(6, ent.radius * (ent.scale * 0.9));
 
-                // Star Glow Gradient
-                const glowGrad = ctx.createRadialGradient(
-                    star.px, star.py, 1,
-                    star.px, star.py, radius * 3.2
-                );
-                glowGrad.addColorStop(0, colorDef.hex);
-                glowGrad.addColorStop(0.35, colorDef.glow);
-                glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                    if (ent.type === 'sun') {
+                        // The Sun: Pulsing Corona & Blazing Core
+                        const pulse = Math.sin(timeNow * 2.5) * 4;
+                        const sunGlow = ctx.createRadialGradient(ent.px, ent.py, r * 0.4, ent.px, ent.py, (r + pulse) * 2.8);
+                        sunGlow.addColorStop(0, '#ffffff');
+                        sunGlow.addColorStop(0.2, '#fef08a');
+                        sunGlow.addColorStop(0.55, '#f59e0b');
+                        sunGlow.addColorStop(0.85, 'rgba(239, 68, 68, 0.35)');
+                        sunGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-                ctx.fillStyle = glowGrad;
-                ctx.beginPath();
-                ctx.arc(star.px, star.py, radius * 3.2, 0, Math.PI * 2);
-                ctx.fill();
+                        ctx.fillStyle = sunGlow;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, (r + pulse) * 2.8, 0, Math.PI * 2);
+                        ctx.fill();
 
-                // Core Star
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(star.px, star.py, radius * 0.65, 0, Math.PI * 2);
-                ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r * 0.75, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (ent.type === 'blackhole') {
+                        // Gargantua Black Hole: Accretion Disk + Event Horizon
+                        const bhGlow = ctx.createRadialGradient(ent.px, ent.py, r * 0.8, ent.px, ent.py, r * 2.6);
+                        bhGlow.addColorStop(0, 'rgba(244, 63, 94, 0.9)');
+                        bhGlow.addColorStop(0.4, 'rgba(251, 146, 60, 0.8)');
+                        bhGlow.addColorStop(0.8, 'rgba(99, 102, 241, 0.3)');
+                        bhGlow.addColorStop(1, 'rgba(0,0,0,0)');
 
-                // Distinct rendering for star types
-                if (star.star_type === 'binary') {
-                    // Twin dancing star
-                    const orbAngle = timeNow * 2;
-                    const orbX = star.px + Math.cos(orbAngle) * (radius * 1.8);
-                    const orbY = star.py + Math.sin(orbAngle) * (radius * 1.8);
-                    ctx.fillStyle = '#f43f5e';
+                        ctx.save();
+                        ctx.translate(ent.px, ent.py);
+                        ctx.scale(1, 0.4);
+                        ctx.fillStyle = bhGlow;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r * 2.6, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+
+                        // Pure Black Event Horizon
+                        ctx.fillStyle = '#000000';
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    } else if (ent.type === 'earth') {
+                        // Earth: Blue marble sphere + atmospheric halo
+                        const earthGrad = ctx.createRadialGradient(ent.px - r * 0.3, ent.py - r * 0.3, r * 0.1, ent.px, ent.py, r);
+                        earthGrad.addColorStop(0, '#93c5fd');
+                        earthGrad.addColorStop(0.5, '#0284c7');
+                        earthGrad.addColorStop(1, '#082f49');
+
+                        ctx.fillStyle = earthGrad;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Swirling white clouds
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                        ctx.lineWidth = 2.2;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r * 0.65, 0.2, 1.8);
+                        ctx.stroke();
+
+                        // Atmospheric glow
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r + 2, 0, Math.PI * 2);
+                        ctx.stroke();
+                    } else if (ent.type === 'saturn') {
+                        // Saturn body
+                        const saturnGrad = ctx.createRadialGradient(ent.px - r * 0.3, ent.py - r * 0.3, r * 0.1, ent.px, ent.py, r);
+                        saturnGrad.addColorStop(0, '#fef08a');
+                        saturnGrad.addColorStop(0.7, '#ca8a04');
+                        saturnGrad.addColorStop(1, '#713f12');
+
+                        ctx.fillStyle = saturnGrad;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Saturn Rings
+                        ctx.save();
+                        ctx.translate(ent.px, ent.py);
+                        ctx.rotate(0.45);
+                        ctx.scale(1, 0.35);
+
+                        ctx.strokeStyle = 'rgba(254, 240, 138, 0.65)';
+                        ctx.lineWidth = r * 0.65;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else {
+                        // Generic Planet (Jupiter / Mars / Moon)
+                        const pGrad = ctx.createRadialGradient(ent.px - r * 0.3, ent.py - r * 0.3, r * 0.1, ent.px, ent.py, r);
+                        pGrad.addColorStop(0, '#ffffff');
+                        pGrad.addColorStop(0.4, ent.color);
+                        pGrad.addColorStop(1, '#000000');
+
+                        ctx.fillStyle = pGrad;
+                        ctx.beginPath();
+                        ctx.arc(ent.px, ent.py, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Planet Label
+                    ctx.font = '600 11px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    const textWidth = ctx.measureText(ent.name).width;
+
+                    ctx.fillStyle = 'rgba(9, 8, 20, 0.8)';
                     ctx.beginPath();
-                    ctx.arc(orbX, orbY, radius * 0.45, 0, Math.PI * 2);
+                    ctx.roundRect(ent.px - textWidth / 2 - 6, ent.py + r + 6, textWidth + 12, 18, 5);
                     ctx.fill();
-                } else if (star.star_type === 'diamond') {
-                    // Crystalline 4-point diffraction spike
-                    ctx.strokeStyle = colorDef.hex;
-                    ctx.lineWidth = 1.6;
+
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.fillText(ent.name, ent.px, ent.py + r + 19);
+
+                } else {
+                    // ── RENDER MEMORY STAR ──
+                    const star = ent;
+                    const colorDef = STAR_COLORS[star.color] || STAR_COLORS.gold;
+                    const baseRadius = Math.max(5, 9 * (star.scale * 0.95));
+                    const pulse = Math.sin(timeNow * 3 + star.id.charCodeAt(0)) * 2;
+                    const radius = baseRadius + pulse;
+
+                    // Glow Gradient
+                    const glowGrad = ctx.createRadialGradient(star.px, star.py, 1, star.px, star.py, radius * 3.2);
+                    glowGrad.addColorStop(0, colorDef.hex);
+                    glowGrad.addColorStop(0.35, colorDef.glow);
+                    glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                    ctx.fillStyle = glowGrad;
                     ctx.beginPath();
-                    ctx.moveTo(star.px - radius * 2.8, star.py);
-                    ctx.lineTo(star.px + radius * 2.8, star.py);
-                    ctx.moveTo(star.px, star.py - radius * 2.8);
-                    ctx.lineTo(star.px, star.py + radius * 2.8);
-                    ctx.stroke();
-                } else if (star.star_type === 'supernova') {
-                    // Nova aura ring
-                    ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
-                    ctx.lineWidth = 2;
+                    ctx.arc(star.px, star.py, radius * 3.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Star Core
+                    ctx.fillStyle = '#ffffff';
                     ctx.beginPath();
-                    ctx.arc(star.px, star.py, radius * 2.2, 0, Math.PI * 2);
-                    ctx.stroke();
+                    ctx.arc(star.px, star.py, radius * 0.65, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (star.star_type === 'binary') {
+                        const orbAngle = timeNow * 2;
+                        const orbX = star.px + Math.cos(orbAngle) * (radius * 1.8);
+                        const orbY = star.py + Math.sin(orbAngle) * (radius * 1.8);
+                        ctx.fillStyle = '#f43f5e';
+                        ctx.beginPath();
+                        ctx.arc(orbX, orbY, radius * 0.45, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (star.star_type === 'diamond') {
+                        ctx.strokeStyle = colorDef.hex;
+                        ctx.lineWidth = 1.6;
+                        ctx.beginPath();
+                        ctx.moveTo(star.px - radius * 2.8, star.py);
+                        ctx.lineTo(star.px + radius * 2.8, star.py);
+                        ctx.moveTo(star.px, star.py - radius * 2.8);
+                        ctx.lineTo(star.px, star.py + radius * 2.8);
+                        ctx.stroke();
+                    } else if (star.star_type === 'supernova') {
+                        ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(star.px, star.py, radius * 2.2, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+
+                    // Star Name Label
+                    ctx.font = '600 12px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    const textWidth = ctx.measureText(star.star_name).width;
+
+                    ctx.fillStyle = 'rgba(15, 12, 27, 0.75)';
+                    ctx.beginPath();
+                    ctx.roundRect(star.px - textWidth / 2 - 8, star.py + radius + 6, textWidth + 16, 20, 6);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(star.star_name, star.px, star.py + radius + 20);
                 }
-
-                // Star Title Label with glowing glass backing
-                ctx.font = '600 12px Inter, sans-serif';
-                ctx.textAlign = 'center';
-                const textWidth = ctx.measureText(star.star_name).width;
-
-                ctx.fillStyle = 'rgba(15, 12, 27, 0.75)';
-                ctx.beginPath();
-                ctx.roundRect(star.px - textWidth / 2 - 8, star.py + radius + 6, textWidth + 16, 20, 6);
-                ctx.fill();
-
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(star.star_name, star.px, star.py + radius + 20);
             });
 
-            // 5. Draw Shooting Stars / Meteors
+            // 7. Render Shooting Stars / Meteors
             for (let i = meteorsRef.current.length - 1; i >= 0; i--) {
                 const m = meteorsRef.current[i];
                 m.x += m.vx;
@@ -496,7 +903,6 @@ export default function OurUniverse() {
                 ctx.lineTo(m.x - m.vx * (m.length / 10), m.y - m.vy * (m.length / 10));
                 ctx.stroke();
 
-                // Spark head
                 ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha})`;
                 ctx.beginPath();
                 ctx.arc(m.x, m.y, 2.5, 0, Math.PI * 2);
@@ -512,7 +918,7 @@ export default function OurUniverse() {
             cancelAnimationFrame(animId);
             window.removeEventListener('resize', handleResize);
         };
-    }, [stars, showConstellations, isTourRunning]);
+    }, [stars, showConstellations, showSolarSystem, isTourRunning]);
 
     // Canvas Pointer Controls (Rotate & Zoom)
     const handlePointerDown = (e) => {
@@ -544,11 +950,11 @@ export default function OurUniverse() {
     const handleWheel = (e) => {
         e.preventDefault();
         const delta = e.deltaY * -0.001;
-        const newZoom = Math.min(Math.max(cameraRef.current.targetZoom + delta, 0.5), 2.2);
+        const newZoom = Math.min(Math.max(cameraRef.current.targetZoom + delta, 0.4), 2.5);
         cameraRef.current.targetZoom = newZoom;
     };
 
-    // Click Detection on Memory Stars
+    // Click Detection on Stars or Planets
     const handleCanvasClick = (e) => {
         if (!canvasRef.current) return;
         const rect = canvasRef.current.getBoundingClientRect();
@@ -557,7 +963,7 @@ export default function OurUniverse() {
 
         const cx = canvasRef.current.width / 2;
         const cy = canvasRef.current.height / 2;
-        const fov = 340 * cameraRef.current.zoom;
+        const fov = 350 * cameraRef.current.zoom;
 
         const rx = cameraRef.current.rotX;
         const ry = cameraRef.current.rotY;
@@ -566,8 +972,28 @@ export default function OurUniverse() {
         const cosY = Math.cos(ry);
         const sinY = Math.sin(ry);
 
-        let clicked = null;
+        // 1. Check Planets Click
+        if (showSolarSystem) {
+            for (const p of SOLAR_SYSTEM_BODIES) {
+                const x1 = p.x * cosY - p.z * sinY;
+                const z1 = p.x * sinY + p.z * cosY;
+                const y1 = p.y * cosX - z1 * sinX;
+                const z2 = p.y * sinX + z1 * cosX;
+                const depth = z2 + 250;
+                if (depth > 15) {
+                    const scale = fov / depth;
+                    const px = cx + x1 * scale;
+                    const py = cy + y1 * scale;
+                    const hitRadius = Math.max(24, p.radius * scale * 1.4);
+                    if (Math.hypot(clickX - px, clickY - py) <= hitRadius) {
+                        setSelectedPlanet(p);
+                        return;
+                    }
+                }
+            }
+        }
 
+        // 2. Check Memory Stars Click
         for (const star of stars) {
             const sx = star.coord_x;
             const sy = star.coord_y;
@@ -584,17 +1010,12 @@ export default function OurUniverse() {
                 const px = cx + x1 * scale;
                 const py = cy + y1 * scale;
 
-                const hitRadius = Math.max(20, 16 * scale);
-                const dist = Math.hypot(clickX - px, clickY - py);
-                if (dist <= hitRadius) {
-                    clicked = star;
-                    break;
+                const hitRadius = Math.max(22, 16 * scale);
+                if (Math.hypot(clickX - px, clickY - py) <= hitRadius) {
+                    setSelectedStar(star);
+                    return;
                 }
             }
-        }
-
-        if (clicked) {
-            setSelectedStar(clicked);
         }
     };
 
@@ -690,24 +1111,26 @@ export default function OurUniverse() {
             <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="pointer-events-auto flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-all text-white/90 hover:text-white"
+                    className="pointer-events-auto flex items-center gap-2 px-3.5 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-all text-white/90 hover:text-white shadow-lg"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back</span>
                 </button>
 
+                {/* Center Title Badge */}
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-black/50 backdrop-blur-md border border-pink-500/30 rounded-full shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-black/60 backdrop-blur-md border border-pink-500/30 rounded-full shadow-[0_0_20px_rgba(236,72,153,0.3)]">
                         <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
                         <h1 className="text-sm font-bold tracking-wider uppercase bg-gradient-to-r from-pink-300 via-rose-200 to-amber-200 bg-clip-text text-transparent">
-                            Our Universe
+                            Our Whole Universe
                         </h1>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">
-                            {stars.length} Stars
+                            {stars.length} Stars • 7 Worlds
                         </span>
                     </div>
                 </div>
 
+                {/* Quick Toggle Controls */}
                 <div className="pointer-events-auto flex items-center gap-2">
                     {/* Audio Synth Toggle */}
                     <button
@@ -720,6 +1143,19 @@ export default function OurUniverse() {
                         title={audioEnabled ? "Mute Cosmic Drone" : "Play Ambient Space Music"}
                     >
                         {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                    </button>
+
+                    {/* Solar System Toggle */}
+                    <button
+                        onClick={() => setShowSolarSystem(prev => !prev)}
+                        className={`p-2.5 rounded-full backdrop-blur-md border transition-all ${
+                            showSolarSystem
+                                ? 'bg-amber-600/80 border-amber-400 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+                                : 'bg-black/60 border-white/10 text-white/60 hover:text-white'
+                        }`}
+                        title="Toggle Solar System Planets"
+                    >
+                        <Globe className="w-4 h-4" />
                     </button>
 
                     {/* Constellations Toggle */}
@@ -740,7 +1176,7 @@ export default function OurUniverse() {
                         onClick={() => setIsTourRunning(prev => !prev)}
                         className={`p-2.5 rounded-full backdrop-blur-md border transition-all ${
                             isTourRunning
-                                ? 'bg-amber-600/80 border-amber-400 text-white animate-spin'
+                                ? 'bg-pink-600/80 border-pink-400 text-white animate-spin'
                                 : 'bg-black/60 border-white/10 text-white/60 hover:text-white'
                         }`}
                         title="Cinematic Galaxy Tour"
@@ -748,6 +1184,41 @@ export default function OurUniverse() {
                         <RefreshCw className="w-4 h-4" />
                     </button>
                 </div>
+            </div>
+
+            {/* Quick Teleport Strip (Top Left underneath Nav) */}
+            <div className="absolute top-16 left-4 z-20 flex flex-wrap items-center gap-1.5 max-w-sm pointer-events-auto">
+                <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider mr-1">Fly to:</span>
+                <button
+                    onClick={() => flyToTarget(95, -25, 45)}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 transition-all flex items-center gap-1"
+                >
+                    🌍 Earth
+                </button>
+                <button
+                    onClick={() => flyToTarget(0, 0, 0)}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1"
+                >
+                    ☀️ Sol
+                </button>
+                <button
+                    onClick={() => flyToTarget(-225, -85, -125)}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 transition-all flex items-center gap-1"
+                >
+                    🪐 Saturn
+                </button>
+                <button
+                    onClick={() => flyToTarget(10, -230, 170)}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1"
+                >
+                    🕳️ Gargantua
+                </button>
+                <button
+                    onClick={() => flyToTarget(-160, 170, -175)}
+                    className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition-all flex items-center gap-1"
+                >
+                    🏹 Orion
+                </button>
             </div>
 
             {/* Shooting Star Banner (Catch a Wish) */}
@@ -806,21 +1277,80 @@ export default function OurUniverse() {
             </div>
 
             {/* Helper Hint */}
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center text-xs text-white/40 pointer-events-none">
-                Drag to rotate sky • Scroll to zoom • Click any star to view memory
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center text-xs text-white/40 pointer-events-none whitespace-nowrap">
+                Drag to rotate universe • Scroll to zoom • Click any planet or star to explore
             </div>
+
+            {/* ── MODAL: PLANET / CELESTIAL BODY DETAILS ── */}
+            {selectedPlanet && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+                    <div className="relative w-full max-w-md bg-gradient-to-b from-gray-900 via-slate-900 to-black border border-white/20 rounded-3xl p-6 shadow-2xl overflow-hidden">
+                        <div
+                            className="absolute -top-20 -left-20 w-44 h-44 rounded-full blur-3xl opacity-30 pointer-events-none"
+                            style={{ backgroundColor: selectedPlanet.color }}
+                        />
+
+                        <button
+                            onClick={() => setSelectedPlanet(null)}
+                            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <div className="flex items-center gap-3.5 mb-4">
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 text-2xl"
+                                style={{ backgroundColor: `${selectedPlanet.color}22`, borderColor: selectedPlanet.color }}
+                            >
+                                {selectedPlanet.type === 'sun' ? '☀️' : selectedPlanet.type === 'earth' ? '🌍' : selectedPlanet.type === 'moon' ? '🌙' : selectedPlanet.type === 'blackhole' ? '🕳️' : '🪐'}
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-extrabold text-white">{selectedPlanet.name}</h3>
+                                <p className="text-xs text-pink-300 font-medium">{selectedPlanet.title}</p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-white/90 text-sm leading-relaxed mb-4">
+                            {selectedPlanet.desc}
+                        </div>
+
+                        {selectedPlanet.quote && (
+                            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 text-xs italic text-pink-200 text-center font-serif mb-5">
+                                "{selectedPlanet.quote}"
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                            <button
+                                onClick={() => {
+                                    flyToTarget(selectedPlanet.x, selectedPlanet.y, selectedPlanet.z);
+                                    setSelectedPlanet(null);
+                                }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-pink-600 hover:bg-pink-500 text-white transition-colors"
+                            >
+                                <Orbit className="w-4 h-4" />
+                                <span>Orbit & Focus World</span>
+                            </button>
+                            <button
+                                onClick={() => setSelectedPlanet(null)}
+                                className="px-5 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── MODAL: STAR DETAILS & POLAROID MEMORY ── */}
             {selectedStar && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
                     <div className="relative w-full max-w-md bg-gradient-to-b from-gray-900 via-slate-900 to-black border border-white/15 rounded-3xl p-6 shadow-2xl overflow-hidden">
-                        {/* Glow halo */}
                         <div
                             className="absolute -top-20 -left-20 w-44 h-44 rounded-full blur-3xl opacity-30 pointer-events-none"
                             style={{ backgroundColor: STAR_COLORS[selectedStar.color]?.hex || '#fbbf24' }}
                         />
 
-                        {/* Close button */}
                         <button
                             onClick={() => setSelectedStar(null)}
                             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
@@ -828,7 +1358,6 @@ export default function OurUniverse() {
                             <X className="w-5 h-5" />
                         </button>
 
-                        {/* Star Header */}
                         <div className="flex items-center gap-3 mb-4">
                             <div
                                 className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border border-white/20"
@@ -857,12 +1386,10 @@ export default function OurUniverse() {
                             </div>
                         </div>
 
-                        {/* Star Type Badge */}
                         <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/70 mb-4 font-mono">
                             ✦ {STAR_TYPES[selectedStar.star_type]?.label || "Standard Star"}
                         </div>
 
-                        {/* Polaroid Photo Preview if attached */}
                         {selectedStar.photo_url && (
                             <div className="mb-4 bg-white p-2.5 rounded-xl shadow-xl transform -rotate-1 border border-gray-200">
                                 <img
@@ -877,12 +1404,10 @@ export default function OurUniverse() {
                             </div>
                         )}
 
-                        {/* Memory Text */}
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-white/90 text-sm leading-relaxed mb-6 whitespace-pre-wrap">
                             "{selectedStar.memory_text}"
                         </div>
 
-                        {/* Actions */}
                         <div className="flex items-center justify-between pt-2 border-t border-white/10">
                             <button
                                 onClick={() => handleDeleteStar(selectedStar.id)}
@@ -975,7 +1500,6 @@ export default function OurUniverse() {
                                 </div>
                             </div>
 
-                            {/* Color Selection */}
                             <div>
                                 <label className="block text-xs font-semibold text-white/70 mb-1.5">Celestial Color</label>
                                 <div className="flex items-center gap-2.5">
@@ -994,7 +1518,6 @@ export default function OurUniverse() {
                                 </div>
                             </div>
 
-                            {/* Polaroid Photo URL */}
                             <div>
                                 <label className="block text-xs font-semibold text-white/70 mb-1 flex items-center gap-1.5">
                                     <Camera className="w-3.5 h-3.5 text-pink-400" />

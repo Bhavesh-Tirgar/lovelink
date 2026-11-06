@@ -85,8 +85,9 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
             attributionControl: false
         });
 
-        // Sleek CartoDB Dark/Voyager tiles
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        // Sleek CartoDB Voyager tiles with user's official API Key
+        const cartoKey = 'cb1_53pa_1_5a018e2cbb4fe0260c5d225c';
+        L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`, {
             maxZoom: 19,
             subdomains: 'abcd',
         }).addTo(map);
