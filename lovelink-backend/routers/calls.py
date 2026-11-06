@@ -81,7 +81,7 @@ async def initiate_call(
             "caller_token": partner_token,
             "caller_name": current_user.name,
             "caller_photo": current_user.photo_url,
-            "call_type": payload.call_type,
+            "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video",
             "zego_app_id": ZEGO_APP_ID
         },
         exclude=None
@@ -108,7 +108,7 @@ async def initiate_call(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
-        "call_type": str(payload.call_type)
+        "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video"
     }
 
 
@@ -133,7 +133,7 @@ async def answer_call(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
-        "call_type": str(call.call_type.value if hasattr(call.call_type, 'value') else call.call_type)
+        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
     }
 
 @router.get("/{call_id}/token")
@@ -157,7 +157,7 @@ async def get_call_token(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
-        "call_type": str(call.call_type.value if hasattr(call.call_type, 'value') else call.call_type)
+        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
     }
 
 
