@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useWebSocket from '../hooks/useWebSocket';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
@@ -108,12 +109,24 @@ export const CallProvider = ({ children }) => {
             timeoutRef.current = setTimeout(() => {
                 declineCall(data.call_id);
             }, 30000);
-        } else if (data.type === 'call_declined' || data.type === 'call_ended') {
+        } else if (data.type === 'call_declined') {
             if (incomingCall?.call_id === data.call_id) {
                 clearIncoming();
             }
+            if (location.pathname === `/call/${data.call_id}` || location.pathname.startsWith('/call/')) {
+                toast.error("Call was declined or partner is unavailable");
+                navigate('/dashboard', { replace: true });
+            }
+        } else if (data.type === 'call_ended') {
+            if (incomingCall?.call_id === data.call_id) {
+                clearIncoming();
+            }
+            if (location.pathname === `/call/${data.call_id}` || location.pathname.startsWith('/call/')) {
+                toast("Call ended");
+                navigate('/dashboard', { replace: true });
+            }
         }
-    }, [incomingCall, startRinging, declineCall, clearIncoming]);
+    }, [incomingCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
 
     useWebSocket(wsUrl, handleWsMessage);
 
