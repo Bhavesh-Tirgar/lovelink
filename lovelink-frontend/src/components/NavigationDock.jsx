@@ -10,6 +10,7 @@ export default function NavigationDock() {
 
     const navItems = [
         { name: 'Home', path: '/dashboard', icon: Home },
+        { name: 'Snap Map', path: '/map', icon: Flame },
         { name: 'Chat', path: '/chat', icon: MessageCircle },
         { name: 'Heartbeat Touch', path: '/touch', icon: Flame },
         { name: 'Our Universe', path: '/universe', icon: Sparkles },
@@ -30,7 +31,7 @@ export default function NavigationDock() {
 
     // Hide dock on unauthenticated pages or fullscreen routes like calling, touch, universe
     const hiddenPaths = ['/login', '/signup', '/link'];
-    if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/call/') || location.pathname === '/touch' || location.pathname === '/universe') {
+    if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/call/') || location.pathname === '/touch' || location.pathname === '/universe' || location.pathname === '/map') {
         return null;
     }
 

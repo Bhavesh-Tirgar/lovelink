@@ -106,9 +106,11 @@ export const CallProvider = ({ children }) => {
         const myUserId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
 
         if (data.type === 'incoming_call') {
-            // CRITICAL FIX: If THIS user initiated the call, DO NOT treat it as an incoming call!
-            // Otherwise the caller sets an auto-decline timer on themselves and kills the call after 30 seconds!
+            // CRITICAL FIX: Never show incoming call to the caller, or if already in a call!
             if (data.caller_id && myUserId && String(data.caller_id) === String(myUserId)) {
+                return;
+            }
+            if (typeof window !== 'undefined' && window.location.pathname.startsWith('/call/')) {
                 return;
             }
 

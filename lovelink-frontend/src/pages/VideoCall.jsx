@@ -105,7 +105,8 @@ export default function VideoCall() {
                     }
                 },
                 onLeaveRoom: () => {
-                    handleEndCall();
+                    // Do not end call session on internal SDK leave events
+                    console.log("Left Zego room container");
                 },
                 onUserLeave: (users) => {
                     // Only auto-cut if partner was actually in the call and left

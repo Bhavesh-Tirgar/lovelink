@@ -6,7 +6,7 @@ import { useLocation } from 'react-router-dom';
 export default function Layout({ children }) {
     const location = useLocation();
     const hiddenPaths = ['/login', '/signup', '/link'];
-    const isCallOrWatch = location.pathname.startsWith('/call/') || location.pathname.startsWith('/watch/') || location.pathname === '/touch' || location.pathname === '/universe';
+    const isCallOrWatch = location.pathname.startsWith('/call/') || location.pathname.startsWith('/watch/') || location.pathname === '/touch' || location.pathname === '/universe' || location.pathname === '/map';
     const isAuthPage = hiddenPaths.includes(location.pathname);
 
     return (

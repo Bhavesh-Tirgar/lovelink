@@ -49,8 +49,6 @@ export default function OurUniverse() {
             setStars(res.data || []);
         } catch (e) {
             console.error("Failed to load stars", e);
-        } finally {
-            setLoading(false);
         }
     }, []);
 

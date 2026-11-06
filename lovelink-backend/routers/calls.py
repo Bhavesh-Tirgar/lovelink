@@ -77,6 +77,7 @@ async def initiate_call(
         {
             "type": "incoming_call",
             "call_id": new_call_id,
+            "caller_id": str(current_user.id),
             "room_id": room_id,
             "caller_token": partner_token,
             "caller_name": current_user.name,

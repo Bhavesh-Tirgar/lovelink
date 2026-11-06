@@ -4,7 +4,7 @@ import api from '../api';
 import DailyQuestion from '../components/DailyQuestion';
 import NotificationBell from '../components/NotificationBell';
 import TimeWidget from '../components/TimeWidget';
-import LoveRadarWidget from '../components/LoveRadarWidget';
+import SnapMap from '../components/SnapMap';
 
 const MOODS = ['😊', '😢', '😍', '😤', '😴', '🥰', '😰', '🎉'];
 const MOOD_LABELS = ['Happy', 'Sad', 'In Love', 'Frustrated', 'Tired', 'Grateful', 'Anxious', 'Excited'];
@@ -281,10 +281,61 @@ function Dashboard() {
           </div>
         </section >
 
-        {/* Where is My Love? Live Distance & Battery Status */}
+        {/* Quick Features Hub - All Features Visible Instantly */}
+        <section className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-pink-300 flex items-center gap-2">
+              <span>✨ Couple Features Hub</span>
+            </h2>
+            <span className="text-[11px] text-gray-400">All features at your fingertips</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {[
+              { title: 'Snap Map', desc: 'Live GPS & Battery', icon: '📍', color: 'from-pink-600/30 to-rose-600/30 border-pink-500/30', path: '/map' },
+              { title: 'Thumbkiss', desc: 'Heartbeat Touch', icon: '💋', color: 'from-purple-600/30 to-pink-600/30 border-purple-500/30', path: '/touch' },
+              { title: 'Truth / Dare', desc: 'Turn-Based Game', icon: '👑', color: 'from-amber-600/30 to-orange-600/30 border-amber-500/30', path: '/games' },
+              { title: 'Our Universe', desc: '3D Memory Stars', icon: '🌌', color: 'from-indigo-600/30 to-purple-600/30 border-indigo-500/30', path: '/universe' },
+              { title: 'Live Chat', desc: 'Audio & Photos', icon: '💬', color: 'from-blue-600/30 to-cyan-600/30 border-blue-500/30', path: '/chat' },
+              { title: 'Call Partner', desc: 'Voice & Video', icon: '📞', color: 'from-emerald-600/30 to-green-600/30 border-emerald-500/30', action: () => startCall('video') },
+              { title: 'Love Notes', desc: 'Secret Letters', icon: '💌', color: 'from-rose-600/30 to-pink-600/30 border-rose-500/30', path: '/notes' },
+              { title: 'Albums', desc: 'Photos & Videos', icon: '📷', color: 'from-fuchsia-600/30 to-purple-600/30 border-fuchsia-500/30', path: '/album' },
+              { title: 'Watch Movies', desc: 'Sync Watch Room', icon: '🎬', color: 'from-red-600/30 to-rose-600/30 border-red-500/30', path: '/movies' },
+              { title: 'Doodle Board', desc: 'Draw Together', icon: '🎨', color: 'from-teal-600/30 to-cyan-600/30 border-teal-500/30', path: '/doodle' },
+              { title: 'Coupons', desc: 'Romantic Passes', icon: '🎫', color: 'from-yellow-600/30 to-amber-600/30 border-yellow-500/30', path: '/coupons' },
+              { title: 'Countdowns', desc: 'Days to Next Date', icon: '⏳', color: 'from-violet-600/30 to-purple-600/30 border-violet-500/30', path: '/countdowns' }
+            ].map(item => (
+              <button
+                key={item.title}
+                onClick={() => item.action ? item.action() : navigate(item.path)}
+                className={`p-3.5 rounded-2xl bg-gradient-to-br ${item.color} border text-left flex flex-col justify-between group hover:scale-[1.03] transition-all shadow-lg hover:shadow-pink-500/10`}
+              >
+                <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{item.icon}</div>
+                <div>
+                  <h4 className="text-xs font-bold text-white group-hover:text-pink-200 transition-colors">{item.title}</h4>
+                  <p className="text-[10px] text-gray-300 leading-tight mt-0.5">{item.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Real-time Snap Map (Live Location, Avatars, Distance, Battery) */}
         {data && data.linked && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <LoveRadarWidget partner={data.partner_user} coupleId={data.couple_id} />
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                <span>📍 Live Couple Snap Map</span>
+              </h3>
+              <button
+                onClick={() => navigate('/map')}
+                className="text-xs font-bold text-pink-400 hover:text-pink-300 flex items-center gap-1"
+              >
+                <span>Fullscreen Map</span>
+                <span>→</span>
+              </button>
+            </div>
+            <SnapMap partner={data.partner_user} coupleId={data.couple_id} />
           </section>
         )}
 

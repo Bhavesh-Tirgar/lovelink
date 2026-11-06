@@ -286,6 +286,19 @@ async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Quer
                     "x": data.get("x"),
                     "y": data.get("y")
                 })
+
+            # ── REAL-TIME SNAP MAP LOCATION SYNC ───────────────────────────
+            elif msg_type == "location_update":
+                await manager.broadcast(couple_id, {
+                    "type": "location_update",
+                    "user_id": user_id,
+                    "latitude": data.get("latitude"),
+                    "longitude": data.get("longitude"),
+                    "battery_level": data.get("battery_level"),
+                    "is_charging": data.get("is_charging"),
+                    "speed": data.get("speed"),
+                    "heading": data.get("heading")
+                }, exclude=websocket)
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket, couple_id)
