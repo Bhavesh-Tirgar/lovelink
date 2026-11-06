@@ -1,30 +1,22 @@
 import os
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+import smtplib
+import asyncio
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
-# Ensure .env is loaded from backend directory
 _ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
 load_dotenv(_ENV_PATH)
 load_dotenv()
 
-def get_fastmail():
-    conf = ConnectionConfig(
-        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-        MAIL_FROM=os.getenv("MAIL_FROM"),
-        MAIL_PORT=587,
-        MAIL_SERVER="smtp.gmail.com",
-        MAIL_STARTTLS=True,
-        MAIL_SSL_TLS=False,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True
-    )
-    return FastMail(conf)
 
+def _send_sync(email: str, otp: str, purpose: str):
+    mail_user = os.getenv("MAIL_USERNAME", "tirgarbhavesh2005@gmail.com")
+    mail_pass = os.getenv("MAIL_PASSWORD", "hjncxqctsbgtlsyu")
+    mail_from = os.getenv("MAIL_FROM", mail_user)
 
-async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
     subject = f"LoveLink - Your OTP for {purpose}"
-    body = f"""
+    html_body = f"""
     <div style="font-family: Arial, sans-serif; background-color: #080612; padding: 24px; color: #f9fafb;">
       <div style="max-width: 480px; margin: 0 auto; background: linear-gradient(145deg,#111827,#020617); border-radius: 18px; padding: 24px; border: 1px solid rgba(168,85,247,0.4);">
         <h2 style="color:#e9d5ff; text-align:center; font-size:24px; margin-bottom:4px;">LoveLink 💑</h2>
@@ -46,17 +38,24 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
       </div>
     </div>
     """
-    message = MessageSchema(
-        subject=subject,
-        recipients=[email],
-        body=body,
-        subtype="html",
-    )
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"LoveLink <{mail_from}>"
+    msg["To"] = email
+    msg.attach(MIMEText(html_body, "html"))
+
+    # Gmail SMTP Port 465 SSL connection
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=12) as server:
+        server.login(mail_user, mail_pass)
+        server.sendmail(mail_from, [email], msg.as_string())
+
+
+async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
+    print(f"Sending OTP email to {email} for {purpose} via Gmail SSL (Port 465)...")
     try:
-        fm = get_fastmail()
-        print(f"Sending OTP email to {email} for {purpose}...")
-        await fm.send_message(message)
-        print("Email sent successfully.")
-    except Exception as exc:  # pragma: no cover - logging only
+        await asyncio.to_thread(_send_sync, email, otp, purpose)
+        print(f"OTP email sent successfully to {email}!")
+    except Exception as exc:
         print(f"Email send failed: {exc}")
         raise
