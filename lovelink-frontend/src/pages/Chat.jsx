@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, Video, Paperclip, Mic, Send, ArrowLeft } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 function Chat() {
     const navigate = useNavigate();
@@ -12,8 +13,8 @@ function Chat() {
     const [hasMore, setHasMore] = useState(true);
     const [inputValue, setInputValue] = useState('');
     const [isRecording, setIsRecording] = useState(false);
-    const [coupleId, setCoupleId] = useState(null);
-    const [myUserId, setMyUserId] = useState(null);
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
+    const [myUserId, setMyUserId] = useState(() => { try { return JSON.parse(localStorage.getItem('user') || '{}')?.id || null; } catch { return null; } });
     const [partner, setPartner] = useState(null);
     const [typingPartner, setTypingPartner] = useState(false);
     const [uploadError, setUploadError] = useState('');
@@ -26,7 +27,7 @@ function Chat() {
     const typingTimeoutRef = useRef(null);
     const lastTypingSentRef = useRef(0);
 
-    const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const WS_URL = getWsBaseUrl();
 
     // Handle incoming websocket messages
     const onWSMessage = useCallback((data) => {

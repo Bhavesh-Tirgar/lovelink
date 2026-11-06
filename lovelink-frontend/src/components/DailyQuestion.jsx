@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Clock } from 'lucide-react';
 import useWebSocket from 'react-use-websocket';
+import { getWsBaseUrl } from '../utils/wsUrl';
 import api from '../api';
 
 export default function DailyQuestion({ coupleId }) {
@@ -11,8 +12,9 @@ export default function DailyQuestion({ coupleId }) {
 
     // We connect to the WS for realtime updates, expecting our Context or manager to eventually 
     // do this globally, but directly listening here to the global couple channel is fine
-    const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws';
-    const { lastJsonMessage } = useWebSocket(`${WS_URL}/${coupleId}`, {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+    const WS_URL = `${getWsBaseUrl()}/ws/chat`;
+    const { lastJsonMessage } = useWebSocket(coupleId && token ? `${WS_URL}/${coupleId}?token=${token}` : null, {
         shouldReconnect: () => true,
     });
 

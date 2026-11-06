@@ -6,6 +6,7 @@ import {
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import api from '../api';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 // Web Audio API Synthesizers for zero-dependency satisfying sound effects
 const playSound = (type) => {
@@ -52,10 +53,30 @@ export default function Games() {
     const [activeTab, setActiveTab] = useState('rps'); // rps, tod, ttt, wyr
     const [isLiveConnected, setIsLiveConnected] = useState(false);
 
-    const user = JSON.parse(window.localStorage.getItem('user') || '{}');
-    const token = window.localStorage.getItem('token');
-    const coupleId = user?.couple_id;
+    const [user, setUser] = useState(() => {
+        try { return JSON.parse(window.localStorage.getItem('user') || '{}'); } catch { return {}; }
+    });
+    const token = typeof window !== 'undefined' ? window.localStorage.getItem('token') : null;
+    const [coupleId, setCoupleId] = useState(
+        () => user?.couple_id || (typeof window !== 'undefined' ? window.localStorage.getItem('couple_id') : null)
+    );
     const userId = user?.id;
+
+    useEffect(() => {
+        if ((!coupleId || !userId) && token) {
+            api.get('/auth/me').then(res => {
+                if (res.data?.couple_id) {
+                    setCoupleId(res.data.couple_id);
+                    window.localStorage.setItem('couple_id', res.data.couple_id);
+                }
+                if (res.data?.user) {
+                    setUser(res.data.user);
+                    window.localStorage.setItem('user', JSON.stringify(res.data.user));
+                }
+            }).catch(() => {});
+        }
+    }, [token, coupleId, userId]);
+
     const wsRef = useRef(null);
     const onMessageRef = useRef(null);
 
@@ -63,35 +84,47 @@ export default function Games() {
     useEffect(() => {
         if (!coupleId || !token) return;
 
-        const wsBase = process.env.REACT_APP_WS_URL || 
-            (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + 
-            (process.env.REACT_APP_API_URL ? new URL(process.env.REACT_APP_API_URL).host : 'localhost:8000');
+        let isUnmounted = false;
+        let reconnectTimeout = null;
 
-        const ws = new WebSocket(`${wsBase}/games/ws/${coupleId}?token=${token}`);
-        wsRef.current = ws;
+        const connectWs = () => {
+            if (isUnmounted) return;
+            const wsBase = getWsBaseUrl();
+            const ws = new WebSocket(`${wsBase}/games/ws/${coupleId}?token=${token}`);
+            wsRef.current = ws;
 
-        ws.onopen = () => {
-            setIsLiveConnected(true);
-        };
+            ws.onopen = () => {
+                if (isUnmounted) return;
+                setIsLiveConnected(true);
+            };
 
-        ws.onclose = () => {
-            setIsLiveConnected(false);
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (onMessageRef.current) {
-                    onMessageRef.current(data);
+            ws.onclose = (e) => {
+                if (isUnmounted) return;
+                setIsLiveConnected(false);
+                if (e.code !== 1000) {
+                    reconnectTimeout = setTimeout(connectWs, 3000);
                 }
-            } catch (e) {
-                console.error("WS Parse error", e);
-            }
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (onMessageRef.current) {
+                        onMessageRef.current(data);
+                    }
+                } catch (e) {
+                    console.error("WS Parse error", e);
+                }
+            };
         };
+
+        connectWs();
 
         return () => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.close();
+            isUnmounted = true;
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.close(1000, "Games unmounted");
             }
         };
     }, [coupleId, token]);
@@ -320,12 +353,20 @@ export default function Games() {
         setMyWyrChoice(choice);
         sendWs({
             game: 'would_you_rather',
-            action: 'sync_choice',
+            action: 'choice',
+            choice: choice,
             payload: { choice, wyrId: wyrData.id }
         });
 
-        // Solo fallback
-        if (!isLiveConnected) {
+        if (partnerWyrChoice) {
+            if (partnerWyrChoice === choice) {
+                playSound('win');
+                confetti({ particleCount: 70, spread: 60 });
+                toast.success("You both picked the same! Perfect match 💕");
+            } else {
+                toast("Opposites attract! You picked differently 😉");
+            }
+        } else if (!isLiveConnected) {
             setTimeout(() => {
                 const randomChoice = Math.random() > 0.5 ? 'A' : 'B';
                 setPartnerWyrChoice(randomChoice);
@@ -341,6 +382,10 @@ export default function Games() {
     // INCOMING WEBSOCKET DISPATCHER
     // ───────────────────────────────────────────────────────────────────────────
     const handleIncomingWsMessage = useCallback((data) => {
+        const currentMyId = userId || (() => {
+            try { return JSON.parse(window.localStorage.getItem('user') || '{}')?.id; } catch { return null; }
+        })();
+
         switch (data.type) {
             case 'rps_locked':
                 setRpsPartnerLocked(true);
@@ -355,11 +400,11 @@ export default function Games() {
                 setTimeout(() => setRpsCountdown(1), 1000);
                 setTimeout(() => {
                     setRpsCountdown(null);
-                    const myMove = data.moves[userId];
-                    const otherUserId = Object.keys(data.moves).find(id => id !== userId);
+                    const myMove = data.moves[currentMyId];
+                    const otherUserId = Object.keys(data.moves).find(id => id !== currentMyId);
                     const partnerMove = data.moves[otherUserId];
 
-                    const didIWin = data.winner === userId;
+                    const didIWin = data.winner === currentMyId;
                     const isDraw = data.winner === 'draw';
 
                     setRpsResult({
@@ -390,6 +435,9 @@ export default function Games() {
                 break;
 
             case 'ttt_update':
+                if (data.by_user && data.by_user === currentMyId) {
+                    break;
+                }
                 setTttBoard(prev => {
                     const next = [...prev];
                     next[data.index] = data.symbol;
@@ -421,11 +469,34 @@ export default function Games() {
                 toast("Partner drew a card! 💌", { icon: '✨' });
                 break;
 
+            case 'would_you_rather_card':
             case 'would_you_rather_sync':
-                setWyrData(data.payload);
-                setMyWyrChoice(null);
-                setPartnerWyrChoice(null);
-                playSound('flip');
+                if (data.payload && (data.payload.optionA || data.payload.option_a)) {
+                    setWyrData(data.payload);
+                    setMyWyrChoice(null);
+                    setPartnerWyrChoice(null);
+                    playSound('flip');
+                    toast("Partner spun a new question! 🔮", { icon: '✨' });
+                }
+                break;
+
+            case 'would_you_rather_choice':
+                if (data.choice) {
+                    setPartnerWyrChoice(data.choice);
+                    toast("Partner picked their answer! 💖", { icon: '👀' });
+                    setMyWyrChoice(currentChoice => {
+                        if (currentChoice) {
+                            if (currentChoice === data.choice) {
+                                playSound('win');
+                                confetti({ particleCount: 70, spread: 60 });
+                                toast.success("You both picked the same! Perfect match 💕");
+                            } else {
+                                toast("Opposites attract! You picked differently 😉");
+                            }
+                        }
+                        return currentChoice;
+                    });
+                }
                 break;
 
             default:

@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../api';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 const MusicContext = createContext();
 
 export const useMusic = () => useContext(MusicContext);
 
 export const MusicProvider = ({ children }) => {
+    const location = useLocation();
     const [channels, setChannels] = useState([]);
     const [customPlaylist, setCustomPlaylist] = useState([]);
     const [currentTrack, setCurrentTrack] = useState(null);
@@ -17,13 +20,32 @@ export const MusicProvider = ({ children }) => {
     const [djName, setDjName] = useState(null);
     const [isSynced, setIsSynced] = useState(false);
 
+    const [token, setToken] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('token') : null));
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('couple_id') : null));
+
     const audioRef = useRef(new Audio());
     const wsRef = useRef(null);
+    const reconnectTimeoutRef = useRef(null);
     const isLocalAction = useRef(true);
 
-    const user = JSON.parse(window.localStorage.getItem('user') || '{}');
-    const token = window.localStorage.getItem('token');
-    const coupleId = user?.couple_id;
+    // Keep token & coupleId in sync on navigation / state changes
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const activeToken = window.localStorage.getItem('token');
+        const activeCoupleId = window.localStorage.getItem('couple_id');
+
+        if (activeToken !== token) setToken(activeToken);
+        if (activeCoupleId !== coupleId) setCoupleId(activeCoupleId);
+
+        if (activeToken && !activeCoupleId) {
+            api.get('/auth/me').then(res => {
+                if (res.data?.couple_id) {
+                    setCoupleId(res.data.couple_id);
+                    window.localStorage.setItem('couple_id', res.data.couple_id);
+                }
+            }).catch(() => {});
+        }
+    }, [location.pathname, token, coupleId]);
 
     // 1. Fetch initial channels & couple playlist
     useEffect(() => {
@@ -46,8 +68,6 @@ export const MusicProvider = ({ children }) => {
     // 2. Audio element listeners
     useEffect(() => {
         const audio = audioRef.current;
-        audio.volume = volume;
-
         const updateTime = () => setCurrentTime(audio.currentTime);
         const updateDuration = () => setDuration(audio.duration || 0);
         const onEnded = () => playNext();
@@ -67,31 +87,57 @@ export const MusicProvider = ({ children }) => {
     useEffect(() => {
         if (!coupleId || !token) return;
 
-        const WS_BASE = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-        const wsUrl = `${WS_BASE}/music/ws/${coupleId}?token=${token}`;
+        let isUnmounted = false;
+        let reconnectDelay = 2000;
 
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+        const connectWs = () => {
+            if (isUnmounted) return;
+            const wsBase = getWsBaseUrl();
+            const wsUrl = `${wsBase}/music/ws/${coupleId}?token=${token}`;
 
-        ws.onopen = () => {
-            setIsSynced(true);
-            ws.send(JSON.stringify({ type: 'sync_request' }));
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                if (isUnmounted) return;
+                setIsSynced(true);
+                reconnectDelay = 2000;
+                ws.send(JSON.stringify({ type: 'sync_request' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleRemoteEvent(data);
+                } catch (e) {
+                    console.error("Music WS parse error:", e);
+                }
+            };
+
+            ws.onclose = (e) => {
+                if (isUnmounted) return;
+                setIsSynced(false);
+                // Reconnect if not intentional close
+                if (e.code !== 1000) {
+                    reconnectTimeoutRef.current = setTimeout(() => {
+                        reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+                        connectWs();
+                    }, reconnectDelay);
+                }
+            };
+
+            ws.onerror = () => {
+                setIsSynced(false);
+            };
         };
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                handleRemoteEvent(data);
-            } catch (e) {
-                console.error("Music WS parse error:", e);
-            }
-        };
-
-        ws.onclose = () => setIsSynced(false);
+        connectWs();
 
         return () => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.close();
+            isUnmounted = true;
+            if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                wsRef.current.close(1000, "Component unmounted");
             }
         };
     }, [coupleId, token]);
@@ -155,6 +201,14 @@ export const MusicProvider = ({ children }) => {
         }, 300);
     };
 
+    const getCurrentUserName = () => {
+        try {
+            return JSON.parse(window.localStorage.getItem('user') || '{}')?.name || 'Partner';
+        } catch {
+            return 'Partner';
+        }
+    };
+
     // Broadcast event to partner
     const sendEvent = (type, payload = {}) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -162,7 +216,7 @@ export const MusicProvider = ({ children }) => {
             type,
             track: currentTrack,
             position: audioRef.current.currentTime,
-            dj_name: user?.name || 'Partner',
+            dj_name: getCurrentUserName(),
             ...payload
         }));
     };

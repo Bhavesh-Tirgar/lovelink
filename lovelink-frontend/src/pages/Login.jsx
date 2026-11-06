@@ -61,9 +61,13 @@ function Login() {
         identifier: finalIdentifier,
         password,
       });
-      const { access_token, user } = res.data;
+      const { access_token, user, couple_id } = res.data;
+      const activeCoupleId = couple_id || user?.couple_id;
       window.localStorage.setItem('token', access_token);
-      window.localStorage.setItem('user', JSON.stringify(user));
+      window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
+      if (activeCoupleId) {
+        window.localStorage.setItem('couple_id', activeCoupleId);
+      }
       navigate('/link');
     } catch (err) {
       const errMsg = getError(err);
@@ -131,9 +135,13 @@ function Login() {
         identifier: finalIdentifier,
         otp,
       });
-      const { access_token, user } = res.data;
+      const { access_token, user, couple_id } = res.data;
+      const activeCoupleId = couple_id || user?.couple_id;
       window.localStorage.setItem('token', access_token);
-      window.localStorage.setItem('user', JSON.stringify(user));
+      window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
+      if (activeCoupleId) {
+        window.localStorage.setItem('couple_id', activeCoupleId);
+      }
       navigate('/link');
     } catch (err) {
       setError(getError(err));

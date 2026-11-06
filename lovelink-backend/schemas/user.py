@@ -64,6 +64,7 @@ class UserResponse(BaseModel):
     timezone: str
     photo_url: str | None
     is_verified: bool
+    couple_id: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -72,3 +73,4 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+    couple_id: str | None = None

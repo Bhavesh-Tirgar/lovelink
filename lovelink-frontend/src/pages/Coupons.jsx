@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Gift, Plus } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 function ScratchCard({ coupon, onScratched }) {
     const canvasRef = useRef(null);
@@ -127,10 +128,10 @@ function Coupons() {
     const navigate = useNavigate();
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [coupleId, setCoupleId] = useState(null);
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const [myUserId, setMyUserId] = useState(null);
 
-    const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const WS_URL = getWsBaseUrl();
 
     useWebSocket(
         coupleId ? `${WS_URL}/ws/chat/${coupleId}` : null,

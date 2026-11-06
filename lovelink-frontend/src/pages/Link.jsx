@@ -28,6 +28,11 @@ function Link() {
         // Step 1: Check if already linked
         const meRes = await api.get('/couples/me');
         if (meRes.data && meRes.data.linked === true) {
+          if (meRes.data.couple_id) {
+            window.localStorage.setItem('couple_id', meRes.data.couple_id);
+            const userObj = JSON.parse(window.localStorage.getItem('user') || '{}');
+            window.localStorage.setItem('user', JSON.stringify({ ...userObj, couple_id: meRes.data.couple_id }));
+          }
           navigate('/dashboard', { replace: true });
           return;
         }
@@ -81,7 +86,12 @@ function Link() {
         return;
       }
 
-      await api.post('/couples/join', { invite_code: code });
+      const joinRes = await api.post('/couples/join', { invite_code: code });
+      if (joinRes.data?.couple_id) {
+        window.localStorage.setItem('couple_id', joinRes.data.couple_id);
+        const userObj = JSON.parse(window.localStorage.getItem('user') || '{}');
+        window.localStorage.setItem('user', JSON.stringify({ ...userObj, couple_id: joinRes.data.couple_id }));
+      }
       setStatus('Connected! 💑');
       setTimeout(() => {
         navigate('/dashboard', { replace: true });

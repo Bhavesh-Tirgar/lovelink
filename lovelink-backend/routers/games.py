@@ -232,27 +232,42 @@ async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Que
                     symbol = data.get("symbol", "❤️") # Heart or Kiss
                     if 0 <= index < 9 and not session["ttt"]["board"][index]:
                         session["ttt"]["board"][index] = symbol
-                        # Broadcast move
+                        # Broadcast move (exclude sender because sender has already updated their board)
                         await manager.broadcast(room, {
                             "type": "ttt_update",
                             "index": index,
                             "symbol": symbol,
                             "board": session["ttt"]["board"],
                             "by_user": user_id
-                        })
+                        }, exclude=websocket)
 
                 elif action == "reset":
                     session["ttt"]["board"] = [""] * 9
                     await manager.broadcast(room, {"type": "ttt_reset", "by_user": user_id})
 
-            # ── 3. TRUTH OR DARE / WOULD YOU RATHER SYNC ─────────────────────
-            elif game in ("truth_or_dare", "would_you_rather"):
-                # Broadcast spun card/prompt to partner so both see it simultaneously
+            # ── 3. TRUTH OR DARE ─────────────────────
+            elif game == "truth_or_dare":
                 await manager.broadcast(room, {
-                    "type": f"{game}_sync",
+                    "type": "truth_or_dare_sync",
                     "payload": data.get("payload"),
                     "by_user": user_id
                 }, exclude=websocket)
+
+            # ── 4. WOULD YOU RATHER ─────────────────────
+            elif game == "would_you_rather":
+                if action in ("choice", "sync_choice"):
+                    choice_val = data.get("choice") or (data.get("payload", {}).get("choice") if isinstance(data.get("payload"), dict) else None)
+                    await manager.broadcast(room, {
+                        "type": "would_you_rather_choice",
+                        "choice": choice_val,
+                        "by_user": user_id
+                    }, exclude=websocket)
+                else:
+                    await manager.broadcast(room, {
+                        "type": "would_you_rather_card",
+                        "payload": data.get("payload"),
+                        "by_user": user_id
+                    }, exclude=websocket)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, room)

@@ -53,6 +53,14 @@ def create_token(user_id: str) -> str:
     return jwt.encode({"sub": user_id, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def decode_token(token: str) -> str | None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except Exception:
+        return None
+
+
 def generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
@@ -65,6 +73,27 @@ async def get_user_by_identifier(identifier: str, db: AsyncSession) -> User | No
     else:
         result = await db.execute(select(User).where(User.phone == identifier))
     return result.scalars().first()
+
+
+async def _build_token_response(user: User, db: AsyncSession) -> TokenResponse:
+    couple_res = await db.execute(
+        select(Couple).where(
+            or_(Couple.user1_id == user.id, Couple.user2_id == user.id)
+        )
+    )
+    couple = couple_res.scalars().first()
+    couple_id = str(couple.id) if couple else None
+
+    user_resp = UserResponse.model_validate(user)
+    user_resp.couple_id = couple_id
+
+    token = create_token(user.id)
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        user=user_resp,
+        couple_id=couple_id,
+    )
 
 
 @router.post("/signup")
@@ -136,12 +165,7 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
     await db.commit()
     await db.refresh(user)
 
-    token = create_token(user.id)
-    return TokenResponse(
-        access_token=token,
-        token_type="bearer",
-        user=UserResponse.model_validate(user),
-    )
+    return await _build_token_response(user, db)
 
 
 @router.post("/login")
@@ -181,12 +205,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="Account not verified. We sent a new OTP. Please verify first.",
             )
 
-        token = create_token(user.id)
-        return TokenResponse(
-            access_token=token,
-            token_type="bearer",
-            user=UserResponse.model_validate(user),
-        )
+        return await _build_token_response(user, db)
 
     # OTP login request (no password)
     otp = generate_otp()
@@ -231,12 +250,7 @@ async def login_verify_otp(
     await db.commit()
     await db.refresh(user)
 
-    token = create_token(user.id)
-    return TokenResponse(
-        access_token=token,
-        token_type="bearer",
-        user=UserResponse.model_validate(user),
-    )
+    return await _build_token_response(user, db)
 
 
 @router.post("/send-otp")

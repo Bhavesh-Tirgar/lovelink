@@ -106,6 +106,13 @@ function Dashboard() {
       try {
         const res = await api.get('/dashboard');
         setData(res.data);
+        if (res.data?.couple_id) {
+          window.localStorage.setItem('couple_id', res.data.couple_id);
+          const userObj = JSON.parse(window.localStorage.getItem('user') || '{}');
+          if (!userObj.couple_id) {
+            window.localStorage.setItem('user', JSON.stringify({ ...userObj, couple_id: res.data.couple_id }));
+          }
+        }
         fetchMoods();
       } catch (err) {
         if (err.response?.status === 401) {

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useWebSocket from '../hooks/useWebSocket';
 import api from '../api';
+import { getWsBaseUrl } from '../utils/wsUrl';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 
 const CallContext = createContext();
@@ -9,49 +10,61 @@ export const useCall = () => useContext(CallContext);
 
 export const CallProvider = ({ children }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [incomingCall, setIncomingCall] = useState(null);
-    const [myUserId, setMyUserId] = useState(null);
-    const [coupleId, setCoupleId] = useState(null);
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const audioCtxRef = useRef(null);
     const oscRef = useRef(null);
     const timeoutRef = useRef(null);
 
-    // Fetch basic user context so we know if we have a couple ID for the WS
+    // Keep coupleId in sync whenever location changes or token is present
     useEffect(() => {
-        const fetchMe = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) return;
-                const res = await api.get('/auth/me');
-                setMyUserId(res.data.user?.id);
-                setCoupleId(res.data.couple_id);
-            } catch (err) {
-                // User not logged in, ignore
-            }
-        };
-        fetchMe();
+        const storedCoupleId = localStorage.getItem('couple_id');
+        if (storedCoupleId && storedCoupleId !== coupleId) {
+            setCoupleId(storedCoupleId);
+        }
+        const token = localStorage.getItem('token');
+        if (token && (!coupleId || !storedCoupleId)) {
+            api.get('/auth/me')
+                .then((res) => {
+                    if (res.data?.couple_id) {
+                        setCoupleId(res.data.couple_id);
+                        localStorage.setItem('couple_id', res.data.couple_id);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [location.pathname, coupleId]);
+
+    const wsUrl = coupleId ? `${getWsBaseUrl()}/ws/chat/${coupleId}` : null;
+
+    const stopRinging = useCallback(() => {
+        if (oscRef.current) {
+            try { oscRef.current.stop(); } catch (e) { }
+            oscRef.current.disconnect();
+            oscRef.current = null;
+        }
     }, []);
 
-    const wsUrl = coupleId ? `${process.env.REACT_APP_WS_URL || 'ws://localhost:8000'}/ws/chat/${coupleId}` : null;
-
-    const handleWsMessage = useCallback((data) => {
-        if (data.type === 'incoming_call') {
-            setIncomingCall(data);
-            startRinging();
-            // Auto decline after 30s
-            timeoutRef.current = setTimeout(() => {
-                declineCall(data.call_id);
-            }, 30000);
-        } else if (data.type === 'call_declined' || data.type === 'call_ended') {
-            if (incomingCall?.call_id === data.call_id) {
-                clearIncoming();
-            }
+    const clearIncoming = useCallback(() => {
+        setIncomingCall(null);
+        stopRinging();
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
         }
-    }, [incomingCall]);
+    }, [stopRinging]);
 
-    const { sendMessage } = useWebSocket(wsUrl, handleWsMessage);
+    const declineCall = useCallback(async (callId) => {
+        clearIncoming();
+        try {
+            await api.post(`/calls/${callId}/decline`);
+        } catch (err) {
+            console.error("Failed to decline call:", err);
+        }
+    }, [clearIncoming]);
 
-    const startRinging = () => {
+    const startRinging = useCallback(() => {
         try {
             if (!audioCtxRef.current) {
                 audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -85,27 +98,26 @@ export const CallProvider = ({ children }) => {
         } catch (e) {
             console.log('Audio playback blocked by browser', e);
         }
-    };
+    }, []);
 
-    const stopRinging = () => {
-        if (oscRef.current) {
-            try { oscRef.current.stop(); } catch (e) { }
-            oscRef.current.disconnect();
-            oscRef.current = null;
+    const handleWsMessage = useCallback((data) => {
+        if (data.type === 'incoming_call') {
+            setIncomingCall(data);
+            startRinging();
+            // Auto decline after 30s
+            timeoutRef.current = setTimeout(() => {
+                declineCall(data.call_id);
+            }, 30000);
+        } else if (data.type === 'call_declined' || data.type === 'call_ended') {
+            if (incomingCall?.call_id === data.call_id) {
+                clearIncoming();
+            }
         }
-    };
+    }, [incomingCall, startRinging, declineCall, clearIncoming]);
 
-    const clearIncoming = () => {
-        setIncomingCall(null);
-        stopRinging();
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-    };
+    useWebSocket(wsUrl, handleWsMessage);
 
     const answerCall = async (callId) => {
-        const callData = incomingCall;
         clearIncoming();
         try {
             // Get our token for the room
@@ -121,15 +133,6 @@ export const CallProvider = ({ children }) => {
             });
         } catch (err) {
             console.error("Failed to answer call:", err);
-        }
-    };
-
-    const declineCall = async (callId) => {
-        clearIncoming();
-        try {
-            await api.post(`/calls/${callId}/decline`);
-        } catch (err) {
-            console.error("Failed to decline call:", err);
         }
     };
 

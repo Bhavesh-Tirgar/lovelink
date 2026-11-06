@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, CheckCircle } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 const REACTIONS = ['😂', '😍', '😮', '😢', '👏', '❤️'];
 
@@ -248,7 +249,7 @@ function WatchRoom() {
     const [movie, setMovie] = useState(null);
     const [loading, setLoading] = useState(true);
     const [myUserId, setMyUserId] = useState(null);
-    const [coupleId, setCoupleId] = useState(null);
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [reactions, setReactions] = useState([]);
@@ -270,7 +271,7 @@ function WatchRoom() {
 
     // WS URL
     const wsUrl = coupleId
-        ? `${process.env.REACT_APP_WS_URL || 'ws://localhost:8000'}/movies/ws/${coupleId}`
+        ? `${getWsBaseUrl()}/movies/ws/${coupleId}`
         : null;
 
     const handleWsMessage = useCallback((data) => {

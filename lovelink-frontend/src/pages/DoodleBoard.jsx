@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Eraser } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
+import { getWsBaseUrl } from '../utils/wsUrl';
 
 function DoodleBoard() {
     const navigate = useNavigate();
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
 
-    const [coupleId, setCoupleId] = useState(null);
+    const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const [isDrawing, setIsDrawing] = useState(false);
     const [color, setColor] = useState('#ec4899'); // default pink
     const [brushSize, setBrushSize] = useState(4);
@@ -17,7 +18,7 @@ function DoodleBoard() {
 
     const lastPosData = useRef(null);
 
-    const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+    const WS_URL = getWsBaseUrl();
 
     // 1. WebSocket Hook
     const { sendMessage } = useWebSocket(
