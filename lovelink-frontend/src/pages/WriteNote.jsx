@@ -62,7 +62,7 @@ function WriteNote() {
     const [photoUploading, setPhotoUploading] = useState(false);
     const [sending, setSending] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
-    const [error, setError] = useState('');
+    const [, setError] = useState('');
     const [showScheduler, setShowScheduler] = useState(false);
     const [isCapsule, setIsCapsule] = useState(false);
     const canvasRef = useRef(null);

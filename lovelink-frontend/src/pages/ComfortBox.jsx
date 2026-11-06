@@ -11,7 +11,7 @@ export default function ComfortBox() {
         latest_note: null
     });
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
 
     // Edit states
     const [isEditingMsg, setIsEditingMsg] = useState(false);

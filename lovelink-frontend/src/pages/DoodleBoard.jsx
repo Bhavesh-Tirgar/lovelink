@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Eraser, PenTool } from 'lucide-react';
+import { ArrowLeft, Trash2, Eraser } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
 

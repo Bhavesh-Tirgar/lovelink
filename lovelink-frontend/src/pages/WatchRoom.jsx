@@ -253,7 +253,7 @@ function WatchRoom() {
     const [chatInput, setChatInput] = useState('');
     const [reactions, setReactions] = useState([]);
     const [incomingSync, setIncomingSync] = useState(null);
-    const [partnerOnline, setPartnerOnline] = useState(false);
+    const [, setPartnerOnline] = useState(false);
     const chatEndRef = useRef(null);
 
     // Fetch movie + session data

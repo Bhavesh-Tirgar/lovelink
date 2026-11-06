@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMusic } from '../context/MusicContext';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Search, Disc, ChevronUp, ChevronDown, Radio, Plus, Sparkles, Heart, Loader2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Search, ChevronUp, ChevronDown, Radio, Plus, Heart, Loader2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import api from '../api';
 
@@ -10,17 +10,12 @@ export default function FloatingMusicPlayer() {
         customPlaylist,
         currentTrack,
         isPlaying,
-        currentTime,
-        duration,
-        volume,
         isPlayerOpen,
         setIsPlayerOpen,
         djName,
         isSynced,
         playTrack,
         togglePlay,
-        seek,
-        changeVolume,
         playNext,
         playPrev,
         addCustomTrack

@@ -22,7 +22,7 @@ function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [, setOtpSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
 
   const validatePhone = (val) => {

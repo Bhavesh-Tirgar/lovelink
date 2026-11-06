@@ -3,11 +3,11 @@
  */
 
 const YT_PATTERNS = [
-    /youtube\.com\/watch\?(?:.*&)?v=([A-Za-z0-9_\-]{11})/,
-    /youtu\.be\/([A-Za-z0-9_\-]{11})/,
-    /youtube\.com\/shorts\/([A-Za-z0-9_\-]{11})/,
-    /youtube\.com\/embed\/([A-Za-z0-9_\-]{11})/,
-    /m\.youtube\.com\/watch\?(?:.*&)?v=([A-Za-z0-9_\-]{11})/,
+    /youtube\.com\/watch\?(?:.*&)?v=([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+    /m\.youtube\.com\/watch\?(?:.*&)?v=([A-Za-z0-9_-]{11})/,
 ];
 
 export function extractYouTubeId(url) {
