@@ -38,6 +38,14 @@ async def create_call(
     return _hydrate(result.scalar_one())
 
 
+async def get_call(db: AsyncSession, call_id: str) -> CallLog:
+    result = await db.execute(
+        select(CallLog).options(joinedload(CallLog.caller)).where(CallLog.id == call_id)
+    )
+    call = result.scalar_one_or_none()
+    return _hydrate(call) if call else None
+
+
 async def end_call(db: AsyncSession, call_id: str, status: CallStatus) -> CallLog:
     result = await db.execute(
         select(CallLog).options(joinedload(CallLog.caller)).where(CallLog.id == call_id)

@@ -10,7 +10,7 @@ from models.user import User
 from models.couple import Couple
 from models.call_log import CallType, CallStatus
 from schemas.call import CallInitiate, CallResponse
-from crud.call import create_call, end_call, get_call_history
+from crud.call import create_call, end_call, get_call_history, get_call
 from utils.zego import generate_zego_token
 from utils.firebase import send_push
 from routers.auth import get_current_user
@@ -118,6 +118,29 @@ async def answer_call(
     db: AsyncSession = Depends(get_db)
 ):
     call = await end_call(db, call_id, status=CallStatus.answered)
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+        
+    token = generate_zego_token(
+        ZEGO_APP_ID, ZEGO_SERVER_SECRET,
+        str(current_user.id), call.room_id
+    )
+    
+    return {
+        "token": token,
+        "room_id": call.room_id,
+        "zego_app_id": ZEGO_APP_ID,
+        "user_id": str(current_user.id),
+        "user_name": current_user.name
+    }
+
+@router.get("/{call_id}/token")
+async def get_call_token(
+    call_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    call = await get_call(db, call_id)
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
         
