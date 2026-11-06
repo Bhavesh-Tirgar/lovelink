@@ -154,6 +154,7 @@ async def get_would_you_rather(current_user: User = Depends(get_current_user)):
 @router.websocket("/ws/{couple_id}")
 async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Query(...)):
     """Multiplayer WebSocket for Rock-Paper-Scissors, Tic-Tac-Toe, and Truth/Dare sync."""
+    await websocket.accept()
     from routers.auth import decode_token
     user_id = decode_token(token)
     if not user_id:
