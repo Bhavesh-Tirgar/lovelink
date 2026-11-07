@@ -7,12 +7,6 @@ import {
     PhoneOff, 
     ChevronDown, 
     ShieldCheck, 
-    Mic, 
-    MicOff, 
-    Video, 
-    VideoOff, 
-    SwitchCamera, 
-    Volume2, 
     Loader2, 
     ShieldAlert, 
     Lock, 
@@ -79,11 +73,6 @@ export default function VideoCall() {
             window.removeEventListener('touchstart', unlockMedia);
         };
     }, []);
-
-    // Call controls state
-    const [isMicMuted, setIsMicMuted] = useState(false);
-    const [isVideoMuted, setIsVideoMuted] = useState(false);
-    const [isFrontCamera, setIsFrontCamera] = useState(true);
 
     // Callback ref to guarantee container is captured in state
     const containerCallbackRef = useCallback((node) => {
@@ -269,7 +258,6 @@ export default function VideoCall() {
                 scenario: {
                     mode: ZegoUIKitPrebuilt.GroupCall,
                 },
-                // CRITICAL FIX: Do NOT auto-leave when alone in room while waiting for partner!
                 autoLeaveRoomWhenOnlySelfInRoom: false,
                 showPreJoinView: false,
                 showLeavingView: false,
@@ -277,9 +265,9 @@ export default function VideoCall() {
                 showRoomTimer: false,
                 turnOnCameraWhenJoining: !isVoice,
                 turnOnMicrophoneWhenJoining: true,
-                showMyCameraToggleButton: false,
-                showMyMicrophoneToggleButton: false,
-                showAudioVideoSettingsButton: false,
+                showMyCameraToggleButton: !isVoice,
+                showMyMicrophoneToggleButton: true,
+                showAudioVideoSettingsButton: true,
                 showNonVideoUser: true,
                 showOnlyAudioUser: true,
                 showScreenSharingButton: false,
@@ -303,7 +291,6 @@ export default function VideoCall() {
                 },
                 onJoinRoom: () => {
                     console.log("Joined call room successfully");
-                    // Check if partner was already in room
                     const remoteList = ZegoUIKitPrebuilt?.core?.zum?.remoteUserList || [];
                     if (remoteList.length > 0) {
                         remoteUserJoinedRef.current = true;
@@ -319,6 +306,7 @@ export default function VideoCall() {
                 },
                 onLeaveRoom: () => {
                     console.log("Left Zego room view");
+                    handleEndCall();
                 },
                 onUserLeave: () => {
                     if (remoteUserJoinedRef.current && !hasEndedRef.current) {
@@ -349,68 +337,8 @@ export default function VideoCall() {
                 } catch (e) {}
                 zpRef.current = null;
             }
-            try {
-                ZegoUIKitPrebuilt.core = undefined;
-                ZegoUIKitPrebuilt._instance = undefined;
-            } catch (e) {}
         };
     }, []);
-
-    // Toggle Mic using Zego core and express engine
-    const toggleMic = async () => {
-        const next = !isMicMuted;
-        setIsMicMuted(next);
-        try {
-            const core = ZegoUIKitPrebuilt?.core;
-            if (core?.muteMicrophone) {
-                await core.muteMicrophone(next);
-            }
-            if (core?.localStream) {
-                core.localStream.getAudioTracks().forEach(track => {
-                    track.enabled = !next;
-                });
-            }
-        } catch (e) {
-            console.error("Error toggling mic:", e);
-        }
-    };
-
-    // Toggle Camera
-    const toggleVideo = async () => {
-        const next = !isVideoMuted;
-        setIsVideoMuted(next);
-        try {
-            const core = ZegoUIKitPrebuilt?.core;
-            if (core?.localStream) {
-                if (core.mutePublishStreamVideo) {
-                    await core.mutePublishStreamVideo(core.localStream, next);
-                }
-                if (core.enableVideoCaptureDevice) {
-                    await core.enableVideoCaptureDevice(core.localStream, !next);
-                }
-                core.localStream.getVideoTracks().forEach(track => {
-                    track.enabled = !next;
-                });
-            } else if (zpRef.current?.express?.enableCamera) {
-                zpRef.current.express.enableCamera(!next);
-            }
-        } catch (e) {
-            console.error("Error toggling video:", e);
-        }
-    };
-
-    // Flip Camera (mobile devices)
-    const flipCamera = () => {
-        try {
-            if (zpRef.current?.express?.useFrontFacingCamera) {
-                zpRef.current.express.useFrontFacingCamera(!isFrontCamera);
-            }
-            setIsFrontCamera(prev => !prev);
-            toast("Camera switched", { duration: 1500 });
-        } catch (e) {
-            console.error("Error switching camera:", e);
-        }
-    };
 
     if (loading) {
         return (
@@ -574,76 +502,12 @@ export default function VideoCall() {
                     left: 0,
                     width: '100vw',
                     height: '100vh',
-                    zIndex: isVoice ? 1 : 10,
-                    opacity: isVoice ? 0.05 : 1,
-                    pointerEvents: isVoice ? 'none' : 'auto'
+                    zIndex: 10,
+                    pointerEvents: 'auto'
                 }}
             />
 
-            {/* 7. Telegram Bottom Frosted Dock */}
-            <footer className="absolute bottom-6 inset-x-0 z-40 flex justify-center pointer-events-auto px-4">
-                <div className="flex items-center gap-3 md:gap-5 px-6 py-3 rounded-full bg-black/70 hover:bg-black/85 backdrop-blur-2xl border border-white/15 shadow-2xl transition-all">
-                    {/* Toggle Mic */}
-                    <button
-                        onClick={toggleMic}
-                        title={isMicMuted ? "Unmute microphone" : "Mute microphone"}
-                        className={`p-3.5 rounded-full transition-all duration-200 active:scale-95 ${
-                            isMicMuted 
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                                : 'bg-white/10 hover:bg-white/20 text-white'
-                        }`}
-                    >
-                        {isMicMuted ? <MicOff size={20} /> : <Mic size={20} />}
-                    </button>
-
-                    {/* Toggle Camera (in Video mode) */}
-                    {!isVoice && (
-                        <button
-                            onClick={toggleVideo}
-                            title={isVideoMuted ? "Turn on camera" : "Turn off camera"}
-                            className={`p-3.5 rounded-full transition-all duration-200 active:scale-95 ${
-                                isVideoMuted 
-                                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                                : 'bg-white/10 hover:bg-white/20 text-white'
-                            }`}
-                        >
-                            {isVideoMuted ? <VideoOff size={20} /> : <Video size={20} />}
-                        </button>
-                    )}
-
-                    {/* Flip Camera (mobile devices) */}
-                    {!isVoice && (
-                        <button
-                            onClick={flipCamera}
-                            title="Flip camera"
-                            className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
-                        >
-                            <SwitchCamera size={20} />
-                        </button>
-                    )}
-
-                    {/* Speaker Indicator */}
-                    <button
-                        onClick={() => toast("Audio: High-Definition Output Active", { duration: 1500 })}
-                        title="HD Audio"
-                        className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 hidden sm:flex"
-                    >
-                        <Volume2 size={20} />
-                    </button>
-
-                    {/* Red End Call Button */}
-                    <button
-                        onClick={handleEndCall}
-                        title="End call"
-                        className="p-3.5 px-6 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 active:scale-95 text-white font-bold transition-all shadow-xl shadow-red-600/40 flex items-center gap-2"
-                    >
-                        <PhoneOff size={20} />
-                        <span className="hidden sm:inline text-xs uppercase tracking-wider">End</span>
-                    </button>
-                </div>
-            </footer>
-
-            {/* 8. Telegram 4-Emoji E2EE Security Modal */}
+            {/* 7. Telegram 4-Emoji E2EE Security Modal */}
             {showSecurityModal && (
                 <div 
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
