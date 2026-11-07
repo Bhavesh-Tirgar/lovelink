@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import DailyQuestion from '../components/DailyQuestion';
 import NotificationBell from '../components/NotificationBell';
@@ -17,17 +17,17 @@ function Dashboard() {
 
   const [nudging, setNudging] = useState(false);
   const [nudgeSuccess, setNudgeSuccess] = useState(false);
-  const [myTime, setMyTime] = useState('');
-  const [partnerTime, setPartnerTime] = useState('');
+  const [, setMyTime] = useState('');
+  const [, setPartnerTime] = useState('');
 
   const [selectedEmoji, setSelectedEmoji] = useState('');
   const [moodNote, setMoodNote] = useState('');
-  const [myMood, setMyMood] = useState(null);
+  const [, setMyMood] = useState(null);
   const [partnerMood, setPartnerMood] = useState(null);
   const [moodSuccess, setMoodSuccess] = useState(false);
   const [savingMood, setSavingMood] = useState(false);
   const [calling, setCalling] = useState(false);
-  const [unreadNotes, setUnreadNotes] = useState(0);
+  const [, setUnreadNotes] = useState(0);
   const [nextCountdown, setNextCountdown] = useState(null);
   const [cdNow, setCdNow] = useState(Date.now());
   const [onThisDay, setOnThisDay] = useState([]);
@@ -92,11 +92,15 @@ function Dashboard() {
           zego_app_id: res.data.zego_app_id,
           user_id: res.data.user_id,
           user_name: res.data.user_name,
+          partner_id: res.data.partner_id,
+          partner_name: res.data.partner_name,
+          partner_photo: res.data.partner_photo,
           call_type: callType
         }
       });
     } catch (err) {
       console.error("Failed to initiate call:", err);
+    } finally {
       setCalling(false);
     }
   };
@@ -169,10 +173,7 @@ function Dashboard() {
       .catch(() => { });
   }, []);
 
-  const handleLogout = () => {
-    window.localStorage.clear();
-    navigate('/', { replace: true });
-  };
+
 
   const dismissMilestone = async () => {
     if (!milestoneNotif) return;
@@ -221,7 +222,7 @@ function Dashboard() {
     );
   }
 
-  const { my_user, partner_user, days_together, linked } = data;
+  const { days_together, linked } = data;
 
   return (
     <div className="w-full">
@@ -530,7 +531,6 @@ function Dashboard() {
             </div>
           </div>
           {nextCountdown ? (() => {
-            const elapsed = Math.floor((cdNow - new Date().getTime()) / 1000);
             const totalSecs = Math.max(0, Math.floor((new Date(nextCountdown.target_date) - new Date(cdNow)) / 1000));
             const days = Math.floor(totalSecs / 86400);
             const hours = Math.floor((totalSecs % 86400) / 3600);

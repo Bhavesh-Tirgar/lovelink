@@ -351,13 +351,7 @@ export default function Games() {
         setTodAnswerInput('');
     };
 
-    const switchTodTurn = (targetUserId) => {
-        if (targetUserId === userId || targetUserId === 'me') {
-            claimMyTodTurn();
-        } else {
-            passTodTurn();
-        }
-    };
+
 
     // ───────────────────────────────────────────────────────────────────────────
     // GAME 3: TIC TAC TOE (HEARTS & KISSES)

@@ -63,6 +63,7 @@ export const MusicProvider = ({ children }) => {
         api.get('/music/playlist')
             .then(res => setCustomPlaylist(res.data))
             .catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
     // 2. Audio element listeners
@@ -81,6 +82,7 @@ export const MusicProvider = ({ children }) => {
             audio.removeEventListener('loadedmetadata', updateDuration);
             audio.removeEventListener('ended', onEnded);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack]);
 
     // 3. WebSockets for partner synchronization
@@ -140,6 +142,7 @@ export const MusicProvider = ({ children }) => {
                 wsRef.current.close(1000, "Component unmounted");
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [coupleId, token]);
 
     // Handle messages coming from partner

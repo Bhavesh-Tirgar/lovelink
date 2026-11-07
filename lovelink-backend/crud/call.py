@@ -46,6 +46,20 @@ async def get_call(db: AsyncSession, call_id: str) -> CallLog:
     return _hydrate(call) if call else None
 
 
+async def answer_call_db(db: AsyncSession, call_id: str) -> CallLog:
+    result = await db.execute(
+        select(CallLog).options(joinedload(CallLog.caller)).where(CallLog.id == call_id)
+    )
+    call = result.scalar_one_or_none()
+    if not call:
+        return None
+
+    call.status = CallStatus.answered
+    await db.commit()
+    await db.refresh(call)
+    return _hydrate(call)
+
+
 async def end_call(db: AsyncSession, call_id: str, status: CallStatus) -> CallLog:
     result = await db.execute(
         select(CallLog).options(joinedload(CallLog.caller)).where(CallLog.id == call_id)

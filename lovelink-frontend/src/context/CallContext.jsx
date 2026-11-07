@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import useWebSocket from '../hooks/useWebSocket';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import { Phone, PhoneOff, Video } from 'lucide-react';
+import { Phone, PhoneOff, Video, Maximize2 } from 'lucide-react';
 
 const CallContext = createContext();
 export const useCall = () => useContext(CallContext);
@@ -13,6 +13,7 @@ export const CallProvider = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [incomingCall, setIncomingCall] = useState(null);
+    const [minimizedCall, setMinimizedCall] = useState(null);
     const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const audioCtxRef = useRef(null);
     const oscRef = useRef(null);
@@ -85,8 +86,11 @@ export const CallProvider = ({ children }) => {
             gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
 
             // Loop it
-            setInterval(() => {
-                if (!oscRef.current) return;
+            const interval = setInterval(() => {
+                if (!oscRef.current) {
+                    clearInterval(interval);
+                    return;
+                }
                 gain.gain.setValueAtTime(0, ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
                 gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
@@ -106,7 +110,7 @@ export const CallProvider = ({ children }) => {
         const myUserId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
 
         if (data.type === 'incoming_call') {
-            // CRITICAL FIX: Never show incoming call to the caller, or if already in a call!
+            // Never show incoming call to the caller, or if already in a call
             if (data.caller_id && myUserId && String(data.caller_id) === String(myUserId)) {
                 return;
             }
@@ -124,12 +128,14 @@ export const CallProvider = ({ children }) => {
             }, 30000);
 
         } else if (data.type === 'call_answered') {
-            // Stop ringing and clear any pending timers when call is answered
             clearIncoming();
 
         } else if (data.type === 'call_declined') {
             if (incomingCall?.call_id === data.call_id) {
                 clearIncoming();
+            }
+            if (minimizedCall?.callId === data.call_id) {
+                setMinimizedCall(null);
             }
             if (location.pathname === `/call/${data.call_id}`) {
                 toast.error("Call was declined or partner is unavailable");
@@ -140,12 +146,16 @@ export const CallProvider = ({ children }) => {
             if (incomingCall?.call_id === data.call_id) {
                 clearIncoming();
             }
+            if (minimizedCall?.callId === data.call_id) {
+                setMinimizedCall(null);
+                toast("Call ended");
+            }
             if (location.pathname === `/call/${data.call_id}`) {
                 toast("Call ended");
                 navigate('/dashboard', { replace: true });
             }
         }
-    }, [incomingCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
+    }, [incomingCall, minimizedCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
 
     useWebSocket(wsUrl, handleWsMessage);
 
@@ -153,7 +163,6 @@ export const CallProvider = ({ children }) => {
         const callData = incomingCall;
         clearIncoming();
         try {
-            // Get our token for the room
             const res = await api.post(`/calls/${callId}/answer`);
             navigate(`/call/${callId}`, {
                 state: {
@@ -162,17 +171,87 @@ export const CallProvider = ({ children }) => {
                     zego_app_id: res.data.zego_app_id,
                     user_id: res.data.user_id,
                     user_name: res.data.user_name,
+                    partner_id: res.data.partner_id || callData?.caller_id,
+                    partner_name: res.data.partner_name || callData?.caller_name || 'Partner',
+                    partner_photo: res.data.partner_photo || callData?.caller_photo,
                     call_type: callData?.call_type || res.data.call_type || 'video'
                 }
             });
         } catch (err) {
             console.error("Failed to answer call:", err);
+            toast.error("Failed to connect call");
         }
     };
 
+    const minimizeCall = useCallback((data) => {
+        setMinimizedCall(data);
+    }, []);
+
+    const restoreCall = useCallback(() => {
+        if (!minimizedCall) return;
+        const target = { ...minimizedCall };
+        setMinimizedCall(null);
+        navigate(`/call/${target.callId}`, {
+            state: target
+        });
+    }, [minimizedCall, navigate]);
+
+    const endMinimizedCall = useCallback(async () => {
+        if (!minimizedCall) return;
+        const cid = minimizedCall.callId;
+        setMinimizedCall(null);
+        try {
+            await api.post(`/calls/${cid}/end`);
+        } catch (e) {
+            console.error("Failed to notify backend of call end", e);
+        }
+        toast("Call ended");
+    }, [minimizedCall]);
+
     return (
-        <CallContext.Provider value={{ incomingCall, declineCall, answerCall }}>
+        <CallContext.Provider value={{ incomingCall, declineCall, answerCall, minimizeCall, restoreCall, endMinimizedCall }}>
             {children}
+
+            {/* Telegram Floating PiP Card (when call is minimized) */}
+            {minimizedCall && !location.pathname.startsWith('/call/') && (
+                <div className="fixed bottom-24 right-4 z-[9999] flex items-center gap-3 p-2.5 pr-4 rounded-2xl bg-black/85 backdrop-blur-xl border border-white/15 shadow-2xl animate-in slide-in-from-bottom-5">
+                    <div className="relative">
+                        {minimizedCall.partner_photo ? (
+                            <img src={minimizedCall.partner_photo} alt={minimizedCall.partner_name} className="w-10 h-10 rounded-full object-cover border border-purple-500/40" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center font-bold text-white text-xs">
+                                {minimizedCall.partner_name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                        )}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-black animate-pulse" />
+                    </div>
+
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white leading-tight">{minimizedCall.partner_name || 'Partner'}</span>
+                        <span className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                            {minimizedCall.isVoice ? <Phone size={10} className="text-emerald-400" /> : <Video size={10} className="text-pink-400" />}
+                            <span>Active Call</span>
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-2">
+                        <button
+                            onClick={restoreCall}
+                            title="Expand Call"
+                            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
+                        >
+                            <Maximize2 size={14} />
+                        </button>
+                        <button
+                            onClick={endMinimizedCall}
+                            title="End Call"
+                            className="p-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white transition-all active:scale-95"
+                        >
+                            <PhoneOff size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Incoming Call Modal Overlay */}
             {incomingCall && (

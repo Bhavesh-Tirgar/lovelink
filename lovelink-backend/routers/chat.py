@@ -79,7 +79,7 @@ async def send_message(
     
     # Broadcast to the couple's WebSocket room
     msg_data = MessageResponse.model_validate(message).model_dump(mode="json")
-    await manager.broadcast(str(couple.id), {"type": "new_message", "message": msg_data})
+    await manager.broadcast(str(couple.id), {"type": "message", "message": msg_data})
     
     # Send FCM Push Notification to the partner
     receiver_id = couple.user2_id if str(current_user.id) == str(couple.user1_id) else couple.user1_id

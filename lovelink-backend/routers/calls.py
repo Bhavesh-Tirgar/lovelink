@@ -1,5 +1,6 @@
 import os
 import uuid
+import time
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,7 @@ from models.user import User
 from models.couple import Couple
 from models.call_log import CallType, CallStatus
 from schemas.call import CallInitiate, CallResponse
-from crud.call import create_call, end_call, get_call_history, get_call
+from crud.call import create_call, end_call, get_call_history, get_call, answer_call_db
 from utils.zego import generate_zego_token
 from utils.firebase import send_push
 from routers.auth import get_current_user
@@ -43,16 +44,20 @@ async def initiate_call(
 
     couple = await _get_couple(db, str(current_user.id))
     couple_id_str = str(couple.id)
-    room_id = f"lovelink_{couple_id_str.replace('-', '')[:12]}"
-    print(f"[DEBUG] Initiating call for user: {current_user.id}, couple: {couple_id_str}")
+    
+    # Generate an isolated, unique WebRTC room ID per call to avoid session collisions
+    call_id_short = str(uuid.uuid4())[:8]
+    room_id = f"ll_{couple_id_str.replace('-', '')[:6]}_{call_id_short}"
+    
+    partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
+    partner_res = await db.execute(select(User).where(User.id == partner_id))
+    partner_user = partner_res.scalar_one_or_none()
+
     try:
         caller_token = generate_zego_token(
             ZEGO_APP_ID, ZEGO_SERVER_SECRET,
             str(current_user.id), room_id
         )
-        
-        partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
-        
         partner_token = generate_zego_token(
             ZEGO_APP_ID, ZEGO_SERVER_SECRET,
             partner_id, room_id
@@ -60,7 +65,6 @@ async def initiate_call(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate Zegocloud token: {e}")
 
-    print(f"[DEBUG] Tokens generated. Creating call record...")
     call = await create_call(
         db=db,
         couple_id=couple_id_str,
@@ -69,9 +73,8 @@ async def initiate_call(
         call_type=payload.call_type
     )
     new_call_id = str(call.id)
-    print(f"[DEBUG] Call record created: {new_call_id}")
 
-    # Notify partner via global chat WebSocket
+    # Broadcast incoming call to partner
     await manager.broadcast(
         couple_id_str,
         {
@@ -88,15 +91,11 @@ async def initiate_call(
         exclude=None
     )
     
-    # Notify partner via Push Notification
-    receiver_id = couple.user2_id if str(current_user.id) == str(couple.user1_id) else couple.user1_id
-    receiver_user = await db.execute(select(User).where(User.id == receiver_id))
-    receiver = receiver_user.scalar_one_or_none()
-    
-    if receiver and receiver.fcm_token:
+    # Push notification
+    if partner_user and partner_user.fcm_token:
         body = f"Incoming {payload.call_type} call from {current_user.name}"
         await send_push(
-            fcm_token=receiver.fcm_token,
+            fcm_token=partner_user.fcm_token,
             title="LoveLink Call",
             body=body,
             data={"type": "incoming_call", "call_id": str(new_call_id), "room_id": str(room_id)}
@@ -109,6 +108,9 @@ async def initiate_call(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
+        "partner_id": partner_id,
+        "partner_name": partner_user.name if partner_user else "Partner",
+        "partner_photo": partner_user.photo_url if partner_user else None,
         "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video"
     }
 
@@ -119,7 +121,8 @@ async def answer_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    call = await end_call(db, call_id, status=CallStatus.answered)
+    # CRITICAL BUG FIX: Update status to answered without ending the call or setting duration to 0!
+    call = await answer_call_db(db, call_id)
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
         
@@ -127,6 +130,11 @@ async def answer_call(
         ZEGO_APP_ID, ZEGO_SERVER_SECRET,
         str(current_user.id), call.room_id
     )
+
+    couple = await _get_couple(db, str(current_user.id))
+    partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
+    partner_res = await db.execute(select(User).where(User.id == partner_id))
+    partner_user = partner_res.scalar_one_or_none()
 
     await manager.broadcast(
         str(call.couple_id),
@@ -143,8 +151,12 @@ async def answer_call(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
+        "partner_id": partner_id,
+        "partner_name": partner_user.name if partner_user else "Partner",
+        "partner_photo": partner_user.photo_url if partner_user else None,
         "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
     }
+
 
 @router.get("/{call_id}/token")
 async def get_call_token(
@@ -160,6 +172,11 @@ async def get_call_token(
         ZEGO_APP_ID, ZEGO_SERVER_SECRET,
         str(current_user.id), call.room_id
     )
+
+    couple = await _get_couple(db, str(current_user.id))
+    partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
+    partner_res = await db.execute(select(User).where(User.id == partner_id))
+    partner_user = partner_res.scalar_one_or_none()
     
     return {
         "token": token,
@@ -167,6 +184,9 @@ async def get_call_token(
         "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
+        "partner_id": partner_id,
+        "partner_name": partner_user.name if partner_user else "Partner",
+        "partner_photo": partner_user.photo_url if partner_user else None,
         "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
     }
 

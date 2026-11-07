@@ -29,10 +29,16 @@ function Chat() {
 
     const WS_URL = getWsBaseUrl();
 
+    // Reset calling state on mount
+    useEffect(() => {
+        setCalling(false);
+    }, []);
+
     // Handle incoming websocket messages
     const onWSMessage = useCallback((data) => {
-        if (data.type === 'message') {
-            const incoming = data.message;
+        if (data.type === 'message' || data.type === 'new_message') {
+            const incoming = data.message || data.data;
+            if (!incoming) return;
 
             setMessages(prev => {
                 // If we sent this message ourselves, replace the optimistic temp entry
@@ -303,11 +309,15 @@ function Chat() {
                     zego_app_id: res.data.zego_app_id,
                     user_id: res.data.user_id,
                     user_name: res.data.user_name,
+                    partner_id: res.data.partner_id,
+                    partner_name: res.data.partner_name,
+                    partner_photo: res.data.partner_photo,
                     call_type: callType
                 }
             });
         } catch (err) {
             console.error("Failed to initiate call:", err);
+        } finally {
             setCalling(false);
         }
     };
