@@ -43,27 +43,50 @@ export default function VideoCall() {
     const [callDuration, setCallDuration] = useState(0);
     const [permissionDenied, setPermissionDenied] = useState(false);
     const [showSecurityModal, setShowSecurityModal] = useState(false);
+    const isVoice = (callState?.call_type === 'voice');
 
-    // Watch for browser microphone permissions
+    // 1. Pre-probe Camera & Microphone permissions before Zego initializes
     useEffect(() => {
-        if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
-            navigator.permissions.query({ name: 'microphone' })
-                .then(res => {
-                    if (res.state === 'denied') setPermissionDenied(true);
-                    res.onchange = () => {
-                        setPermissionDenied(res.state === 'denied');
-                    };
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true, video: !isVoice })
+                .then(stream => {
+                    setPermissionDenied(false);
+                    // Stop probe tracks immediately so Zego can claim the hardware cleanly
+                    stream.getTracks().forEach(track => track.stop());
                 })
-                .catch(() => {});
+                .catch(err => {
+                    console.warn("Browser media access error:", err);
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        setPermissionDenied(true);
+                    }
+                });
         }
+    }, [isVoice]);
+
+    // 2. Global Autoplay Audio Unlocker (resumes any browser-muted audio streams)
+    useEffect(() => {
+        const unlockMedia = () => {
+            try {
+                const mediaElements = document.querySelectorAll('audio, video');
+                mediaElements.forEach(el => {
+                    if (el.paused && el.srcObject) {
+                        el.play().catch(() => {});
+                    }
+                });
+            } catch (e) {}
+        };
+        window.addEventListener('click', unlockMedia);
+        window.addEventListener('touchstart', unlockMedia);
+        return () => {
+            window.removeEventListener('click', unlockMedia);
+            window.removeEventListener('touchstart', unlockMedia);
+        };
     }, []);
 
     // Call controls state
     const [isMicMuted, setIsMicMuted] = useState(false);
     const [isVideoMuted, setIsVideoMuted] = useState(false);
     const [isFrontCamera, setIsFrontCamera] = useState(true);
-
-    const isVoice = (callState?.call_type === 'voice');
 
     // Callback ref to guarantee container is captured in state
     const containerCallbackRef = useCallback((node) => {
@@ -247,7 +270,7 @@ export default function VideoCall() {
             zp.joinRoom({
                 container: containerRef.current,
                 scenario: {
-                    mode: ZegoUIKitPrebuilt.OneONoneCall,
+                    mode: ZegoUIKitPrebuilt.GroupCall,
                 },
                 // CRITICAL FIX: Do NOT auto-leave when alone in room while waiting for partner!
                 autoLeaveRoomWhenOnlySelfInRoom: false,
@@ -344,8 +367,11 @@ export default function VideoCall() {
             const core = ZegoUIKitPrebuilt?.core;
             if (core?.muteMicrophone) {
                 await core.muteMicrophone(next);
-            } else if (zpRef.current?.express?.muteMicrophone) {
-                zpRef.current.express.muteMicrophone(next);
+            }
+            if (core?.localStream) {
+                core.localStream.getAudioTracks().forEach(track => {
+                    track.enabled = !next;
+                });
             }
         } catch (e) {
             console.error("Error toggling mic:", e);
@@ -365,6 +391,9 @@ export default function VideoCall() {
                 if (core.enableVideoCaptureDevice) {
                     await core.enableVideoCaptureDevice(core.localStream, !next);
                 }
+                core.localStream.getVideoTracks().forEach(track => {
+                    track.enabled = !next;
+                });
             } else if (zpRef.current?.express?.enableCamera) {
                 zpRef.current.express.enableCamera(!next);
             }
