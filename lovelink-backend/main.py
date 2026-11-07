@@ -48,9 +48,15 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     try:
         from database import engine, Base
+        from sqlalchemy import text
         import models.universe
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            try:
+                await conn.execute(text("ALTER TABLE memory_stars ADD COLUMN IF NOT EXISTS star_type VARCHAR(30) DEFAULT 'single'"))
+                await conn.execute(text("ALTER TABLE memory_stars ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)"))
+            except Exception as me:
+                print(f"Column migration notice: {me}")
     except Exception as e:
         print(f"Error creating tables on startup: {e}")
     yield
