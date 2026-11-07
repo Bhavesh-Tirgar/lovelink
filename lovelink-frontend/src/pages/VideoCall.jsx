@@ -306,14 +306,24 @@ export default function VideoCall() {
                 },
                 onLeaveRoom: () => {
                     console.log("Left Zego room view");
-                    handleEndCall();
+                    if (!hasEndedRef.current) {
+                        handleEndCall();
+                    }
                 },
                 onUserLeave: () => {
                     if (remoteUserJoinedRef.current && !hasEndedRef.current) {
-                        toast("Partner left the call");
-                        setTimeout(() => {
-                            handleEndCall();
-                        }, 2000);
+                        toast("Partner disconnected. Reconnecting...", { duration: 3000 });
+                        setTimeout(async () => {
+                            if (hasEndedRef.current) return;
+                            try {
+                                const res = await api.get(`/calls/${callId}/token`);
+                                if (res.data?.status === 'ended') {
+                                    handleEndCall();
+                                }
+                            } catch (e) {
+                                handleEndCall();
+                            }
+                        }, 4000);
                     }
                 }
             });
@@ -413,16 +423,25 @@ export default function VideoCall() {
                     </div>
                 </div>
 
-                {/* Top-Right: 4-Emoji E2EE Fingerprint Badge */}
-                <button
-                    onClick={() => setShowSecurityModal(true)}
-                    title="Click to verify 4-Emoji End-to-End Encryption"
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-md border border-purple-500/30 shadow-lg text-sm transition-all hover:scale-105 active:scale-95"
-                >
-                    {e2eeEmojis.map((emoji, idx) => (
-                        <span key={idx} className="text-base select-none">{emoji}</span>
-                    ))}
-                </button>
+                {/* Top-Right: 4-Emoji E2EE Fingerprint Badge & Quick End Call */}
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    <button
+                        onClick={() => setShowSecurityModal(true)}
+                        title="Click to verify 4-Emoji End-to-End Encryption"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-md border border-purple-500/30 shadow-lg text-sm transition-all hover:scale-105 active:scale-95"
+                    >
+                        {e2eeEmojis.map((emoji, idx) => (
+                            <span key={idx} className="text-base select-none">{emoji}</span>
+                        ))}
+                    </button>
+                    <button
+                        onClick={handleEndCall}
+                        title="End Call"
+                        className="p-2 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 text-white shadow-lg transition-all"
+                    >
+                        <PhoneOff size={16} />
+                    </button>
+                </div>
             </header>
 
             {/* 3. Browser Permission Blocked Alert */}

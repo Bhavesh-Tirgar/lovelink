@@ -110,22 +110,24 @@ export const CallProvider = ({ children }) => {
         const myUserId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
 
         if (data.type === 'incoming_call') {
-            // Never show incoming call to the caller, or if already in a call
+            // Never show incoming call to the caller
             if (data.caller_id && myUserId && String(data.caller_id) === String(myUserId)) {
                 return;
             }
-            if (typeof window !== 'undefined' && window.location.pathname.startsWith('/call/')) {
+            // Only ignore if the user is already actively connected in this exact call ID
+            const currentCallMatch = typeof window !== 'undefined' ? window.location.pathname.match(/\/call\/([a-zA-Z0-9-]+)/) : null;
+            if (currentCallMatch && currentCallMatch[1] === String(data.call_id)) {
                 return;
             }
 
             setIncomingCall(data);
             startRinging();
 
-            // Auto decline after 30s only on the RECEIVER's side if not answered
+            // Auto decline after 50s only on the RECEIVER's side if not answered
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             timeoutRef.current = setTimeout(() => {
                 declineCall(data.call_id);
-            }, 30000);
+            }, 50000);
 
         } else if (data.type === 'call_answered') {
             clearIncoming();
