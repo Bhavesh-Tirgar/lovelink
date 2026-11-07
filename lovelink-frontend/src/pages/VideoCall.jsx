@@ -45,23 +45,20 @@ export default function VideoCall() {
     const [showSecurityModal, setShowSecurityModal] = useState(false);
     const isVoice = (callState?.call_type === 'voice');
 
-    // 1. Pre-probe Camera & Microphone permissions before Zego initializes
+    // 1. Non-intrusive permission status query (never calls getUserMedia so hardware is not locked)
     useEffect(() => {
-        if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: !isVoice })
-                .then(stream => {
-                    setPermissionDenied(false);
-                    // Stop probe tracks immediately so Zego can claim the hardware cleanly
-                    stream.getTracks().forEach(track => track.stop());
+        if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+            navigator.permissions.query({ name: 'camera' })
+                .then(status => {
+                    if (status.state === 'denied') setPermissionDenied(true);
+                    status.onchange = () => {
+                        if (status.state === 'denied') setPermissionDenied(true);
+                        else setPermissionDenied(false);
+                    };
                 })
-                .catch(err => {
-                    console.warn("Browser media access error:", err);
-                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        setPermissionDenied(true);
-                    }
-                });
+                .catch(() => {});
         }
-    }, [isVoice]);
+    }, []);
 
     // 2. Global Autoplay Audio Unlocker (resumes any browser-muted audio streams)
     useEffect(() => {
