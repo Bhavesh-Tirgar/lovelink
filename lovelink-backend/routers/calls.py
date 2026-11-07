@@ -111,7 +111,8 @@ async def initiate_call(
         "partner_id": partner_id,
         "partner_name": partner_user.name if partner_user else "Partner",
         "partner_photo": partner_user.photo_url if partner_user else None,
-        "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video"
+        "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video",
+        "status": "initiated"
     }
 
 
@@ -154,7 +155,8 @@ async def answer_call(
         "partner_id": partner_id,
         "partner_name": partner_user.name if partner_user else "Partner",
         "partner_photo": partner_user.photo_url if partner_user else None,
-        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
+        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video",
+        "status": str(call.status.value if hasattr(call.status, 'value') else call.status)
     }
 
 
@@ -187,7 +189,8 @@ async def get_call_token(
         "partner_id": partner_id,
         "partner_name": partner_user.name if partner_user else "Partner",
         "partner_photo": partner_user.photo_url if partner_user else None,
-        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video"
+        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video",
+        "status": str(call.status.value if hasattr(call.status, 'value') else call.status)
     }
 
 

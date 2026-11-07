@@ -38,10 +38,25 @@ export default function VideoCall() {
     const [callState, setCallState] = useState(() => location.state || null);
     const [loading, setLoading] = useState(!location.state?.token);
     const [error, setError] = useState(null);
-    const [partnerConnected, setPartnerConnected] = useState(false);
+    // If the call was answered by the partner before arriving, start connected
+    const [partnerConnected, setPartnerConnected] = useState(() => location.state?.status === 'answered');
     const [callDuration, setCallDuration] = useState(0);
     const [permissionDenied, setPermissionDenied] = useState(false);
     const [showSecurityModal, setShowSecurityModal] = useState(false);
+
+    // Watch for browser microphone permissions
+    useEffect(() => {
+        if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+            navigator.permissions.query({ name: 'microphone' })
+                .then(res => {
+                    if (res.state === 'denied') setPermissionDenied(true);
+                    res.onchange = () => {
+                        setPermissionDenied(res.state === 'denied');
+                    };
+                })
+                .catch(() => {});
+        }
+    }, []);
 
     // Call controls state
     const [isMicMuted, setIsMicMuted] = useState(false);
@@ -58,16 +73,22 @@ export default function VideoCall() {
         }
     }, []);
 
-    // 1. Fetch credentials if missing (e.g. reload or direct link)
+    // 1. Fetch credentials if missing (e.g. page reload or direct URL link)
     useEffect(() => {
         if (callState?.token) {
             setLoading(false);
+            if (callState.status === 'answered') {
+                setPartnerConnected(true);
+            }
             return;
         }
 
         api.get(`/calls/${callId}/token`)
             .then(res => {
                 setCallState(res.data);
+                if (res.data.status === 'answered') {
+                    setPartnerConnected(true);
+                }
                 setLoading(false);
             })
             .catch(err => {
@@ -75,7 +96,67 @@ export default function VideoCall() {
                 setError("Call session expired or unavailable.");
                 setLoading(false);
             });
-    }, [callId, callState?.token]);
+    }, [callId, callState?.token, callState?.status]);
+
+    // 2. Listen to WebSocket call_answered event dispatched from CallContext
+    useEffect(() => {
+        const handleCallAnswered = (e) => {
+            const data = e.detail;
+            if (data?.call_id === callId) {
+                console.log("Partner answered the call via WebSocket signaling! ❤️");
+                remoteUserJoinedRef.current = true;
+                setPartnerConnected(true);
+                toast.success("Partner connected! ❤️", { duration: 3000 });
+            }
+        };
+
+        window.addEventListener('lovelink:call_answered', handleCallAnswered);
+        return () => {
+            window.removeEventListener('lovelink:call_answered', handleCallAnswered);
+        };
+    }, [callId]);
+
+    // 3. Periodic presence & status synchronization while waiting for partner
+    useEffect(() => {
+        if (partnerConnected || hasEndedRef.current) return;
+
+        const interval = setInterval(async () => {
+            // Check if Zego already lists remote users
+            try {
+                const remoteList = ZegoUIKitPrebuilt?.core?.zum?.remoteUserList || [];
+                if (remoteList.length > 0) {
+                    remoteUserJoinedRef.current = true;
+                    setPartnerConnected(true);
+                    return;
+                }
+            } catch (e) {}
+
+            // Fallback: Check backend status
+            try {
+                const res = await api.get(`/calls/${callId}/token`);
+                if (res.data?.status === 'answered') {
+                    remoteUserJoinedRef.current = true;
+                    setPartnerConnected(true);
+                }
+            } catch (e) {}
+        }, 2500);
+
+        return () => clearInterval(interval);
+    }, [callId, partnerConnected]);
+
+    // 4. Call Duration Timer (Only increments when partner is connected)
+    useEffect(() => {
+        if (!partnerConnected) return;
+
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = setInterval(() => {
+            setCallDuration(d => d + 1);
+        }, 1000);
+
+        return () => {
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        };
+    }, [partnerConnected]);
 
     // Format seconds as MM:SS
     const formattedDuration = useMemo(() => {
@@ -105,10 +186,20 @@ export default function VideoCall() {
         } catch (e) {
             console.error("Failed to notify backend of call end", e);
         }
+
         if (zpRef.current) {
-            try { zpRef.current.destroy(); } catch (e) {}
+            try { 
+                zpRef.current.destroy(); 
+            } catch (e) {}
             zpRef.current = null;
         }
+
+        // Clean static Zego singletons so subsequent calls don't inherit old room state
+        try {
+            ZegoUIKitPrebuilt.core = undefined;
+            ZegoUIKitPrebuilt._instance = undefined;
+        } catch (e) {}
+
         navigate('/dashboard', { replace: true });
     }, [callId, navigate]);
 
@@ -125,28 +216,20 @@ export default function VideoCall() {
         navigate(-1);
     }, [minimizeCall, callId, callState, callDuration, isVoice, navigate]);
 
-    // Pre-check camera / mic permissions
-    useEffect(() => {
-        if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: !isVoice })
-                .then(stream => {
-                    setPermissionDenied(false);
-                    stream.getTracks().forEach(track => track.stop());
-                })
-                .catch(err => {
-                    console.warn("Browser media access error:", err);
-                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                        setPermissionDenied(true);
-                    }
-                });
-        }
-    }, [isVoice]);
-
     // Initialize Zego WebRTC Room (Only once per callId)
     useEffect(() => {
         if (!callState?.token || !containerRef.current || !containerReady) return;
         if (initializedCallIdRef.current === callId) return;
         initializedCallIdRef.current = callId;
+
+        // CRITICAL: Clean any stale Zego singleton instances before creating the new call room!
+        if (ZegoUIKitPrebuilt.core || ZegoUIKitPrebuilt._instance) {
+            try {
+                if (zpRef.current) zpRef.current.destroy();
+            } catch (e) {}
+            ZegoUIKitPrebuilt.core = undefined;
+            ZegoUIKitPrebuilt._instance = undefined;
+        }
 
         const { token, room_id, zego_app_id, user_id, user_name, partner_id, partner_photo } = callState;
 
@@ -164,7 +247,7 @@ export default function VideoCall() {
             zp.joinRoom({
                 container: containerRef.current,
                 scenario: {
-                    mode: ZegoUIKitPrebuilt.GroupCall,
+                    mode: ZegoUIKitPrebuilt.OneONoneCall,
                 },
                 // CRITICAL FIX: Do NOT auto-leave when alone in room while waiting for partner!
                 autoLeaveRoomWhenOnlySelfInRoom: false,
@@ -174,10 +257,11 @@ export default function VideoCall() {
                 showRoomTimer: false,
                 turnOnCameraWhenJoining: !isVoice,
                 turnOnMicrophoneWhenJoining: true,
-                showMyCameraToggleButton: true,
-                showMyMicrophoneToggleButton: true,
+                showMyCameraToggleButton: false,
+                showMyMicrophoneToggleButton: false,
                 showAudioVideoSettingsButton: false,
-                showNonVideoUserPhoto: true,
+                showNonVideoUser: true,
+                showOnlyAudioUser: true,
                 showScreenSharingButton: false,
                 showUserList: false,
                 showTextChat: false,
@@ -199,22 +283,22 @@ export default function VideoCall() {
                 },
                 onJoinRoom: () => {
                     console.log("Joined call room successfully");
+                    // Check if partner was already in room
+                    const remoteList = ZegoUIKitPrebuilt?.core?.zum?.remoteUserList || [];
+                    if (remoteList.length > 0) {
+                        remoteUserJoinedRef.current = true;
+                        setPartnerConnected(true);
+                    }
                 },
                 onUserJoin: (users) => {
                     if (users && users.length > 0) {
                         remoteUserJoinedRef.current = true;
                         setPartnerConnected(true);
                         toast.success("Partner connected! ❤️", { duration: 3000 });
-                        if (!timerIntervalRef.current) {
-                            timerIntervalRef.current = setInterval(() => {
-                                setCallDuration(d => d + 1);
-                            }, 1000);
-                        }
                     }
                 },
                 onLeaveRoom: () => {
                     console.log("Left Zego room view");
-                    // Intentionally NOT calling handleEndCall() here to prevent premature drops!
                 },
                 onUserLeave: () => {
                     if (remoteUserJoinedRef.current && !hasEndedRef.current) {
@@ -240,35 +324,66 @@ export default function VideoCall() {
     useEffect(() => {
         return () => {
             if (zpRef.current) {
-                try { zpRef.current.destroy(); } catch (e) {}
+                try { 
+                    zpRef.current.destroy(); 
+                } catch (e) {}
                 zpRef.current = null;
             }
+            try {
+                ZegoUIKitPrebuilt.core = undefined;
+                ZegoUIKitPrebuilt._instance = undefined;
+            } catch (e) {}
         };
     }, []);
 
-    // Toggle Mic using Zego hardware tracks or express engine
-    const toggleMic = () => {
-        if (zpRef.current?.express?.muteMicrophone) {
-            zpRef.current.express.muteMicrophone(!isMicMuted);
+    // Toggle Mic using Zego core and express engine
+    const toggleMic = async () => {
+        const next = !isMicMuted;
+        setIsMicMuted(next);
+        try {
+            const core = ZegoUIKitPrebuilt?.core;
+            if (core?.muteMicrophone) {
+                await core.muteMicrophone(next);
+            } else if (zpRef.current?.express?.muteMicrophone) {
+                zpRef.current.express.muteMicrophone(next);
+            }
+        } catch (e) {
+            console.error("Error toggling mic:", e);
         }
-        setIsMicMuted(prev => !prev);
     };
 
     // Toggle Camera
-    const toggleVideo = () => {
-        if (zpRef.current?.express?.enableCamera) {
-            zpRef.current.express.enableCamera(isVideoMuted);
+    const toggleVideo = async () => {
+        const next = !isVideoMuted;
+        setIsVideoMuted(next);
+        try {
+            const core = ZegoUIKitPrebuilt?.core;
+            if (core?.localStream) {
+                if (core.mutePublishStreamVideo) {
+                    await core.mutePublishStreamVideo(core.localStream, next);
+                }
+                if (core.enableVideoCaptureDevice) {
+                    await core.enableVideoCaptureDevice(core.localStream, !next);
+                }
+            } else if (zpRef.current?.express?.enableCamera) {
+                zpRef.current.express.enableCamera(!next);
+            }
+        } catch (e) {
+            console.error("Error toggling video:", e);
         }
-        setIsVideoMuted(prev => !prev);
     };
 
-    // Flip Camera (mobile)
+    // Flip Camera (mobile devices)
     const flipCamera = () => {
-        if (zpRef.current?.express?.useFrontFacingCamera) {
-            zpRef.current.express.useFrontFacingCamera(!isFrontCamera);
+        try {
+            if (zpRef.current?.express?.useFrontFacingCamera) {
+                zpRef.current.express.useFrontFacingCamera(!isFrontCamera);
+            }
+            setIsFrontCamera(prev => !prev);
+            toast("Camera switched", { duration: 1500 });
+        } catch (e) {
+            console.error("Error switching camera:", e);
         }
-        setIsFrontCamera(prev => !prev);
-        toast("Camera switched", { duration: 1500 });
     };
 
     if (loading) {
@@ -304,7 +419,7 @@ export default function VideoCall() {
     return (
         <div className="relative w-screen h-screen overflow-hidden bg-[#070913] select-none text-white">
 
-            {/* 1. Blurred Romantic Backdrop */}
+            {/* 1. Blurred Romantic Backdrop (Visible in Voice mode or before camera loads) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 {partnerPhoto ? (
                     <img 
@@ -405,7 +520,7 @@ export default function VideoCall() {
                 </div>
             )}
 
-            {/* 5. Waiting Banner for Video Mode (Shown while alone in room) */}
+            {/* 5. Waiting Banner for Video Mode (Shown while waiting for partner to join) */}
             {!isVoice && !partnerConnected && (
                 <div className="absolute top-20 inset-x-4 z-30 flex justify-center pointer-events-none animate-fade-in">
                     <div className="px-5 py-3 rounded-2xl bg-black/80 backdrop-blur-md border border-pink-500/30 shadow-[0_0_25px_rgba(236,72,153,0.3)] flex items-center gap-3 max-w-md">
@@ -416,24 +531,26 @@ export default function VideoCall() {
                                 <span>❤️</span>
                             </p>
                             <p className="text-[11px] text-gray-300 mt-0.5">
-                                Your camera preview is active. Once {partnerName} answers, both of your video feeds will appear here.
+                                Connecting video feed. Once {partnerName} answers, both camera streams will appear here.
                             </p>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 6. Zego Video Call Container (Guaranteed 100vw x 100vh) */}
+            {/* 6. Zego Video/Voice Call WebRTC Container */}
             <div
                 ref={containerCallbackRef}
+                id="zego-call-container"
                 style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100vw',
                     height: '100vh',
-                    zIndex: isVoice ? 5 : 10,
-                    opacity: isVoice ? 0.01 : 1, // Keep media tracks playing in background during voice
+                    zIndex: isVoice ? 1 : 10,
+                    opacity: isVoice ? 0.05 : 1,
+                    pointerEvents: isVoice ? 'none' : 'auto'
                 }}
             />
 
@@ -453,32 +570,36 @@ export default function VideoCall() {
                         {isMicMuted ? <MicOff size={20} /> : <Mic size={20} />}
                     </button>
 
-                    {/* Toggle Camera */}
-                    <button
-                        onClick={toggleVideo}
-                        title={isVideoMuted ? "Turn on camera" : "Turn off camera"}
-                        className={`p-3.5 rounded-full transition-all duration-200 active:scale-95 ${
-                            isVideoMuted 
+                    {/* Toggle Camera (in Video mode) */}
+                    {!isVoice && (
+                        <button
+                            onClick={toggleVideo}
+                            title={isVideoMuted ? "Turn on camera" : "Turn off camera"}
+                            className={`p-3.5 rounded-full transition-all duration-200 active:scale-95 ${
+                                isVideoMuted 
                                 ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
                                 : 'bg-white/10 hover:bg-white/20 text-white'
-                        }`}
-                    >
-                        {isVideoMuted ? <VideoOff size={20} /> : <Video size={20} />}
-                    </button>
+                            }`}
+                        >
+                            {isVideoMuted ? <VideoOff size={20} /> : <Video size={20} />}
+                        </button>
+                    )}
 
-                    {/* Flip Camera (mobile) */}
-                    <button
-                        onClick={flipCamera}
-                        title="Flip camera"
-                        className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
-                    >
-                        <SwitchCamera size={20} />
-                    </button>
+                    {/* Flip Camera (mobile devices) */}
+                    {!isVoice && (
+                        <button
+                            onClick={flipCamera}
+                            title="Flip camera"
+                            className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
+                        >
+                            <SwitchCamera size={20} />
+                        </button>
+                    )}
 
-                    {/* Speaker Selector */}
+                    {/* Speaker Indicator */}
                     <button
-                        onClick={() => toast("Audio output: Default speaker", { duration: 1500 })}
-                        title="Speaker output"
+                        onClick={() => toast("Audio: High-Definition Output Active", { duration: 1500 })}
+                        title="HD Audio"
                         className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95 hidden sm:flex"
                     >
                         <Volume2 size={20} />

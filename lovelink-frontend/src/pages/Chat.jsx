@@ -312,7 +312,8 @@ function Chat() {
                     partner_id: res.data.partner_id,
                     partner_name: res.data.partner_name,
                     partner_photo: res.data.partner_photo,
-                    call_type: callType
+                    call_type: callType,
+                    status: 'initiated'
                 }
             });
         } catch (err) {

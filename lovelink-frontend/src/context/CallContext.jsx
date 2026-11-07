@@ -129,6 +129,9 @@ export const CallProvider = ({ children }) => {
 
         } else if (data.type === 'call_answered') {
             clearIncoming();
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:call_answered', { detail: data }));
+            }
 
         } else if (data.type === 'call_declined') {
             if (incomingCall?.call_id === data.call_id) {
@@ -174,7 +177,8 @@ export const CallProvider = ({ children }) => {
                     partner_id: res.data.partner_id || callData?.caller_id,
                     partner_name: res.data.partner_name || callData?.caller_name || 'Partner',
                     partner_photo: res.data.partner_photo || callData?.caller_photo,
-                    call_type: callData?.call_type || res.data.call_type || 'video'
+                    call_type: callData?.call_type || res.data.call_type || 'video',
+                    status: res.data.status || 'answered'
                 }
             });
         } catch (err) {
