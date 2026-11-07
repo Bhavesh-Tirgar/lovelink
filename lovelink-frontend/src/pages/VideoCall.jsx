@@ -31,9 +31,12 @@ export default function VideoCall() {
     const zpRef = useRef(null);
     const timerIntervalRef = useRef(null);
     const remoteUserJoinedRef = useRef(false);
+    const hasEndedRef = useRef(false);
+    const initializedCallIdRef = useRef(null);
 
+    const [containerReady, setContainerReady] = useState(false);
     const [callState, setCallState] = useState(() => location.state || null);
-    const [loading, setLoading] = useState(!location.state);
+    const [loading, setLoading] = useState(!location.state?.token);
     const [error, setError] = useState(null);
     const [partnerConnected, setPartnerConnected] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
@@ -46,6 +49,14 @@ export default function VideoCall() {
     const [isFrontCamera, setIsFrontCamera] = useState(true);
 
     const isVoice = (callState?.call_type === 'voice');
+
+    // Callback ref to guarantee container is captured in state
+    const containerCallbackRef = useCallback((node) => {
+        if (node !== null) {
+            containerRef.current = node;
+            setContainerReady(true);
+        }
+    }, []);
 
     // 1. Fetch credentials if missing (e.g. reload or direct link)
     useEffect(() => {
@@ -64,7 +75,7 @@ export default function VideoCall() {
                 setError("Call session expired or unavailable.");
                 setLoading(false);
             });
-    }, [callId, callState]);
+    }, [callId, callState?.token]);
 
     // Format seconds as MM:SS
     const formattedDuration = useMemo(() => {
@@ -83,7 +94,11 @@ export default function VideoCall() {
         );
     }, [callState]);
 
+    // End call handler — strictly guarded to prevent accidental premature termination
     const handleEndCall = useCallback(async () => {
+        if (hasEndedRef.current) return;
+        hasEndedRef.current = true;
+
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
         try {
             await api.post(`/calls/${callId}/end`);
@@ -127,9 +142,11 @@ export default function VideoCall() {
         }
     }, [isVoice]);
 
-    // Initialize Zego WebRTC
+    // Initialize Zego WebRTC Room (Only once per callId)
     useEffect(() => {
-        if (!callState?.token || !containerRef.current) return;
+        if (!callState?.token || !containerRef.current || !containerReady) return;
+        if (initializedCallIdRef.current === callId) return;
+        initializedCallIdRef.current = callId;
 
         const { token, room_id, zego_app_id, user_id, user_name, partner_id, partner_photo } = callState;
 
@@ -149,6 +166,8 @@ export default function VideoCall() {
                 scenario: {
                     mode: ZegoUIKitPrebuilt.GroupCall,
                 },
+                // CRITICAL FIX: Do NOT auto-leave when alone in room while waiting for partner!
+                autoLeaveRoomWhenOnlySelfInRoom: false,
                 showPreJoinView: false,
                 showLeavingView: false,
                 showLeaveRoomConfirmDialog: false,
@@ -194,12 +213,15 @@ export default function VideoCall() {
                     }
                 },
                 onLeaveRoom: () => {
-                    handleEndCall();
+                    console.log("Left Zego room view");
+                    // Intentionally NOT calling handleEndCall() here to prevent premature drops!
                 },
                 onUserLeave: () => {
-                    if (remoteUserJoinedRef.current) {
+                    if (remoteUserJoinedRef.current && !hasEndedRef.current) {
                         toast("Partner left the call");
-                        handleEndCall();
+                        setTimeout(() => {
+                            handleEndCall();
+                        }, 2000);
                     }
                 }
             });
@@ -210,12 +232,19 @@ export default function VideoCall() {
 
         return () => {
             if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [callId, callState?.token, callState?.room_id, containerReady, isVoice, handleEndCall]);
+
+    // Component unmount cleanup
+    useEffect(() => {
+        return () => {
             if (zpRef.current) {
                 try { zpRef.current.destroy(); } catch (e) {}
                 zpRef.current = null;
             }
         };
-    }, [callState, handleEndCall, isVoice]);
+    }, []);
 
     // Toggle Mic using Zego hardware tracks or express engine
     const toggleMic = () => {
@@ -396,7 +425,7 @@ export default function VideoCall() {
 
             {/* 6. Zego Video Call Container (Guaranteed 100vw x 100vh) */}
             <div
-                ref={containerRef}
+                ref={containerCallbackRef}
                 style={{
                     position: 'absolute',
                     top: 0,
