@@ -65,6 +65,7 @@ function App() {
                 <Route path="/universe" element={<ProtectedRoute><OurUniverse /></ProtectedRoute>} />
                 <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>
           </div>
