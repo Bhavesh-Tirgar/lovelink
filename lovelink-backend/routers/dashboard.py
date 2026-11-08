@@ -259,3 +259,17 @@ async def get_status(
         "distance_km": distance_km,
         "distance_miles": round(distance_km * 0.621371, 1) if distance_km is not None else None
     }
+
+
+@router.post("/mood")
+async def save_dashboard_mood_alias(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    body: dict = None
+):
+    """Alias for /mood/checkin to guarantee zero 404s."""
+    from routers.mood import checkin_mood, MoodRequest
+    emoji = (body or {}).get("emoji", "😊")
+    note = (body or {}).get("note", None)
+    req = MoodRequest(emoji=emoji, note=note)
+    return await checkin_mood(req, current_user, db)

@@ -68,7 +68,7 @@ function Dashboard() {
     if (!selectedEmoji) return;
     setSavingMood(true);
     try {
-      await api.post('/dashboard/mood', { emoji: selectedEmoji, note: moodNote });
+      await api.post('/mood/checkin', { emoji: selectedEmoji, note: moodNote });
       setMoodSuccess(true);
       setTimeout(() => setMoodSuccess(false), 3000);
       setMoodNote('');
