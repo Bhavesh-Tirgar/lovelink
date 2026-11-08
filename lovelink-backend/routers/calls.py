@@ -39,9 +39,6 @@ async def initiate_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    if not ZEGO_APP_ID or not ZEGO_SERVER_SECRET:
-        raise HTTPException(status_code=500, detail="Zegocloud credentials not configured on server")
-
     couple = await _get_couple(db, str(current_user.id))
     couple_id_str = str(couple.id)
     
@@ -53,17 +50,20 @@ async def initiate_call(
     partner_res = await db.execute(select(User).where(User.id == partner_id))
     partner_user = partner_res.scalar_one_or_none()
 
-    try:
-        caller_token = generate_zego_token(
-            ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-            str(current_user.id), room_id
-        )
-        partner_token = generate_zego_token(
-            ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-            partner_id, room_id
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate Zegocloud token: {e}")
+    caller_token = ""
+    partner_token = ""
+    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
+        try:
+            caller_token = generate_zego_token(
+                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
+                str(current_user.id), room_id
+            )
+            partner_token = generate_zego_token(
+                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
+                partner_id, room_id
+            )
+        except Exception as e:
+            print(f"[WARN] Optional Zego token generation skipped: {e}")
 
     call = await create_call(
         db=db,
@@ -127,10 +127,15 @@ async def answer_call(
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
         
-    token = generate_zego_token(
-        ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-        str(current_user.id), call.room_id
-    )
+    token = ""
+    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
+        try:
+            token = generate_zego_token(
+                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
+                str(current_user.id), call.room_id
+            )
+        except Exception:
+            token = ""
 
     couple = await _get_couple(db, str(current_user.id))
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
@@ -170,10 +175,15 @@ async def get_call_token(
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
         
-    token = generate_zego_token(
-        ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-        str(current_user.id), call.room_id
-    )
+    token = ""
+    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
+        try:
+            token = generate_zego_token(
+                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
+                str(current_user.id), call.room_id
+            )
+        except Exception:
+            token = ""
 
     couple = await _get_couple(db, str(current_user.id))
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)

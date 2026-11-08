@@ -299,6 +299,31 @@ async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Quer
                     "speed": data.get("speed"),
                     "heading": data.get("heading")
                 }, exclude=websocket)
+
+            # ── NATIVE P2P WEBRTC SIGNALING RELAY ──────────────────────────
+            elif msg_type == "webrtc_offer":
+                await manager.broadcast(couple_id, {
+                    "type": "webrtc_offer",
+                    "call_id": data.get("call_id"),
+                    "sender_id": user_id,
+                    "sdp": data.get("sdp")
+                }, exclude=websocket)
+
+            elif msg_type == "webrtc_answer":
+                await manager.broadcast(couple_id, {
+                    "type": "webrtc_answer",
+                    "call_id": data.get("call_id"),
+                    "sender_id": user_id,
+                    "sdp": data.get("sdp")
+                }, exclude=websocket)
+
+            elif msg_type == "webrtc_ice_candidate":
+                await manager.broadcast(couple_id, {
+                    "type": "webrtc_ice_candidate",
+                    "call_id": data.get("call_id"),
+                    "sender_id": user_id,
+                    "candidate": data.get("candidate")
+                }, exclude=websocket)
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket, couple_id)

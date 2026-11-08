@@ -159,10 +159,24 @@ export const CallProvider = ({ children }) => {
                 toast("Call ended");
                 navigate('/dashboard', { replace: true });
             }
+
+        // Native P2P WebRTC Signaling Event Relays
+        } else if (data.type === 'webrtc_offer') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:webrtc_offer', { detail: data }));
+            }
+        } else if (data.type === 'webrtc_answer') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:webrtc_answer', { detail: data }));
+            }
+        } else if (data.type === 'webrtc_ice_candidate') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:webrtc_ice_candidate', { detail: data }));
+            }
         }
     }, [incomingCall, minimizedCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
 
-    useWebSocket(wsUrl, handleWsMessage);
+    const { sendMessage: sendWsMessage } = useWebSocket(wsUrl, handleWsMessage);
 
     const answerCall = async (callId) => {
         const callData = incomingCall;
@@ -215,7 +229,7 @@ export const CallProvider = ({ children }) => {
     }, [minimizedCall]);
 
     return (
-        <CallContext.Provider value={{ incomingCall, declineCall, answerCall, minimizeCall, restoreCall, endMinimizedCall }}>
+        <CallContext.Provider value={{ incomingCall, declineCall, answerCall, minimizeCall, restoreCall, endMinimizedCall, sendWsMessage }}>
             {children}
 
             {/* Telegram Floating PiP Card (when call is minimized) */}
