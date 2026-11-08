@@ -68,12 +68,13 @@ app = FastAPI(title="LoveLink API", lifespan=lifespan)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://lovelink-pearl.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

@@ -27,12 +27,29 @@ if CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_R2_ACCESS_KEY and CLOUDFLARE_R2_SECRET_K
     except Exception as e:
         print(f"Failed to initialize S3/R2 client: {e}")
 
+ALLOWED_EXTENSIONS = {
+    # Images
+    "jpg", "jpeg", "png", "gif", "webp",
+    # Audio & Voice Notes
+    "mp3", "wav", "m4a", "ogg", "webm",
+    # Video
+    "mp4", "mov", "avi",
+    # Documents
+    "pdf"
+}
+
 async def save_file(upload_file: UploadFile, subfolder: str = "chat") -> Tuple[str, Optional[str]]:
     """
     Saves an uploaded file either to R2 (if configured) or to local static uploads folder.
     Returns (file_url, thumbnail_url).
     """
+    from fastapi import HTTPException
     ext = (upload_file.filename or "").rsplit(".", 1)[-1].lower() or "bin"
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File extension '.{ext}' is not allowed for security reasons. Allowed: images, audio, video, pdf."
+        )
     file_id = f"{uuid.uuid4().hex}.{ext}"
     object_key = f"{subfolder}/{file_id}"
     content_type = upload_file.content_type or "application/octet-stream"

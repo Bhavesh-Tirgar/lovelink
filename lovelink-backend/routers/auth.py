@@ -152,8 +152,38 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
     if not user.otp_code or not user.otp_expires_at:
         raise HTTPException(status_code=400, detail="No OTP requested")
 
+    # Brute-force protection: max 5 failed attempts per identifier
+    import time
+    global _OTP_ATTEMPTS
+    if "_OTP_ATTEMPTS" not in globals():
+        _OTP_ATTEMPTS = {}
+
+    attempt_info = _OTP_ATTEMPTS.get(data.identifier, {"count": 0, "lockout": 0})
+    if attempt_info["lockout"] > time.time():
+        remaining = int(attempt_info["lockout"] - time.time())
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Account locked for {remaining} seconds."
+        )
+
     if user.otp_code != data.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
+        attempt_info["count"] += 1
+        if attempt_info["count"] >= 5:
+            attempt_info["lockout"] = time.time() + 900  # Lock out for 15 minutes
+            user.otp_code = None
+            user.otp_expires_at = None
+            db.add(user)
+            await db.commit()
+            _OTP_ATTEMPTS[data.identifier] = attempt_info
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
+            )
+        _OTP_ATTEMPTS[data.identifier] = attempt_info
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {5 - attempt_info['count']} attempts remaining.")
+
+    # Successful verification: clear failed attempts
+    _OTP_ATTEMPTS.pop(data.identifier, None)
 
     if datetime.utcnow() > user.otp_expires_at:
         raise HTTPException(status_code=400, detail="OTP expired")
@@ -237,8 +267,38 @@ async def login_verify_otp(
     if not user.otp_code or not user.otp_expires_at:
         raise HTTPException(status_code=400, detail="No OTP requested")
 
+    # Brute-force protection: max 5 failed attempts per identifier
+    import time
+    global _OTP_ATTEMPTS
+    if "_OTP_ATTEMPTS" not in globals():
+        _OTP_ATTEMPTS = {}
+
+    attempt_info = _OTP_ATTEMPTS.get(data.identifier, {"count": 0, "lockout": 0})
+    if attempt_info["lockout"] > time.time():
+        remaining = int(attempt_info["lockout"] - time.time())
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Account locked for {remaining} seconds."
+        )
+
     if user.otp_code != data.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
+        attempt_info["count"] += 1
+        if attempt_info["count"] >= 5:
+            attempt_info["lockout"] = time.time() + 900  # Lock out for 15 minutes
+            user.otp_code = None
+            user.otp_expires_at = None
+            db.add(user)
+            await db.commit()
+            _OTP_ATTEMPTS[data.identifier] = attempt_info
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
+            )
+        _OTP_ATTEMPTS[data.identifier] = attempt_info
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {5 - attempt_info['count']} attempts remaining.")
+
+    # Successful verification: clear failed attempts
+    _OTP_ATTEMPTS.pop(data.identifier, None)
 
     if datetime.utcnow() > user.otp_expires_at:
         raise HTTPException(status_code=400, detail="OTP expired")
@@ -314,8 +374,38 @@ async def reset_password(
     if not user.otp_code or not user.otp_expires_at:
         raise HTTPException(status_code=400, detail="No OTP requested")
 
+    # Brute-force protection: max 5 failed attempts per identifier
+    import time
+    global _OTP_ATTEMPTS
+    if "_OTP_ATTEMPTS" not in globals():
+        _OTP_ATTEMPTS = {}
+
+    attempt_info = _OTP_ATTEMPTS.get(data.identifier, {"count": 0, "lockout": 0})
+    if attempt_info["lockout"] > time.time():
+        remaining = int(attempt_info["lockout"] - time.time())
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Account locked for {remaining} seconds."
+        )
+
     if user.otp_code != data.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
+        attempt_info["count"] += 1
+        if attempt_info["count"] >= 5:
+            attempt_info["lockout"] = time.time() + 900  # Lock out for 15 minutes
+            user.otp_code = None
+            user.otp_expires_at = None
+            db.add(user)
+            await db.commit()
+            _OTP_ATTEMPTS[data.identifier] = attempt_info
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
+            )
+        _OTP_ATTEMPTS[data.identifier] = attempt_info
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {5 - attempt_info['count']} attempts remaining.")
+
+    # Successful verification: clear failed attempts
+    _OTP_ATTEMPTS.pop(data.identifier, None)
 
     if datetime.utcnow() > user.otp_expires_at:
         raise HTTPException(status_code=400, detail="OTP expired")
