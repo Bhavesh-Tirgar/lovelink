@@ -70,14 +70,22 @@ async def initiate_call(
         exclude=None
     )
     
-    # Push notification
+    # Push notification for incoming call
     if partner_user and partner_user.fcm_token:
-        body = f"Incoming {payload.call_type} call from {current_user.name}"
+        call_type_str = "voice" if "voice" in str(payload.call_type).lower() else "video"
+        body = f"Incoming {call_type_str} call from {current_user.name} 📞"
         await send_push(
             fcm_token=partner_user.fcm_token,
-            title="LoveLink Call",
+            title=f"LoveLink: {current_user.name} is calling...",
             body=body,
-            data={"type": "incoming_call", "call_id": str(new_call_id), "room_id": str(room_id)}
+            data={
+                "type": "incoming_call",
+                "call_id": str(new_call_id),
+                "room_id": str(room_id),
+                "caller_name": str(current_user.name),
+                "call_type": call_type_str,
+                "url": f"/call/{new_call_id}"
+            }
         )
 
     return {
@@ -152,25 +160,8 @@ async def get_call_token(
         "partner_name": partner_user.name if partner_user else "Partner",
         "partner_photo": partner_user.photo_url if partner_user else None,
         "call_type": "voice" if "voice" in str(call.call_type).lower() else "video",
-        "status": str(call.status.value if hasattr(call.status, 'value') else call.status)
-    }
-
-    couple = await _get_couple(db, str(current_user.id))
-    partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
-    partner_res = await db.execute(select(User).where(User.id == partner_id))
-    partner_user = partner_res.scalar_one_or_none()
-    
-    return {
-        "token": token,
-        "room_id": call.room_id,
-        "zego_app_id": ZEGO_APP_ID,
-        "user_id": str(current_user.id),
-        "user_name": current_user.name,
-        "partner_id": partner_id,
-        "partner_name": partner_user.name if partner_user else "Partner",
-        "partner_photo": partner_user.photo_url if partner_user else None,
-        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video",
-        "status": str(call.status.value if hasattr(call.status, 'value') else call.status)
+        "status": str(call.status.value if hasattr(call.status, 'value') else call.status),
+        "started_by": str(call.started_by)
     }
 
 

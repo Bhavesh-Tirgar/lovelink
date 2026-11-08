@@ -46,6 +46,9 @@ export const CallProvider = ({ children }) => {
             oscRef.current.disconnect();
             oscRef.current = null;
         }
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try { navigator.vibrate(0); } catch (e) { }
+        }
     }, []);
 
     const clearIncoming = useCallback(() => {
@@ -85,6 +88,11 @@ export const CallProvider = ({ children }) => {
             gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
             gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
 
+            // Trigger initial mobile phone vibration pattern
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate([800, 400, 800, 400, 800]); } catch (e) { }
+            }
+
             // Loop it
             const interval = setInterval(() => {
                 if (!oscRef.current) {
@@ -94,6 +102,10 @@ export const CallProvider = ({ children }) => {
                 gain.gain.setValueAtTime(0, ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
                 gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try { navigator.vibrate([800, 400, 800]); } catch (e) { }
+                }
             }, 2000);
 
             osc.connect(gain);

@@ -20,13 +20,61 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-    const notificationTitle = payload.notification?.title || "LoveLink";
+    const data = payload.data || {};
+    const isCall = data.type === 'incoming_call';
+    const isEnd = data.type === 'call_ended' || data.type === 'call_declined';
+
+    // Auto-dismiss notification if call was ended or declined by the other party
+    if (isEnd && data.call_id) {
+        const callTag = `call-${data.call_id}`;
+        self.registration.getNotifications({ tag: callTag }).then((notifications) => {
+            notifications.forEach(n => n.close());
+        });
+        return;
+    }
+
+    let notificationTitle = payload.notification?.title || "LoveLink";
+    let body = payload.notification?.body || "New romantic alert from your partner 💕";
+    let actions = [];
+    let vibratePattern = [200, 100, 200];
+    let requireInteraction = false;
+    let tag = 'lovelink-general';
+
+    if (isCall) {
+        const callType = (data.call_type || 'video').toUpperCase();
+        const callerName = data.caller_name || 'Your Partner';
+        notificationTitle = `📞 Incoming ${callType} Call`;
+        body = `${callerName} is calling you right now...`;
+        requireInteraction = true; // Stays on screen like a real phone call
+        tag = `call-${data.call_id}`;
+        vibratePattern = [600, 300, 600, 300, 600, 300, 600]; // Ring rhythm
+        actions = [
+            {
+                action: 'answer',
+                title: '💚 Answer Call',
+                icon: '/logo192.png'
+            },
+            {
+                action: 'decline',
+                title: '❌ Decline',
+                icon: '/logo192.png'
+            }
+        ];
+    }
+
     const notificationOptions = {
-        body: payload.notification?.body || "New romantic alert from your partner 💕",
+        body: body,
         icon: '/logo192.png',
         badge: '/favicon.ico',
-        vibrate: [200, 100, 200],
-        data: payload.data || {}
+        vibrate: vibratePattern,
+        requireInteraction: requireInteraction,
+        tag: tag,
+        renotify: true,
+        actions: actions,
+        data: {
+            ...data,
+            url: isCall ? `/call/${data.call_id}` : (data.url || '/')
+        }
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
@@ -41,10 +89,18 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
-// Notification click handler: focuses or opens LoveLink window
+// Notification click handler: handles Lock-Screen Answer / Decline and window focus
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data?.url || '/';
+    const action = event.action;
+    const data = event.notification.data || {};
+
+    if (action === 'decline') {
+        // Declined from lock screen
+        return;
+    }
+
+    const targetUrl = data.url || (data.call_id ? `/call/${data.call_id}` : '/');
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

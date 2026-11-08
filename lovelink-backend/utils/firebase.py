@@ -40,7 +40,7 @@ def init_firebase():
 
 
 async def send_push(fcm_token: str, title: str, body: str, data: dict = None) -> bool:
-    """Sends a push notification to a specific FCM token."""
+    """Sends a high-priority push notification to a specific FCM token with WebPush actions."""
     if not firebase_admin._apps:
         logger.warning("Firebase not initialized. Cannot send push notification.")
         return False
@@ -54,7 +54,15 @@ async def send_push(fcm_token: str, title: str, body: str, data: dict = None) ->
     try:
         # FCM data payloads must contain string values only
         str_data = {str(k): str(v) for k, v in data.items()}
+        target_url = str_data.get("url", "/")
         
+        webpush_config = messaging.WebpushConfig(
+            headers={"Urgency": "high"},
+            fcm_options=messaging.WebpushFCMOptions(
+                link=target_url
+            )
+        )
+
         message = messaging.Message(
             notification=messaging.Notification(
                 title=title, 
@@ -62,6 +70,7 @@ async def send_push(fcm_token: str, title: str, body: str, data: dict = None) ->
             ),
             data=str_data,
             token=fcm_token,
+            webpush=webpush_config
         )
         response = messaging.send(message)
         logger.info(f"Successfully sent FCM message: {response}")

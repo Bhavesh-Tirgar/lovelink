@@ -106,9 +106,23 @@ export default function VideoCall() {
         }
 
         api.get(`/calls/${callId}/token`)
-            .then(res => {
-                setCallState(res.data);
-                if (res.data.status === 'answered') {
+            .then(async (res) => {
+                const callInfo = res.data;
+                const storedUser = JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('user') || '{}' : '{}');
+                const myId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
+
+                // Auto-answer if callee arrived directly via lock-screen notification click
+                if (callInfo.status === 'initiated' && callInfo.started_by && myId && String(callInfo.started_by) !== String(myId)) {
+                    try {
+                        await api.post(`/calls/${callId}/answer`);
+                        callInfo.status = 'answered';
+                    } catch (e) {
+                        console.warn('Auto-answer on launch:', e);
+                    }
+                }
+
+                setCallState(callInfo);
+                if (callInfo.status === 'answered') {
                     setPartnerConnected(true);
                 }
                 setLoading(false);
