@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "LoveLink",
+  "name": "LoveLink - Private Couple Space",
+  "description": "Your private, real-time encrypted couple space with live calling, synced movies, touch, and instant love notes.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,23 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#070913",
+  "background_color": "#070913",
+  "categories": [
+    "lifestyle",
+    "social"
+  ]
 }

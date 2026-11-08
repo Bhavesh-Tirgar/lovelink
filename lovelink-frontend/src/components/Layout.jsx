@@ -1,6 +1,7 @@
 import React from 'react';
 import NavigationDock from './NavigationDock';
 import FloatingMusicPlayer from './FloatingMusicPlayer';
+import InstallPrompt from './InstallPrompt';
 import { useLocation } from 'react-router-dom';
 
 export default function Layout({ children }) {
@@ -35,6 +36,9 @@ export default function Layout({ children }) {
 
             {/* Floating Synchronized Music Player */}
             {!isAuthPage && !isCallOrWatch && <FloatingMusicPlayer />}
+
+            {/* PWA Add to Home Screen Prompt */}
+            {!isAuthPage && !isCallOrWatch && <InstallPrompt />}
 
             {/* Persistent Floating Dock */}
             {!isAuthPage && !isCallOrWatch && <NavigationDock />}
