@@ -173,6 +173,10 @@ export const CallProvider = ({ children }) => {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('lovelink:webrtc_ice_candidate', { detail: data }));
             }
+        } else if (data.type === 'webrtc_ready') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:webrtc_ready', { detail: data }));
+            }
         }
     }, [incomingCall, minimizedCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
 

@@ -324,6 +324,13 @@ async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Quer
                     "sender_id": user_id,
                     "candidate": data.get("candidate")
                 }, exclude=websocket)
+
+            elif msg_type == "webrtc_ready":
+                await manager.broadcast(couple_id, {
+                    "type": "webrtc_ready",
+                    "call_id": data.get("call_id"),
+                    "sender_id": user_id
+                }, exclude=websocket)
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket, couple_id)

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const useWebSocket = (url, onMessage) => {
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef(null);
+    const queueRef = useRef([]);
     const reconnectTimeoutRef = useRef(null);
     const reconnectCountRef = useRef(0);
     const isMountedRef = useRef(true);
@@ -46,6 +47,16 @@ const useWebSocket = (url, onMessage) => {
             console.log("[WS] Connected to:", url);
             setIsConnected(true);
             reconnectCountRef.current = 0;
+            // Immediately flush any queued signaling messages
+            while (queueRef.current.length > 0) {
+                const queued = queueRef.current.shift();
+                try {
+                    ws.send(JSON.stringify(queued));
+                    console.log("[WS] Delivered queued message:", queued.type);
+                } catch (err) {
+                    console.warn("[WS] Failed to send queued message:", err);
+                }
+            }
         };
 
         ws.onmessage = (event) => {
@@ -111,7 +122,8 @@ const useWebSocket = (url, onMessage) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify(data));
         } else {
-            console.warn("[WS] Not connected, message not sent:", data);
+            console.log("[WS] Queueing message until socket open:", data.type);
+            queueRef.current.push(data);
         }
     }, []);
 

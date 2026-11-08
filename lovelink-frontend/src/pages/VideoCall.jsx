@@ -20,14 +20,29 @@ import {
 import { getCallE2EEEmojis } from '../utils/callSecurity';
 import { useCall } from '../context/CallContext';
 
-// Google's free global STUN servers (100% Free Forever, Zero Expiration)
+// Google's free global STUN + OpenRelay TURN servers (100% Free Forever, Zero Expiration)
 const RTC_CONFIGURATION = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
+        { urls: 'stun:openrelay.metered.ca:80' },
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
     ],
     iceCandidatePoolSize: 10
 };
@@ -232,6 +247,7 @@ export default function VideoCall() {
                     const [remoteStream] = event.streams;
                     if (remoteVideoRef.current) {
                         remoteVideoRef.current.srcObject = remoteStream;
+                        remoteVideoRef.current.play().catch(() => {});
                     }
                     if (remoteAudioRef.current) {
                         remoteAudioRef.current.srcObject = remoteStream;
@@ -263,6 +279,14 @@ export default function VideoCall() {
                     }
                 };
 
+                // Announce ready state to partner
+                if (sendWsMessage) {
+                    sendWsMessage({
+                        type: 'webrtc_ready',
+                        call_id: callId
+                    });
+                }
+
                 // Helper: Create and send SDP Offer (Caller)
                 const sendOffer = async () => {
                     if (!pcRef.current) return;
@@ -290,7 +314,34 @@ export default function VideoCall() {
                     sendOffer();
                 }
 
+                // Periodic offer sync for caller until connected (eliminates race conditions)
+                let retryInterval = null;
+                if (isCaller) {
+                    let attempts = 0;
+                    retryInterval = setInterval(() => {
+                        if (!pcRef.current || hasEndedRef.current) return;
+                        if (pcRef.current.iceConnectionState === 'connected' || pcRef.current.iceConnectionState === 'completed') {
+                            clearInterval(retryInterval);
+                            return;
+                        }
+                        if (attempts < 15) {
+                            attempts++;
+                            console.log(`[WebRTC] Offer sync heartbeat #${attempts}`);
+                            sendOffer();
+                        } else {
+                            clearInterval(retryInterval);
+                        }
+                    }, 2000);
+                }
+
                 // Window Event Listeners for WebSocket Signaling
+                const onRemoteReady = () => {
+                    console.log("[WebRTC] Partner announced ready! Syncing offer...");
+                    if (isCaller) {
+                        sendOffer();
+                    }
+                };
+
                 const onCallAnswered = () => {
                     console.log("[WebRTC] Partner answered. Initiating SDP offer handshake! ❤️");
                     setPartnerConnected(true);
@@ -338,6 +389,7 @@ export default function VideoCall() {
                             const cand = pendingCandidatesRef.current.shift();
                             await pcRef.current.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
                         }
+                        setPartnerConnected(true);
                     } catch (err) {
                         console.error("[WebRTC] Failed to set remote answer:", err);
                     }
@@ -357,12 +409,15 @@ export default function VideoCall() {
                     }
                 };
 
+                window.addEventListener('lovelink:webrtc_ready', onRemoteReady);
                 window.addEventListener('lovelink:call_answered', onCallAnswered);
                 window.addEventListener('lovelink:webrtc_offer', onRemoteOffer);
                 window.addEventListener('lovelink:webrtc_answer', onRemoteAnswer);
                 window.addEventListener('lovelink:webrtc_ice_candidate', onRemoteIceCandidate);
 
                 return () => {
+                    if (retryInterval) clearInterval(retryInterval);
+                    window.removeEventListener('lovelink:webrtc_ready', onRemoteReady);
                     window.removeEventListener('lovelink:call_answered', onCallAnswered);
                     window.removeEventListener('lovelink:webrtc_offer', onRemoteOffer);
                     window.removeEventListener('lovelink:webrtc_answer', onRemoteAnswer);
