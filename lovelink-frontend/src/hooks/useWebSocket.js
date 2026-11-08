@@ -1,3 +1,4 @@
+import api from '../api';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const useWebSocket = (url, onMessage) => {
@@ -20,7 +21,7 @@ const useWebSocket = (url, onMessage) => {
         return delays[Math.min(attempt, delays.length - 1)];
     };
 
-    const connect = useCallback(() => {
+    const connect = useCallback(async () => {
         if (!isMountedRef.current) return;
 
         if (reconnectCountRef.current > 6) {
@@ -38,7 +39,20 @@ const useWebSocket = (url, onMessage) => {
             wsRef.current.close(1000, "Reconnecting");
         }
 
-        const connectUrl = url.includes('?') ? `${url}&token=${token}` : `${url}?token=${token}`;
+        // Ferrari Security: single-use ticket auth (keeps JWT private)
+        let authParam = `token=${token}`;
+        try {
+            const ticketRes = await api.post('/auth/ws-ticket');
+            if (ticketRes.data?.ticket) {
+                authParam = `ticket=${ticketRes.data.ticket}`;
+            }
+        } catch (e) {
+            // Fallback to token if ticket endpoint unavailable
+        }
+
+        if (!isMountedRef.current) return;
+
+        const connectUrl = url.includes('?') ? `${url}&${authParam}` : `${url}?${authParam}`;
         const ws = new WebSocket(connectUrl);
         wsRef.current = ws;
 

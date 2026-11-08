@@ -457,3 +457,14 @@ async def register_fcm_token(
     await db.commit()
     await db.refresh(current_user) # Refresh to get the updated state
     return {"saved": True}
+
+
+
+@router.post("/ws-ticket")
+async def generate_websocket_ticket(
+    current_user: User = Depends(get_current_user)
+):
+    """Generates a single-use high-entropy ticket for secure WebSocket connection without exposing JWT in URL."""
+    from utils.tickets import create_ws_ticket
+    ticket = create_ws_ticket(str(current_user.id), ttl_seconds=30)
+    return {"ticket": ticket, "expires_in": 30}

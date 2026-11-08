@@ -156,11 +156,10 @@ os.makedirs(os.path.join(uploads_dir, "thumbnails"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "app": "LoveLink", "mode": "Ferrari 🏎️"}
+
 @app.get("/health")
 async def health():
-    return {"status": "ok", "app": "LoveLink"}
-
-@app.get("/debug/table")
-async def debug_table():
-    from models.call_log import CallLogLegacy
-    return {"tablename": CallLogLegacy.__tablename__}
+    return {"status": "ok", "app": "LoveLink", "mode": "Ferrari 🏎️"}

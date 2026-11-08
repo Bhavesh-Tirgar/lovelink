@@ -162,17 +162,37 @@ async def upload_file(
     return saved_message
 
 @ws_router.websocket("/{couple_id}")
-async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Query(...), db: AsyncSession = Depends(get_db)):
+async def websocket_chat(
+    websocket: WebSocket,
+    couple_id: str,
+    ticket: Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
     await websocket.accept()
     
-    try:
-        # Validate JWT token
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if user_id is None:
+    user_id = None
+    if ticket:
+        from utils.tickets import verify_and_consume_ws_ticket
+        user_id = verify_and_consume_ws_ticket(ticket)
+        if not user_id:
+            await websocket.close(code=4001, reason="Invalid or expired ticket")
+            return
+    elif token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id is None:
+                await websocket.close(code=4001, reason="Invalid credentials")
+                return
+        except JWTError:
             await websocket.close(code=4001, reason="Invalid credentials")
             return
-            
+    else:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+        
+    try:
         # Verify user belongs to couple
         result = await db.execute(
             select(Couple).where(Couple.id == couple_id)
@@ -184,8 +204,8 @@ async def websocket_chat(websocket: WebSocket, couple_id: str, token: str = Quer
             await websocket.close(code=4003, reason=dbg[:120])
             return
             
-    except JWTError:
-        await websocket.close(code=4001, reason="Invalid credentials")
+    except Exception as e:
+        await websocket.close(code=4001, reason="Authentication error")
         return
         
     await manager.connect(websocket, couple_id)
