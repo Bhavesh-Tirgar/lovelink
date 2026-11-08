@@ -12,15 +12,11 @@ from models.couple import Couple
 from models.call_log import CallType, CallStatus
 from schemas.call import CallInitiate, CallResponse
 from crud.call import create_call, end_call, get_call_history, get_call, answer_call_db
-from utils.zego import generate_zego_token
 from utils.firebase import send_push
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 
 router = APIRouter()
-
-ZEGO_APP_ID = int(os.getenv("ZEGO_APP_ID", "0"))
-ZEGO_SERVER_SECRET = os.getenv("ZEGO_SERVER_SECRET", "")
 
 
 async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
@@ -50,21 +46,6 @@ async def initiate_call(
     partner_res = await db.execute(select(User).where(User.id == partner_id))
     partner_user = partner_res.scalar_one_or_none()
 
-    caller_token = ""
-    partner_token = ""
-    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
-        try:
-            caller_token = generate_zego_token(
-                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-                str(current_user.id), room_id
-            )
-            partner_token = generate_zego_token(
-                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-                partner_id, room_id
-            )
-        except Exception as e:
-            print(f"[WARN] Optional Zego token generation skipped: {e}")
-
     call = await create_call(
         db=db,
         couple_id=couple_id_str,
@@ -82,11 +63,9 @@ async def initiate_call(
             "call_id": new_call_id,
             "caller_id": str(current_user.id),
             "room_id": room_id,
-            "caller_token": partner_token,
             "caller_name": current_user.name,
             "caller_photo": current_user.photo_url,
-            "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video",
-            "zego_app_id": ZEGO_APP_ID
+            "call_type": "voice" if "voice" in str(payload.call_type).lower() else "video"
         },
         exclude=None
     )
@@ -104,8 +83,6 @@ async def initiate_call(
     return {
         "call_id": str(call.id),
         "room_id": room_id,
-        "token": caller_token,
-        "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
         "partner_id": partner_id,
@@ -122,20 +99,9 @@ async def answer_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # CRITICAL BUG FIX: Update status to answered without ending the call or setting duration to 0!
     call = await answer_call_db(db, call_id)
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
-        
-    token = ""
-    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
-        try:
-            token = generate_zego_token(
-                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-                str(current_user.id), call.room_id
-            )
-        except Exception:
-            token = ""
 
     couple = await _get_couple(db, str(current_user.id))
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
@@ -152,9 +118,7 @@ async def answer_call(
     )
     
     return {
-        "token": token,
         "room_id": call.room_id,
-        "zego_app_id": ZEGO_APP_ID,
         "user_id": str(current_user.id),
         "user_name": current_user.name,
         "partner_id": partner_id,
@@ -174,16 +138,22 @@ async def get_call_token(
     call = await get_call(db, call_id)
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
-        
-    token = ""
-    if ZEGO_APP_ID and ZEGO_SERVER_SECRET:
-        try:
-            token = generate_zego_token(
-                ZEGO_APP_ID, ZEGO_SERVER_SECRET,
-                str(current_user.id), call.room_id
-            )
-        except Exception:
-            token = ""
+
+    couple = await _get_couple(db, str(current_user.id))
+    partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
+    partner_res = await db.execute(select(User).where(User.id == partner_id))
+    partner_user = partner_res.scalar_one_or_none()
+    
+    return {
+        "room_id": call.room_id,
+        "user_id": str(current_user.id),
+        "user_name": current_user.name,
+        "partner_id": partner_id,
+        "partner_name": partner_user.name if partner_user else "Partner",
+        "partner_photo": partner_user.photo_url if partner_user else None,
+        "call_type": "voice" if "voice" in str(call.call_type).lower() else "video",
+        "status": str(call.status.value if hasattr(call.status, 'value') else call.status)
+    }
 
     couple = await _get_couple(db, str(current_user.id))
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
