@@ -18,6 +18,7 @@ function timeAgo(dateStr) {
 function LazyImg({ src, alt, className, onClick }) {
     const ref = useRef(null);
     const [loaded, setLoaded] = useState(false);
+    const [hasError, setHasError] = useState(false);
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
@@ -29,13 +30,20 @@ function LazyImg({ src, alt, className, onClick }) {
     }, []);
 
     return (
-        <div ref={ref} className={`${className} bg-white/5 overflow-hidden`} onClick={onClick}>
-            {visible && (
+        <div ref={ref} className={`${className} bg-white/5 overflow-hidden relative flex items-center justify-center`} onClick={onClick}>
+            {visible && !hasError && (
                 <img
                     src={src} alt={alt}
                     className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => setLoaded(true)}
+                    onError={() => setHasError(true)}
                 />
+            )}
+            {hasError && (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-white/5 text-gray-500 p-2 text-center text-xs">
+                    <span className="text-xl mb-1">🖼️</span>
+                    <span className="text-[10px] text-gray-400">Photo Unavailable</span>
+                </div>
             )}
         </div>
     );

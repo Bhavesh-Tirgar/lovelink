@@ -226,7 +226,7 @@ async def upload_note_photo(
             )
             photo_url = f"{R2_PUBLIC_URL}/{object_key}"
         else:
-            photo_url = f"https://mock-storage.com/{object_key}"
+            photo_url = f"https://lovelink-sfzx.onrender.com/uploads/{object_key}"
     except Exception as e:
         print(f"R2 upload error: {e}")
         raise HTTPException(status_code=500, detail="Could not upload photo")
