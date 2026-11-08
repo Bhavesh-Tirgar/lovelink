@@ -1,16 +1,11 @@
+import { useCall } from '../context/CallContext';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ArrowLeft, Sparkles, Volume2, VolumeX, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { getWsBaseUrl } from '../utils/wsUrl';
 
 export default function HeartbeatTouch() {
     const navigate = useNavigate();
-    const [user] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
-    });
-    const coupleId = user?.couple_id || localStorage.getItem('couple_id');
-    const token = localStorage.getItem('token');
 
     const [isMyTouching, setIsMyTouching] = useState(false);
     const [myPos, setMyPos] = useState({ x: 0.5, y: 0.65 });
@@ -22,7 +17,6 @@ export default function HeartbeatTouch() {
     const [isKissing, setIsKissing] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
 
-    const wsRef = useRef(null);
     const containerRef = useRef(null);
     const kissLockRef = useRef(false);
     const audioCtxRef = useRef(null);
@@ -71,68 +65,18 @@ export default function HeartbeatTouch() {
         }
     }, [soundEnabled]);
 
-    // WebSocket connection to chat/touch channel
-    useEffect(() => {
-        if (!coupleId || !token) return;
+    const { sendWsMessage } = useCall();
 
-        let ws = null;
-        let isAlive = true;
-
-        const connect = () => {
-            const wsBase = getWsBaseUrl();
-            ws = new WebSocket(`${wsBase}/ws/chat/${coupleId}?token=${token}`);
-            wsRef.current = ws;
-
-            ws.onmessage = (event) => {
-                if (!isAlive) return;
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'touch_move') {
-                        setPartnerTouching(Boolean(data.is_touching));
-                        if (data.x !== undefined && data.y !== undefined) {
-                            setPartnerPos({ x: data.x, y: data.y });
-                        }
-                    } else if (data.type === 'touch_end') {
-                        setPartnerTouching(false);
-                    } else if (data.type === 'touch_kiss') {
-                        triggerKissCelebration(data.x, data.y, false);
-                    }
-                } catch (e) {
-                    // Ignore parse error
-                }
-            };
-
-            ws.onclose = () => {
-                if (isAlive) {
-                    setTimeout(connect, 3000);
-                }
-            };
-        };
-
-        connect();
-
-        return () => {
-            isAlive = false;
-            if (wsRef.current) {
-                try {
-                    wsRef.current.send(JSON.stringify({ type: 'touch_end' }));
-                    wsRef.current.close();
-                } catch {}
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [coupleId, token]);
-
-    const sendTouch = (x, y, isTouching) => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({
+    const sendTouch = useCallback((x, y, isTouching) => {
+        if (sendWsMessage) {
+            sendWsMessage({
                 type: isTouching ? 'touch_move' : 'touch_end',
                 x,
                 y,
                 is_touching: isTouching
-            }));
+            });
         }
-    };
+    }, [sendWsMessage]);
 
     // Trigger Thumbkiss Shockwave and Vibration
     const triggerKissCelebration = useCallback((originX, originY, shouldBroadcast = true) => {
@@ -166,19 +110,45 @@ export default function HeartbeatTouch() {
             shapes: ['circle']
         });
 
-        if (shouldBroadcast && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({
+        if (shouldBroadcast && sendWsMessage) {
+            sendWsMessage({
                 type: 'touch_kiss',
                 x: originX,
                 y: originY
-            }));
+            });
         }
 
         setTimeout(() => {
             setIsKissing(false);
             kissLockRef.current = false;
         }, 1200);
-    }, [playHeartbeatSound]);
+    }, [playHeartbeatSound, sendWsMessage]);
+
+    // Listen to shared WebSocket touch events
+    useEffect(() => {
+        const handleTouchMessage = (e) => {
+            const data = e.detail;
+            if (!data) return;
+            if (data.type === 'touch_move') {
+                setPartnerTouching(Boolean(data.is_touching));
+                if (data.x !== undefined && data.y !== undefined) {
+                    setPartnerPos({ x: data.x, y: data.y });
+                }
+            } else if (data.type === 'touch_end') {
+                setPartnerTouching(false);
+            } else if (data.type === 'touch_kiss') {
+                triggerKissCelebration(data.x, data.y, false);
+            }
+        };
+
+        window.addEventListener('lovelink:touch', handleTouchMessage);
+        return () => {
+            window.removeEventListener('lovelink:touch', handleTouchMessage);
+            if (sendWsMessage) {
+                sendWsMessage({ type: 'touch_end' });
+            }
+        };
+    }, [sendWsMessage, triggerKissCelebration]);
 
     // Check distance between thumbs
     useEffect(() => {
@@ -198,19 +168,19 @@ export default function HeartbeatTouch() {
 
     // Touch Event Handlers
     const handleTouchStart = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const touch = e.touches[0];
-        updateTouchPos(touch.clientX, touch.clientY, true);
+        if (touch) updateTouchPos(touch.clientX, touch.clientY, true);
     };
 
     const handleTouchMove = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const touch = e.touches[0];
-        updateTouchPos(touch.clientX, touch.clientY, true);
+        if (touch) updateTouchPos(touch.clientX, touch.clientY, true);
     };
 
     const handleTouchEnd = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         setIsMyTouching(false);
         sendTouch(myPos.x, myPos.y, false);
     };
