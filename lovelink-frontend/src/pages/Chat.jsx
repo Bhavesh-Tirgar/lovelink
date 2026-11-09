@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame } from 'lucide-react';
+import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock } from 'lucide-react';
+import {
+    getCachedMessages,
+    saveMessagesToCache,
+    saveSingleMessageToCache,
+    replaceTempMessageInCache,
+    markMessageBurnedInCache
+} from '../utils/chatCache';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
@@ -16,7 +23,10 @@ function Chat() {
     const [isEphemeralMode, setIsEphemeralMode] = useState(false);
     const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const [myUserId, setMyUserId] = useState(() => { try { return JSON.parse(localStorage.getItem('user') || '{}')?.id || null; } catch { return null; } });
-    const [partner, setPartner] = useState(null);
+    const [partner, setPartner] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('partner_user') || 'null'); } catch { return null; }
+    });
+    const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
     const [typingPartner, setTypingPartner] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [calling, setCalling] = useState(false);
@@ -35,6 +45,31 @@ function Chat() {
         setCalling(false);
     }, []);
 
+    // Instant offline cache load (0ms WhatsApp speed)
+    useEffect(() => {
+        if (coupleId) {
+            getCachedMessages(coupleId).then((cached) => {
+                if (cached && cached.length > 0) {
+                    setMessages(cached);
+                    setLoading(false);
+                    setTimeout(scrollToBottom, 50);
+                }
+            });
+        }
+    }, [coupleId]);
+
+    // Network connectivity listener
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
     // Handle incoming websocket messages
     const onWSMessage = useCallback((data) => {
         if (data.type === 'message' || data.type === 'new_message') {
@@ -47,6 +82,8 @@ function Chat() {
                     m => m._tempId && m.sender_id === incoming.sender_id
                 );
                 if (tempIdx !== -1) {
+                    const tempMsg = prev[tempIdx];
+                    replaceTempMessageInCache(coupleId, tempMsg.id, incoming);
                     const next = [...prev];
                     next[tempIdx] = incoming; // swap temp with real DB message
                     return next;
@@ -58,6 +95,7 @@ function Chat() {
                 }
 
                 // Otherwise it's from the partner (or a new message we didn't optimistically render)
+                saveSingleMessageToCache(coupleId, incoming);
                 return [...prev, incoming];
             });
 
@@ -86,6 +124,7 @@ function Chat() {
             }, 2000);
 
         } else if (data.type === 'message_burned') {
+            markMessageBurnedInCache(coupleId, data.message_id);
             setMessages(prev => prev.map(msg =>
                 msg.id === data.message_id
                     ? { ...msg, is_burned: true, text: '🔥 [Self-destructed message]', file_url: null }
@@ -138,9 +177,22 @@ function Chat() {
 
                 setPartner(dashRes.data.partner_user);
                 setCoupleId(dashRes.data.couple_id);
+                try {
+                    localStorage.setItem('partner_user', JSON.stringify(dashRes.data.partner_user));
+                    localStorage.setItem('couple_id', dashRes.data.couple_id);
+                } catch {}
 
                 const msgRes = await api.get('/chat/messages');
-                setMessages(msgRes.data); // backend returns oldest first in chunk (chunk is newest 50)
+                setMessages(prev => {
+                    const map = new Map();
+                    // Seed with cached / previous messages
+                    prev.forEach(m => { if (m.id) map.set(m.id, m); });
+                    // Merge latest messages from backend
+                    msgRes.data.forEach(m => { if (m.id) map.set(m.id, m); });
+                    const merged = Array.from(map.values()).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                    saveMessagesToCache(dashRes.data.couple_id, merged);
+                    return merged;
+                });
                 setHasMore(msgRes.data.length === 50);
 
                 setTimeout(scrollToBottom, 200);
@@ -232,6 +284,7 @@ function Chat() {
             created_at: new Date().toISOString(),
         };
         setMessages(prev => [...prev, optimisticMsg]);
+        saveSingleMessageToCache(coupleId, optimisticMsg);
         setTimeout(scrollToBottom, 50);
 
         sendMessage({
@@ -256,6 +309,7 @@ function Chat() {
             const res = await api.post('/chat/upload', formData);
             // Append returned message so image bubble appears immediately
             setMessages(prev => [...prev, res.data]);
+            saveSingleMessageToCache(coupleId, res.data);
             setTimeout(scrollToBottom, 50);
         } catch (err) {
             console.error('Upload failed', err);
@@ -289,6 +343,7 @@ function Chat() {
                     // No manual Content-Type — let axios set the boundary
                     const res = await api.post('/chat/upload', formData);
                     setMessages(prev => [...prev, res.data]);
+                    saveSingleMessageToCache(coupleId, res.data);
                     setTimeout(scrollToBottom, 50);
                 } catch (err) {
                     console.error('Voice upload failed', err);
@@ -412,6 +467,14 @@ function Chat() {
                 )}
             </header>
 
+            {/* Offline Connectivity Banner */}
+            {!isOnline && (
+                <div className="flex-none bg-amber-500/20 text-amber-200 text-xs px-3 py-1.5 text-center border-b border-amber-500/30 flex items-center justify-center gap-2 backdrop-blur-md z-10 animate-in fade-in">
+                    <WifiOff size={13} className="text-amber-400" />
+                    <span className="font-medium">You are offline • Showing cached messages</span>
+                </div>
+            )}
+
             {/* Messages List */}
             <div
                 ref={listRef}
@@ -505,10 +568,14 @@ function Chat() {
                                                         <span>{formatTime(msg.created_at)}</span>
                                                         {isMine && (
                                                             <span className="ml-0.5">
-                                                                {msg.read_at ? (
-                                                                    <span className="text-pink-200">✓✓</span>
+                                                                {msg._tempId ? (
+                                                                    <span title="Sending..." className="inline-flex items-center text-white/50">
+                                                                        <Clock size={11} className="animate-spin text-pink-300" style={{ animationDuration: '3s' }} />
+                                                                    </span>
+                                                                ) : msg.read_at ? (
+                                                                    <span className="text-pink-200 font-semibold" title="Read">✓✓</span>
                                                                 ) : (
-                                                                    <span>✓</span>
+                                                                    <span title="Sent">✓</span>
                                                                 )}
                                                             </span>
                                                         )}
