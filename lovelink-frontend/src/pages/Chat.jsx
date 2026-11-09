@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock } from 'lucide-react';
+import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock, Lock } from 'lucide-react';
+import { encryptText, decryptText, isE2EEMessage } from '../utils/crypto';
 import {
     getCachedMessages,
     saveMessagesToCache,
@@ -75,6 +76,13 @@ function Chat() {
         if (data.type === 'message' || data.type === 'new_message') {
             const incoming = data.message || data.data;
             if (!incoming) return;
+
+            // Client-side E2EE decryption
+            if (incoming.text && isE2EEMessage(incoming.text)) {
+                decryptText(incoming.text, coupleId).then(decrypted => {
+                    setMessages(prev => prev.map(m => m.id === incoming.id ? { ...m, text: decrypted, _isE2EE: true } : m));
+                });
+            }
 
             setMessages(prev => {
                 // If we sent this message ourselves, replace the optimistic temp entry
@@ -184,12 +192,18 @@ function Chat() {
                 } catch {}
 
                 const msgRes = await api.get('/chat/messages');
+                const decryptedList = await Promise.all(msgRes.data.map(async m => {
+                    if (m.text && isE2EEMessage(m.text)) {
+                        return { ...m, text: await decryptText(m.text, dashRes.data.couple_id), _isE2EE: true };
+                    }
+                    return m;
+                }));
                 setMessages(prev => {
                     const map = new Map();
                     // Seed with cached / previous messages
                     prev.forEach(m => { if (m.id) map.set(m.id, m); });
-                    // Merge latest messages from backend
-                    msgRes.data.forEach(m => { if (m.id) map.set(m.id, m); });
+                    // Merge latest decrypted messages from backend
+                    decryptedList.forEach(m => { if (m.id) map.set(m.id, m); });
                     const merged = Array.from(map.values()).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                     saveMessagesToCache(dashRes.data.couple_id, merged);
                     return merged;
@@ -288,9 +302,12 @@ function Chat() {
         saveSingleMessageToCache(coupleId, optimisticMsg);
         setTimeout(scrollToBottom, 50);
 
+        // E2EE encrypt text before broadcasting over WebSocket
+        const cipherText = await encryptText(text, coupleId);
+
         sendMessage({
             type: 'message',
-            content: text,
+            content: cipherText,
             message_type: 'text',
             is_ephemeral: isEphemeralMode,
             burn_after_seconds: isEphemeralMode ? 10 : null,
@@ -439,9 +456,14 @@ function Chat() {
                         </div>
                         <div>
                             <h2 className="font-bold text-lg leading-tight tracking-tight text-white">{partner?.name || 'Partner'}</h2>
-                            <p className="text-xs font-medium uppercase tracking-widest text-pink-300/80">
-                                {typingPartner ? 'typing...' : (isConnected ? 'Online' : 'Offline')}
-                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs font-medium uppercase tracking-widest text-pink-300/80">
+                                    {typingPartner ? 'typing...' : (isConnected ? 'Online' : 'Offline')}
+                                </p>
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+                                    <Lock size={9} /> E2EE
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -567,6 +589,9 @@ function Chat() {
                                                     {/* Messsage meta (time + status)  */}
                                                     <div className={`flex items-center gap-1 justify-end mt-1 text-[10px] ${isMine ? 'text-white/70' : 'text-gray-400'}`}>
                                                         <span>{formatTime(msg.created_at)}</span>
+                                                        {msg._isE2EE && (
+                                                            <Lock size={9} className="text-emerald-400/80 inline ml-0.5" title="End-to-End Encrypted" />
+                                                        )}
                                                         {isMine && (
                                                             <span className="ml-0.5">
                                                                 {msg._tempId ? (

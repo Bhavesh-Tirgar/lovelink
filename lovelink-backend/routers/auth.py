@@ -1,3 +1,5 @@
+import httpx
+import uuid
 import os
 import random
 from datetime import datetime, timedelta
@@ -22,6 +24,7 @@ from schemas.user import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
     TokenResponse,
+    GoogleAuthRequest,
     UserResponse,
 )
 from utils.email import send_otp_email
@@ -197,6 +200,63 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
 
     return await _build_token_response(user, db)
 
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    if not payload.credential:
+        raise HTTPException(status_code=400, detail="Missing Google credential")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}")
+            if resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Invalid Google token")
+            google_data = resp.json()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Google token verification failed: {str(e)}")
+
+    email = google_data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no verified email")
+
+    name = google_data.get("name") or email.split("@")[0]
+    picture = google_data.get("picture")
+
+    # Find existing user by email
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalars().first()
+
+    if not user:
+        # Create brand new user via Google
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            name=name,
+            photo_url=picture,
+            is_verified=True,
+            city="Unknown",
+            timezone="Asia/Kolkata"
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        # Update user verified status & avatar if newly available
+        updated = False
+        if not user.is_verified:
+            user.is_verified = True
+            updated = True
+        if not user.photo_url and picture:
+            user.photo_url = picture
+            updated = True
+        if updated:
+            await db.commit()
+            await db.refresh(user)
+
+    return await _build_token_response(user, db)
 
 @router.post("/login")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):

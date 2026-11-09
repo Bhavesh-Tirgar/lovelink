@@ -1,3 +1,4 @@
+import GoogleSignInButton from '../components/GoogleSignInButton';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
@@ -329,6 +330,20 @@ function Login() {
             </button>
           </form>
         )}
+
+        
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#131127] px-2 text-gray-400 font-semibold tracking-wider">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <GoogleSignInButton onError={(msg) => setError(msg)} />
 
         <p className="mt-4 text-center text-sm text-gray-400">
           Don&apos;t have an account?{' '}

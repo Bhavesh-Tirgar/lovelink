@@ -74,3 +74,7 @@ class TokenResponse(BaseModel):
     token_type: str
     user: UserResponse
     couple_id: str | None = None
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
