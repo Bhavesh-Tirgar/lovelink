@@ -153,13 +153,24 @@ async def get_would_you_rather(current_user: User = Depends(get_current_user)):
 # ── WEBSOCKET FOR REAL-TIME 2-PLAYER GAMES ─────────────────────────────────────
 
 @router.websocket("/ws/{couple_id}")
-async def games_websocket(websocket: WebSocket, couple_id: str, token: str = Query(...)):
+async def games_websocket(
+    websocket: WebSocket,
+    couple_id: str,
+    ticket: Optional[str] = Query(None),
+    token: Optional[str] = Query(None)
+):
     """Multiplayer WebSocket for Rock-Paper-Scissors, Tic-Tac-Toe, and Truth/Dare sync."""
     await websocket.accept()
-    from routers.auth import decode_token
-    user_id = decode_token(token)
+    user_id = None
+    if ticket:
+        from utils.tickets import verify_and_consume_ws_ticket
+        user_id = verify_and_consume_ws_ticket(ticket)
+    elif token:
+        from routers.auth import decode_token
+        user_id = decode_token(token)
+
     if not user_id:
-        await websocket.close(code=4001)
+        await websocket.close(code=4001, reason="Authentication failed")
         return
 
     room = f"games_{couple_id}"

@@ -360,6 +360,25 @@ async def websocket_chat(
                     "heading": data.get("heading")
                 }, exclude=websocket)
 
+            # ── REAL-TIME DOODLE BOARD SYNC ────────────────────────────────
+            elif msg_type == "doodle_draw":
+                await manager.broadcast(couple_id, {
+                    "type": "doodle_draw",
+                    "user_id": user_id,
+                    "x0": data.get("x0"),
+                    "y0": data.get("y0"),
+                    "x1": data.get("x1"),
+                    "y1": data.get("y1"),
+                    "color": data.get("color"),
+                    "size": data.get("size")
+                }, exclude=websocket)
+
+            elif msg_type == "doodle_clear":
+                await manager.broadcast(couple_id, {
+                    "type": "doodle_clear",
+                    "user_id": user_id
+                }, exclude=websocket)
+
             # ── NATIVE P2P WEBRTC SIGNALING RELAY ──────────────────────────
             elif msg_type == "webrtc_offer":
                 await manager.broadcast(couple_id, {

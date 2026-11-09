@@ -180,9 +180,19 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
         let ws = null;
         let isAlive = true;
 
-        const connectWs = () => {
+        const connectWs = async () => {
             const wsBase = getWsBaseUrl();
-            ws = new WebSocket(`${wsBase}/ws/chat/${coupleId}?token=${token}`);
+            let authParam = `token=${token}`;
+            try {
+                const ticketRes = await api.post('/auth/ws-ticket');
+                if (ticketRes.data?.ticket) {
+                    authParam = `ticket=${ticketRes.data.ticket}`;
+                }
+            } catch {
+                // Fallback to token if ticket endpoint unavailable
+            }
+            if (!isAlive) return;
+            ws = new WebSocket(`${wsBase}/ws/chat/${coupleId}?${authParam}`);
             wsRef.current = ws;
 
             ws.onmessage = (e) => {

@@ -156,7 +156,8 @@ function Chat() {
                 setTimeout(shoot, 400);
             }).catch(() => { });
         }
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [coupleId, myUserId]);
 
     const { sendMessage, isConnected } = useWebSocket(
         coupleId ? `${WS_URL}/ws/chat/${coupleId}` : null,

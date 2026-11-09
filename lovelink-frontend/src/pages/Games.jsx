@@ -87,10 +87,21 @@ export default function Games() {
         let isUnmounted = false;
         let reconnectTimeout = null;
 
-        const connectWs = () => {
+        const connectWs = async () => {
             if (isUnmounted) return;
             const wsBase = getWsBaseUrl();
-            const ws = new WebSocket(`${wsBase}/games/ws/${coupleId}?token=${token}`);
+            let authParam = `token=${token}`;
+            try {
+                const ticketRes = await api.post('/auth/ws-ticket');
+                if (ticketRes.data?.ticket) {
+                    authParam = `ticket=${ticketRes.data.ticket}`;
+                }
+            } catch {
+                // Fallback to token if ticket endpoint unavailable
+            }
+
+            if (isUnmounted) return;
+            const ws = new WebSocket(`${wsBase}/games/ws/${coupleId}?${authParam}`);
             wsRef.current = ws;
 
             ws.onopen = () => {
