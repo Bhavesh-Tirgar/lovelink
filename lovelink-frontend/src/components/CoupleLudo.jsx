@@ -127,7 +127,7 @@ export default function CoupleLudo({
 
     const turn = ludoState?.turn || 'pink';
     const isMyTurn = turn === myColor;
-    const tokens = ludoState?.tokens || { pink: [-1, -1], blue: [-1, -1] };
+    const tokens = useMemo(() => ludoState?.tokens || { pink: [-1, -1], blue: [-1, -1] }, [ludoState?.tokens]);
     const myTokens = useMemo(() => tokens[myColor] || [-1, -1], [tokens, myColor]);
     const partnerTokens = tokens[partnerColor] || [-1, -1];
 
