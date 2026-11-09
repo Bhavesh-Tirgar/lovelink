@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 import sys
 print(f"DEBUG sys.path: {sys.path}")
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from routers import auth, couples, dashboard
@@ -157,10 +157,14 @@ os.makedirs(os.path.join(uploads_dir, "thumbnails"), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
-    return {"status": "ok", "app": "LoveLink", "mode": "Ferrari 🏎️"}
+    return PlainTextResponse("OK", status_code=200, headers={"Content-Length": "2"})
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok", "app": "LoveLink", "mode": "Ferrari 🏎️"}
+    return PlainTextResponse("OK", status_code=200, headers={"Content-Length": "2"})
+
+@app.api_route("/ping", methods=["GET", "HEAD"])
+async def ping():
+    return PlainTextResponse("OK", status_code=200, headers={"Content-Length": "2"})
