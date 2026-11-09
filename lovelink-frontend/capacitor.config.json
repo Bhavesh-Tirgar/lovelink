@@ -1,0 +1,13 @@
+{
+  "appId": "com.lovelink.app",
+  "appName": "LoveLink",
+  "webDir": "build",
+  "server": {
+    "url": "https://lovelink-pearl.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
