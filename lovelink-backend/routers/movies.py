@@ -313,13 +313,24 @@ async def stream_movie(
 async def watch_ws(
     websocket: WebSocket,
     couple_id: str,
-    token: str,
+    token: Optional[str] = None,
+    ticket: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     from routers.auth import get_current_user_from_token
-    try:
-        user = await get_current_user_from_token(token, db)
-    except Exception:
+    from utils.tickets import verify_and_consume_ticket
+    user = None
+    if ticket:
+        user_id = verify_and_consume_ticket(ticket)
+        if user_id:
+            res = await db.execute(select(User).where(User.id == user_id))
+            user = res.scalar_one_or_none()
+    if not user and token:
+        try:
+            user = await get_current_user_from_token(token, db)
+        except Exception:
+            pass
+    if not user:
         await websocket.close(code=4003, reason="Unauthorized")
         return
 
@@ -414,6 +425,13 @@ async def watch_ws(
                 await manager.broadcast(
                     f"watch_{couple_id}",
                     {"type": "chat", "text": text, "from": str(user.id), "name": user.name},
+                    exclude=websocket,
+                )
+
+            elif msg_type in ("watch_cam_offer", "watch_cam_answer", "watch_cam_candidate", "watch_cam_join", "watch_cam_leave"):
+                await manager.broadcast(
+                    f"watch_{couple_id}",
+                    data,
                     exclude=websocket,
                 )
 

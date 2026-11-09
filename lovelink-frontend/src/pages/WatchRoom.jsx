@@ -22,6 +22,7 @@ import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import { extractYouTubeId } from '../utils/youtube';
+import WatchCamBubble from '../components/WatchCamBubble';
 import toast from 'react-hot-toast';
 
 const REACTIONS = ['🍿', '❤️', '😂', '😍', '😮', '😭', '🔥', '👏'];
@@ -34,14 +35,20 @@ function fmt(secs) {
 
 // ── Floating Reaction Component ────────────────────────────────────────────────
 function FloatingReaction({ emoji }) {
+    const [left] = useState(() => 15 + Math.random() * 70);
+    const [scale] = useState(() => 0.85 + Math.random() * 0.6);
+    const [rotation] = useState(() => (Math.random() - 0.5) * 40);
+
     const style = {
         position: 'fixed',
-        bottom: '160px',
-        left: `${20 + Math.random() * 60}%`,
-        fontSize: '2.5rem',
-        animation: 'floatUp 2.5s ease-out forwards',
+        bottom: '180px',
+        left: `${left}%`,
+        fontSize: `${2.8 * scale}rem`,
+        transform: `rotate(${rotation}deg)`,
+        animation: 'floatUp 2.8s ease-out forwards',
         pointerEvents: 'none',
         zIndex: 100,
+        filter: 'drop-shadow(0 0 12px rgba(236,72,153,0.6))',
     };
     return <div style={style}>{emoji}</div>;
 }
@@ -580,12 +587,22 @@ export default function WatchRoom() {
 
     const handleWsMessage = useCallback((data) => {
         const { type } = data;
-        if (['play', 'pause', 'seek', 'yt_play', 'yt_pause', 'yt_seek', 'sync_state'].includes(type)) {
+        if (['play', 'pause', 'seek', 'yt_play', 'yt_pause', 'yt_seek', 'sync_state', 'watch_cam_offer', 'watch_cam_answer', 'watch_cam_candidate', 'watch_cam_join', 'watch_cam_leave'].includes(type)) {
             setIncomingSync(data);
         } else if (type === 'reaction') {
             const key = Date.now() + Math.random();
             setReactions(prev => [...prev, { emoji: data.emoji, key }]);
-            setTimeout(() => setReactions(prev => prev.filter(r => r.key !== key)), 2500);
+            setTimeout(() => setReactions(prev => prev.filter(r => r.key !== key)), 2800);
+            if (data.emoji === '❤️' || data.emoji === '😍') {
+                import('canvas-confetti').then((c) => {
+                    c.default({
+                        particleCount: 30,
+                        spread: 60,
+                        origin: { y: 0.8 },
+                        colors: ['#ec4899', '#f43f5e', '#a855f7']
+                    });
+                }).catch(() => {});
+            }
         } else if (type === 'chat') {
             setChatMessages(prev => [...prev, { text: data.text, name: data.name || 'Partner', mine: false }]);
         } else if (type === 'seat_update') {
@@ -625,7 +642,17 @@ export default function WatchRoom() {
         sendMessage({ type: 'reaction', emoji });
         const key = Date.now() + Math.random();
         setReactions(prev => [...prev, { emoji, key }]);
-        setTimeout(() => setReactions(prev => prev.filter(r => r.key !== key)), 2500);
+        setTimeout(() => setReactions(prev => prev.filter(r => r.key !== key)), 2800);
+        if (emoji === '❤️' || emoji === '😍') {
+            import('canvas-confetti').then((c) => {
+                c.default({
+                    particleCount: 25,
+                    spread: 60,
+                    origin: { y: 0.8 },
+                    colors: ['#ec4899', '#f43f5e', '#a855f7']
+                });
+            }).catch(() => {});
+        }
     };
 
     const sendChat = () => {
@@ -726,8 +753,15 @@ export default function WatchRoom() {
                     </div>
                 </div>
 
-                {/* In-Room Actions: Upload Video, YouTube, Library */}
+                {/* In-Room Actions: WatchCam Bubble, Upload Video, YouTube, Library */}
                 <div className="flex items-center gap-2">
+                    <WatchCamBubble
+                        coupleId={coupleId}
+                        myUser={myUser}
+                        partnerUser={partnerUser}
+                        sendWsMessage={sendMessage}
+                        onIncomingSync={incomingSync}
+                    />
                     <button
                         onClick={() => setShowUploadModal(true)}
                         title="Upload Video to watch"
