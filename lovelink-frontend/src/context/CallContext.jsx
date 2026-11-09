@@ -193,6 +193,14 @@ export const CallProvider = ({ children }) => {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('lovelink:touch', { detail: data }));
             }
+        } else if (data.type === 'note_burned') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:note_burned', { detail: data }));
+            }
+        } else if (data.type === 'message_burned') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('lovelink:message_burned', { detail: data }));
+            }
         }
     }, [incomingCall, minimizedCall, startRinging, declineCall, clearIncoming, location.pathname, navigate]);
 

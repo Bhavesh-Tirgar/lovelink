@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Index
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Index, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -21,6 +21,12 @@ class Message(Base):
     text = Column(String, nullable=True)
     file_url = Column(String, nullable=True)
     message_type = Column(Enum(MessageType), default=MessageType.text, nullable=False)
+
+    # Ephemeral / Self-destructing Chat Message
+    is_ephemeral = Column(Boolean, default=False, nullable=False)
+    burn_after_seconds = Column(Integer, nullable=True)
+    burned_at = Column(DateTime(timezone=True), nullable=True)
+    is_burned = Column(Boolean, default=False, nullable=False)
     
     read_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

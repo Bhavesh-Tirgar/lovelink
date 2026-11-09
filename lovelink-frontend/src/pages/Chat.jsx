@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Paperclip, Mic, Send, ArrowLeft } from 'lucide-react';
+import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame } from 'lucide-react';
 import api from '../api';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
@@ -13,6 +13,7 @@ function Chat() {
     const [hasMore, setHasMore] = useState(true);
     const [inputValue, setInputValue] = useState('');
     const [isRecording, setIsRecording] = useState(false);
+    const [isEphemeralMode, setIsEphemeralMode] = useState(false);
     const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null));
     const [myUserId, setMyUserId] = useState(() => { try { return JSON.parse(localStorage.getItem('user') || '{}')?.id || null; } catch { return null; } });
     const [partner, setPartner] = useState(null);
@@ -63,6 +64,13 @@ function Chat() {
             // Mark read implicitly if we get a message when open
             api.put('/chat/messages/mark-read').catch(console.error);
 
+            // Auto-burn ephemeral message when received and viewed
+            if (incoming.is_ephemeral && !incoming.is_burned && incoming.sender_id !== myUserId) {
+                setTimeout(() => {
+                    api.post(`/chat/messages/${incoming.id}/burn`).catch(() => {});
+                }, (incoming.burn_after_seconds || 10) * 1000);
+            }
+
             // Auto-scroll to bottom for new messages
             setTimeout(scrollToBottom, 100);
 
@@ -77,6 +85,12 @@ function Chat() {
                 setTypingPartner(false);
             }, 2000);
 
+        } else if (data.type === 'message_burned') {
+            setMessages(prev => prev.map(msg =>
+                msg.id === data.message_id
+                    ? { ...msg, is_burned: true, text: '🔥 [Self-destructed message]', file_url: null }
+                    : msg
+            ));
         } else if (data.type === 'read_receipt') {
             setMessages(prev => prev.map(msg =>
                 (msg.sender_id !== data.reader_id && !msg.read_at)
@@ -205,23 +219,27 @@ function Chat() {
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
             id: tempId,
-            _tempId: tempId,       // marker so onWSMessage can find & replace it
+            _tempId: tempId,
             sender_id: myUserId,
             couple_id: coupleId,
             text,
             message_type: 'text',
             file_url: null,
+            is_ephemeral: isEphemeralMode,
+            burn_after_seconds: isEphemeralMode ? 10 : null,
+            is_burned: false,
             read_at: null,
             created_at: new Date().toISOString(),
         };
         setMessages(prev => [...prev, optimisticMsg]);
         setTimeout(scrollToBottom, 50);
 
-        // Send via WebSocket — backend saves to DB and broadcasts to both users
         sendMessage({
             type: 'message',
             content: text,
             message_type: 'text',
+            is_ephemeral: isEphemeralMode,
+            burn_after_seconds: isEphemeralMode ? 10 : null,
         });
     };
 
@@ -447,8 +465,23 @@ function Chat() {
                                                         } transition-transform hover:scale-[1.01]`}
                                                     style={{ borderRadius }}
                                                 >
-                                                    {msg.message_type === 'text' && (
-                                                        <p className="text-[15px] leading-relaxed break-words">{msg.text}</p>
+                                                    {msg.is_burned ? (
+                                                        <p className="text-xs italic text-stone-400 flex items-center gap-1.5 py-0.5">
+                                                            <Flame className="w-3.5 h-3.5 text-stone-500" />
+                                                            This message has self-destructed into ashes.
+                                                        </p>
+                                                    ) : (
+                                                        <>
+                                                            {msg.is_ephemeral && (
+                                                                <span className="text-[10px] uppercase font-bold text-amber-300 flex items-center gap-1 mb-1 pb-1 border-b border-white/10">
+                                                                    <Flame className="w-3 h-3 text-rose-400 animate-pulse" />
+                                                                    Self-destructing in {msg.burn_after_seconds || 10}s
+                                                                </span>
+                                                            )}
+                                                            {msg.message_type === 'text' && (
+                                                                <p className="text-[15px] leading-relaxed break-words">{msg.text}</p>
+                                                            )}
+                                                        </>
                                                     )}
 
                                                     {msg.message_type === 'image' && (
@@ -514,8 +547,8 @@ function Chat() {
             <div className="flex-none p-4 pb-safe bg-brand-darker/70 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] z-20">
                 <div className="max-w-4xl mx-auto flex items-end gap-3 relative">
 
-                    <label className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 mb-0 border border-transparent hover:border-pink-500/20">
-                        <Paperclip size={22} />
+                    <label className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 mb-0 border border-transparent hover:border-pink-500/20" title="Send Photo">
+                        <Paperclip size={20} />
                         <input
                             type="file"
                             accept="image/*"
@@ -523,6 +556,19 @@ function Chat() {
                             onChange={handleFileChange}
                         />
                     </label>
+
+                    <button
+                        type="button"
+                        onClick={() => setIsEphemeralMode(!isEphemeralMode)}
+                        className={`w-11 h-11 flex items-center justify-center rounded-full transition-all flex-shrink-0 border ${
+                            isEphemeralMode 
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                                : 'text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 border-transparent hover:border-amber-500/20'
+                        }`}
+                        title={isEphemeralMode ? "Self-Destruct Active (Burns in 10s)" : "Toggle Self-Destruct Mode"}
+                    >
+                        <Flame size={20} className={isEphemeralMode ? "animate-bounce text-amber-300" : ""} />
+                    </button>
 
                     <form onSubmit={sendTextMessage} className="flex-1 flex max-w-full glass-card rounded-[28px] focus-within:border-pink-500/50 focus-within:ring-1 focus-within:ring-pink-500/30 transition-all shadow-inner overflow-hidden">
                         <input

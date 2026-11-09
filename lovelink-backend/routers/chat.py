@@ -69,12 +69,14 @@ async def send_message(
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     
     message = await create_message(
-        db, 
-        couple.id, 
-        current_user.id, 
-        payload.text, 
-        payload.photo_url, 
-        payload.voice_url
+        db=db, 
+        couple_id=couple.id, 
+        sender_id=current_user.id, 
+        text=payload.text, 
+        message_type=payload.message_type,
+        file_url=None,
+        is_ephemeral=payload.is_ephemeral,
+        burn_after_seconds=payload.burn_after_seconds
     )
     
     # Broadcast to the couple's WebSocket room
@@ -161,6 +163,26 @@ async def upload_file(
     
     return saved_message
 
+@router.post("/messages/{message_id}/burn")
+async def burn_chat_message(
+    message_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await get_couple_by_user(db, current_user.id)
+    result = await db.execute(select(Message).where(Message.id == message_id, Message.couple_id == couple.id))
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    msg.is_burned = True
+    msg.burned_at = datetime.utcnow()
+    msg.text = "🔥 [Self-destructed message]"
+    msg.file_url = None
+    await db.commit()
+    await manager.broadcast(str(couple.id), {"type": "message_burned", "message_id": message_id})
+    return {"status": "burned", "message_id": message_id}
+
+
 @ws_router.websocket("/{couple_id}")
 async def websocket_chat(
     websocket: WebSocket,
@@ -226,7 +248,9 @@ async def websocket_chat(
                             couple_id=couple_id,
                             sender_id=user_id,
                             text=content,
-                            message_type=MessageType(message_type_str)
+                            message_type=MessageType(message_type_str),
+                            is_ephemeral=data.get("is_ephemeral", False),
+                            burn_after_seconds=data.get("burn_after_seconds")
                         )
                         # Use mode="json" to auto-serialize datetime -> ISO string
                         msg_dict = MessageResponse.model_validate(saved).model_dump(mode="json")
@@ -272,6 +296,22 @@ async def websocket_chat(
                     "type": "typing",
                     "user_id": user_id
                 }, exclude=websocket)
+
+            elif msg_type == "burn_message":
+                target_msg_id = data.get("message_id")
+                if target_msg_id:
+                    result = await db.execute(select(Message).where(Message.id == target_msg_id, Message.couple_id == couple_id))
+                    msg = result.scalar_one_or_none()
+                    if msg:
+                        msg.is_burned = True
+                        msg.burned_at = datetime.utcnow()
+                        msg.text = "🔥 [Self-destructed message]"
+                        msg.file_url = None
+                        await db.commit()
+                        await manager.broadcast(couple_id, {
+                            "type": "message_burned",
+                            "message_id": target_msg_id
+                        })
                 
             elif msg_type == "ping":
                 await manager.send_personal(websocket, {"type": "pong"})

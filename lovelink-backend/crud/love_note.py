@@ -25,6 +25,11 @@ async def create_note(
     scheduled_at: Optional[datetime] = None,
     is_capsule: bool = False,
     open_at: Optional[datetime] = None,
+    is_secret: bool = False,
+    secret_ciphertext: Optional[str] = None,
+    secret_iv: Optional[str] = None,
+    is_ephemeral: bool = False,
+    burn_after_seconds: Optional[int] = None,
 ) -> LoveNote:
     # Basic message delivered immediately unless scheduled
     is_scheduled = scheduled_at is not None or is_capsule
@@ -38,6 +43,11 @@ async def create_note(
         title=title,
         text=text,
         photo_url=photo_url,
+        is_secret=is_secret,
+        secret_ciphertext=secret_ciphertext,
+        secret_iv=secret_iv,
+        is_ephemeral=is_ephemeral,
+        burn_after_seconds=burn_after_seconds,
         is_scheduled=is_scheduled,
         scheduled_at=scheduled_at if scheduled_at else (open_at if is_capsule else None),
         delivered_at=delivered_at,
@@ -72,33 +82,33 @@ async def get_inbox(
                 LoveNote.recipient_id == user_id,
                 LoveNote.couple_id == couple_id,
                 LoveNote.delivered_at.isnot(None),
-                LoveNote.is_capsule == False
+                LoveNote.is_capsule == False,
             )
         )
         .order_by(LoveNote.delivered_at.desc())
         .offset(skip)
         .limit(limit)
     )
-    notes = list(result.scalars().all())
+    notes = result.scalars().all()
     return [_hydrate(n) for n in notes]
 
 
 async def get_capsules(
-    db: AsyncSession, couple_id: str
+    db: AsyncSession,
+    couple_id: str,
 ) -> List[LoveNote]:
-    # Returns all capsules regardless of sender/recipient for both to see the "locked" timeline
     result = await db.execute(
         select(LoveNote)
         .options(joinedload(LoveNote.sender), joinedload(LoveNote.recipient))
         .where(
             and_(
                 LoveNote.couple_id == couple_id,
-                LoveNote.is_capsule == True
+                LoveNote.is_capsule == True,
             )
         )
         .order_by(LoveNote.open_at.asc())
     )
-    notes = list(result.scalars().all())
+    notes = result.scalars().all()
     return [_hydrate(n) for n in notes]
 
 
@@ -116,7 +126,7 @@ async def get_sent(
         .offset(skip)
         .limit(limit)
     )
-    notes = list(result.scalars().all())
+    notes = result.scalars().all()
     return [_hydrate(n) for n in notes]
 
 
@@ -149,6 +159,28 @@ async def mark_note_read(db: AsyncSession, note_id: str, user_id: str) -> Option
         note.read_at = datetime.utcnow()
         await db.commit()
         await db.refresh(note)
+    return _hydrate(note)
+
+
+async def burn_note(db: AsyncSession, note_id: str) -> Optional[LoveNote]:
+    """Permanently burn/destroy the ephemeral note content."""
+    result = await db.execute(
+        select(LoveNote)
+        .options(joinedload(LoveNote.sender), joinedload(LoveNote.recipient))
+        .where(LoveNote.id == note_id)
+    )
+    note = result.scalar_one_or_none()
+    if not note:
+        return None
+    note.is_burned = True
+    note.burned_at = datetime.utcnow()
+    note.text = "🔥 [This note has self-destructed]"
+    note.title = "🔥 Self-Destructed Note"
+    note.photo_url = None
+    note.secret_ciphertext = None
+    note.secret_iv = None
+    await db.commit()
+    await db.refresh(note)
     return _hydrate(note)
 
 

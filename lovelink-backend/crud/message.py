@@ -35,6 +35,8 @@ async def create_message(
     text: str = None,
     message_type: MessageType = MessageType.text,
     file_url: str = None,
+    is_ephemeral: bool = False,
+    burn_after_seconds: int = None,
 ):
     new_message = Message(
         id=str(uuid.uuid4()),
@@ -43,6 +45,8 @@ async def create_message(
         text=text,
         message_type=message_type,
         file_url=file_url,
+        is_ephemeral=is_ephemeral,
+        burn_after_seconds=burn_after_seconds,
     )
     db.add(new_message)
     await db.commit()

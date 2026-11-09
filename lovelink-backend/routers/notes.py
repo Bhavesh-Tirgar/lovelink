@@ -20,6 +20,7 @@ from crud.love_note import (
     mark_note_read,
     delete_note,
     get_unread_count,
+    burn_note,
 )
 from ws_manager.manager import manager
 
@@ -80,6 +81,11 @@ async def send_note(
         text=payload.text,
         photo_url=payload.photo_url,
         scheduled_at=payload.scheduled_at,
+        is_secret=payload.is_secret,
+        secret_ciphertext=payload.secret_ciphertext,
+        secret_iv=payload.secret_iv,
+        is_ephemeral=payload.is_ephemeral,
+        burn_after_seconds=payload.burn_after_seconds,
     )
 
     # If delivered immediately, broadcast to both users in the couple room
@@ -197,6 +203,29 @@ async def remove_note(
     if str(note.sender_id) != str(current_user.id):
         raise HTTPException(status_code=403, detail="Only the sender can delete a note")
     await delete_note(db, note_id)
+
+
+# ── POST /notes/{note_id}/burn ────────────────────────────────────────────────
+@router.post("/{note_id}/burn", response_model=NoteResponse)
+async def burn_ephemeral_note(
+    note_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    note = await get_note_by_id(db, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    couple = await _get_couple(db, str(current_user.id))
+    if str(note.couple_id) != str(couple.id):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    burned = await burn_note(db, note_id)
+    await manager.broadcast(
+        str(couple.id),
+        {"type": "note_burned", "note_id": note_id}
+    )
+    return burned
 
 
 # ── POST /notes/upload-photo ──────────────────────────────────────────────────

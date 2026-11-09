@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Index, Text
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Index, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -18,6 +18,17 @@ class LoveNote(Base):
     title = Column(String, nullable=True)
     text = Column(Text, nullable=False)
     photo_url = Column(String, nullable=True)
+
+    # Secret Vault (Client-side E2EE)
+    is_secret = Column(Boolean, default=False, nullable=False)
+    secret_ciphertext = Column(Text, nullable=True)
+    secret_iv = Column(String(64), nullable=True)
+
+    # Ephemeral / Self-Destruct
+    is_ephemeral = Column(Boolean, default=False, nullable=False)
+    burn_after_seconds = Column(Integer, nullable=True)
+    burned_at = Column(DateTime(timezone=True), nullable=True)
+    is_burned = Column(Boolean, default=False, nullable=False)
 
     is_scheduled = Column(Boolean, default=False, nullable=False)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)

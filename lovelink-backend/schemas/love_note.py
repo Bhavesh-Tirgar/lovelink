@@ -10,6 +10,12 @@ class NoteCreate(BaseModel):
     scheduled_at: Optional[datetime] = None
     is_capsule: bool = False
     open_at: Optional[datetime] = None
+    # Secret Vault & Ephemeral parameters
+    is_secret: bool = False
+    secret_ciphertext: Optional[str] = None
+    secret_iv: Optional[str] = None
+    is_ephemeral: bool = False
+    burn_after_seconds: Optional[int] = None
 
 
 class NoteResponse(BaseModel):
@@ -20,6 +26,15 @@ class NoteResponse(BaseModel):
     title: Optional[str]
     text: str
     photo_url: Optional[str]
+    # Secret Vault & Ephemeral parameters
+    is_secret: bool = False
+    secret_ciphertext: Optional[str] = None
+    secret_iv: Optional[str] = None
+    is_ephemeral: bool = False
+    burn_after_seconds: Optional[int] = None
+    is_burned: bool = False
+    burned_at: Optional[datetime] = None
+    
     is_scheduled: bool
     scheduled_at: Optional[datetime]
     delivered_at: Optional[datetime]
