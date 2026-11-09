@@ -42,7 +42,7 @@ export default api;
 
 // Firebase Web Push Initialization
 const firebaseConfig = {
-  apiKey: "AIzaSyDRGkpcR78KzJ2rau_Q_5PiDWErm_afTmY",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "",
   authDomain: "love-link-48830.firebaseapp.com",
   projectId: "love-link-48830",
   storageBucket: "love-link-48830.firebasestorage.app",
@@ -57,7 +57,8 @@ export const initFirebasePush = async () => {
     const app = initializeApp(firebaseConfig);
     const messaging = getMessaging(app);
 
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swUrl = firebaseConfig.apiKey ? `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(firebaseConfig.apiKey)}` : '/firebase-messaging-sw.js';
+    const registration = await navigator.serviceWorker.register(swUrl);
 
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
