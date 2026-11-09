@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
+import CoupleChess from '../components/CoupleChess';
 
 // Web Audio API Synthesizers for zero-dependency satisfying sound effects
 const playSound = (type) => {
@@ -50,7 +51,16 @@ const playSound = (type) => {
 };
 
 export default function Games() {
-    const [activeTab, setActiveTab] = useState('rps'); // rps, tod, ttt, wyr
+    const [activeTab, setActiveTab] = useState('chess'); // chess, rps, tod, ttt, wyr
+    const [chessState, setChessState] = useState({
+        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        white: null,
+        black: null,
+        turn: "w",
+        stakes: "Loser gives a 15-minute massage 💆",
+        scores: {},
+        lastMove: null
+    });
     const [isLiveConnected, setIsLiveConnected] = useState(false);
 
     const [user, setUser] = useState(() => {
@@ -499,6 +509,62 @@ export default function Games() {
         })();
 
         switch (data.type) {
+
+
+            case 'chess_move':
+                setChessState(prev => ({
+                    ...prev,
+                    fen: data.fen,
+                    turn: data.turn,
+                    scores: data.scores || prev.scores,
+                    lastMove: {
+                        from: data.from,
+                        to: data.to,
+                        san: data.san,
+                        promotion: data.promotion,
+                        captured: data.captured,
+                        is_check: data.is_check,
+                        is_checkmate: data.is_checkmate,
+                        is_draw: data.is_draw,
+                        by_user: data.by_user
+                    }
+                }));
+                if (data.is_checkmate) {
+                    toast.success("Checkmate! Game completed 👑", { icon: '🏆' });
+                } else if (data.is_check) {
+                    toast("Check! King is in danger! ⚔️", { icon: '⚠️' });
+                }
+                break;
+
+            case 'chess_reset':
+                setChessState(prev => ({
+                    ...prev,
+                    fen: data.fen,
+                    white: data.white,
+                    black: data.black,
+                    turn: data.turn,
+                    stakes: data.stakes || prev.stakes,
+                    scores: data.scores || prev.scores,
+                    lastMove: null
+                }));
+                toast("New round started! Colors swapped 🎨", { icon: '👑' });
+                break;
+
+            case 'chess_stakes_updated':
+                setChessState(prev => ({
+                    ...prev,
+                    stakes: data.stakes
+                }));
+                toast(`New Love Stakes: ${data.stakes}`, { icon: '💍' });
+                break;
+
+            case 'chess_resigned':
+                setChessState(prev => ({
+                    ...prev,
+                    scores: data.scores || prev.scores
+                }));
+                toast("Round surrendered with love 💕", { icon: '🏳️' });
+                break;
             case 'rps_locked':
                 setRpsPartnerLocked(true);
                 toast('Partner made their move! ⚡', { icon: '🤫' });
@@ -574,6 +640,9 @@ export default function Games() {
                 break;
 
             case 'session_init':
+                if (data.chess) {
+                    setChessState(prev => ({ ...prev, ...data.chess }));
+                }
                 if (data.tod) {
                     if (data.tod.turn) setTodTurn(data.tod.turn);
                     if (data.tod.current_challenge) setTodActiveChallenge(data.tod.current_challenge);
@@ -708,8 +777,9 @@ export default function Games() {
             </div>
 
             {/* Game Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl mb-8">
                 {[
+                    { id: 'chess', label: 'Couple Chess', icon: Crown, color: 'text-amber-400' },
                     { id: 'rps', label: 'RPS Arena', icon: Zap, color: 'text-amber-400' },
                     { id: 'tod', label: 'Truth or Dare', icon: Flame, color: 'text-pink-400' },
                     { id: 'ttt', label: 'Hearts & Kisses', icon: Heart, color: 'text-rose-400' },
@@ -738,6 +808,18 @@ export default function Games() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
+            {/* 0. ROYAL COUPLE CHESS */}
+            {activeTab === 'chess' && (
+                <CoupleChess
+                    userId={userId}
+                    coupleId={coupleId}
+                    partnerName={user?.partner_name || "Partner"}
+                    sendWs={sendWs}
+                    chessState={chessState}
+                    isLiveConnected={isLiveConnected}
+                />
+            )}
+
             {/* 1. ROCK PAPER SCISSORS ARENA */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'rps' && (

@@ -11,6 +11,7 @@
     "autoprefixer": "^10.4.24",
     "axios": "^1.13.5",
     "canvas-confetti": "^1.9.4",
+    "chess.js": "^1.4.0",
     "firebase": "^12.10.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",

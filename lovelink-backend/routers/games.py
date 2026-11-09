@@ -196,6 +196,14 @@ async def games_websocket(
                 "turn": user_id,
                 "current_challenge": None,
                 "completed_count": 0
+            },
+            "chess": {
+                "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                "white": user_id,
+                "black": other_user_id or "partner",
+                "turn": "w",
+                "stakes": "Loser gives a 15-minute massage 💆",
+                "scores": {user_id: 0, (other_user_id or "partner"): 0}
             }
         }
 
@@ -206,10 +214,20 @@ async def games_websocket(
             "current_challenge": None,
             "completed_count": 0
         }
+    if "chess" not in session:
+        session["chess"] = {
+            "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "white": user_id,
+            "black": other_user_id or "partner",
+            "turn": "w",
+            "stakes": "Loser gives a 15-minute massage 💆",
+            "scores": {user_id: 0, (other_user_id or "partner"): 0}
+        }
     await manager.send_personal(websocket, {
         "type": "session_init",
         "user_id": user_id,
-        "tod": session["tod"]
+        "tod": session["tod"],
+        "chess": session["chess"]
     })
 
     try:
@@ -396,6 +414,93 @@ async def games_websocket(
                         "payload": data.get("payload"),
                         "by_user": user_id
                     }, exclude=websocket)
+
+            # ── 5. COUPLE CHESS (ROYAL SHOWDOWN) ────────
+            elif game == "chess":
+                if "chess" not in session:
+                    session["chess"] = {
+                        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                        "white": user_id,
+                        "black": other_user_id or "partner",
+                        "turn": "w",
+                        "stakes": "Loser gives a 15-minute massage 💆",
+                        "scores": {user_id: 0, (other_user_id or "partner"): 0}
+                    }
+                chess_s = session["chess"]
+
+                if action == "move":
+                    fen = data.get("fen")
+                    from_sq = data.get("from")
+                    to_sq = data.get("to")
+                    san = data.get("san")
+                    promotion = data.get("promotion", "q")
+                    is_check = data.get("is_check", False)
+                    is_checkmate = data.get("is_checkmate", False)
+                    is_draw = data.get("is_draw", False)
+
+                    chess_s["fen"] = fen
+                    chess_s["turn"] = "b" if chess_s.get("turn") == "w" else "w"
+
+                    if is_checkmate:
+                        chess_s["scores"][user_id] = chess_s["scores"].get(user_id, 0) + 1
+
+                    await manager.broadcast(room, {
+                        "type": "chess_move",
+                        "from": from_sq,
+                        "to": to_sq,
+                        "san": san,
+                        "promotion": promotion,
+                        "fen": fen,
+                        "is_check": is_check,
+                        "is_checkmate": is_checkmate,
+                        "is_draw": is_draw,
+                        "by_user": user_id,
+                        "turn": chess_s["turn"],
+                        "scores": chess_s["scores"]
+                    })
+
+                elif action == "reset":
+                    # Swap White/Black colors on rematch for fairness
+                    old_white = chess_s.get("white")
+                    old_black = chess_s.get("black")
+                    chess_s["white"] = old_black
+                    chess_s["black"] = old_white
+                    chess_s["fen"] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+                    chess_s["turn"] = "w"
+                    if data.get("stakes"):
+                        chess_s["stakes"] = data.get("stakes")
+
+                    await manager.broadcast(room, {
+                        "type": "chess_reset",
+                        "fen": chess_s["fen"],
+                        "white": chess_s["white"],
+                        "black": chess_s["black"],
+                        "turn": chess_s["turn"],
+                        "stakes": chess_s.get("stakes"),
+                        "scores": chess_s.get("scores", {}),
+                        "by_user": user_id
+                    })
+
+                elif action == "set_stakes":
+                    new_stakes = data.get("stakes")
+                    if new_stakes:
+                        chess_s["stakes"] = new_stakes
+                    await manager.broadcast(room, {
+                        "type": "chess_stakes_updated",
+                        "stakes": chess_s.get("stakes"),
+                        "by_user": user_id
+                    })
+
+                elif action == "resign":
+                    winner_id = other_user_id if str(user_id) != str(other_user_id) else (chess_s.get("white") if user_id == chess_s.get("black") else chess_s.get("black"))
+                    if winner_id:
+                        chess_s["scores"][winner_id] = chess_s["scores"].get(winner_id, 0) + 1
+                    await manager.broadcast(room, {
+                        "type": "chess_resigned",
+                        "resigned_by": user_id,
+                        "winner_id": winner_id,
+                        "scores": chess_s.get("scores", {})
+                    })
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, room)
