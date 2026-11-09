@@ -885,7 +885,7 @@ export default function Games() {
             </div>
 
             {/* Game Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl mb-8">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1.5 px-2 -mx-2 sm:mx-0 sm:grid sm:grid-cols-4 md:grid-cols-7 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl mb-6 scroll-smooth">
                 {[
                     { id: 'ludo', label: 'Ludo 1v1', icon: Dices, color: 'text-pink-400' },
                     { id: 'uno', label: 'Couple Uno', icon: Layers, color: 'text-amber-400' },
@@ -904,7 +904,7 @@ export default function Games() {
                                 playSound('click');
                                 setActiveTab(tab.id);
                             }}
-                            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl font-medium text-xs sm:text-sm transition-all duration-300 ${
+                            className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2.5 px-3.5 sm:px-2 rounded-xl font-medium text-xs sm:text-sm whitespace-nowrap transition-all duration-300 ${
                                 isActive 
                                     ? 'bg-gradient-to-r from-purple-600/80 to-pink-600/80 text-white shadow-lg shadow-purple-500/20' 
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'

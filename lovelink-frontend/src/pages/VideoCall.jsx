@@ -555,7 +555,7 @@ export default function VideoCall() {
     const partnerPhoto = callState?.partner_photo;
 
     return (
-        <div className="relative w-screen h-screen overflow-hidden bg-[#070913] select-none text-white">
+        <div className="relative w-full h-[100dvh] overflow-hidden bg-[#070913] select-none text-white">
 
             {/* Invisible Remote Audio Element (Guarantees voice streams regardless of video status) */}
             <audio ref={remoteAudioRef} autoPlay playsInline />
@@ -652,7 +652,7 @@ export default function VideoCall() {
             )}
 
             {/* 4. Telegram Top Header Bar */}
-            <header className="absolute top-0 inset-x-0 z-40 px-4 py-4 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+            <header className="absolute top-0 inset-x-0 z-40 px-4 pt-safe sm:py-4 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 via-black/40 to-transparent">
                 <button
                     onClick={handleMinimize}
                     title="Minimize call"
@@ -711,7 +711,7 @@ export default function VideoCall() {
             )}
 
             {/* 6. Telegram Romantic Bottom Dock */}
-            <div className="absolute bottom-6 inset-x-0 z-40 flex items-center justify-center gap-4 px-4 pointer-events-auto">
+            <div className="absolute bottom-4 sm:bottom-8 pb-safe inset-x-0 z-40 flex items-center justify-center gap-4 px-4 pointer-events-auto">
                 <div className="flex items-center gap-3 p-2.5 px-4 rounded-3xl bg-black/70 backdrop-blur-xl border border-white/15 shadow-2xl">
                     
                     {/* Toggle Microphone */}

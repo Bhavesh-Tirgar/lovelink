@@ -5,6 +5,8 @@
 @layer base {
   body {
     @apply bg-brand-darker text-gray-100 font-sans antialiased overflow-x-hidden;
+    /* Prevent bouncy rubber-banding from pulling background off screen */
+    overscroll-behavior-y: none;
   }
 }
 
@@ -47,10 +49,26 @@
 }
 
 /* Hide scrollbar completely utility */
-.scrollbar-hide::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-hide {
+.scrollbar-hide,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Safe area insets for iOS notches & mobile home indicator */
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.pl-safe {
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+.pr-safe {
+  padding-right: max(1rem, env(safe-area-inset-right));
 }

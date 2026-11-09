@@ -21,9 +21,9 @@ export default function LiveMap() {
     }, []);
 
     return (
-        <div className="fixed inset-0 w-screen h-screen bg-black overflow-hidden z-50 flex flex-col font-sans">
+        <div className="fixed inset-0 w-full h-[100dvh] bg-black overflow-hidden z-50 flex flex-col font-sans">
             {/* Top Navigation */}
-            <header className="absolute top-4 left-4 z-20 flex items-center gap-3 pointer-events-auto">
+            <header className="absolute top-4 pt-safe left-4 z-20 flex items-center gap-3 pointer-events-auto">
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="p-3 rounded-2xl bg-black/75 hover:bg-black border border-white/20 text-white transition-all backdrop-blur-md flex items-center gap-2 text-xs font-semibold shadow-2xl"

@@ -184,10 +184,10 @@ function DoodleBoard() {
     ];
 
     return (
-        <div className="flex flex-col h-screen bg-[#080612] text-white overflow-hidden fixed inset-0">
+        <div className="flex flex-col h-[100dvh] bg-[#080612] text-white overflow-hidden fixed inset-0">
 
             {/* Top Bar */}
-            <header className="flex-none border-b border-white/10 bg-[#080612]/90 px-4 flex items-center justify-between h-16 z-20 shadow-lg">
+            <header className="flex-none border-b border-white/10 bg-[#080612]/90 px-3 sm:px-4 flex items-center justify-between h-auto py-2.5 pt-safe z-20 shadow-lg">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/dashboard')} className="rounded-full p-2 hover:bg-white/10 transition-colors">
                         <ArrowLeft className="h-5 w-5" />

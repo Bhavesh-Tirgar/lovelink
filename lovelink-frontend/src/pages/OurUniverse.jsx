@@ -1310,9 +1310,9 @@ export default function OurUniverse() {
     };
 
     return (
-        <div className="relative w-screen h-screen overflow-hidden bg-black select-none text-white font-sans">
+        <div className="relative w-full h-[100dvh] overflow-hidden bg-black select-none text-white font-sans">
             {/* Top Navigation Bar */}
-            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+            <div className="absolute top-3 sm:top-4 pt-safe left-3 sm:left-4 right-3 sm:right-4 z-20 flex items-center justify-between pointer-events-none">
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="pointer-events-auto flex items-center gap-2 px-3.5 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-sm font-medium hover:bg-white/10 transition-all text-white/90 hover:text-white shadow-lg"

@@ -220,7 +220,7 @@ export default function HeartbeatTouch() {
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            className="fixed inset-0 w-screen h-screen bg-black overflow-hidden select-none touch-none z-50 cursor-crosshair font-sans flex flex-col justify-between"
+            className="fixed inset-0 w-full h-[100dvh] bg-black overflow-hidden select-none touch-none z-50 cursor-crosshair font-sans flex flex-col justify-between pb-safe"
             style={{
                 backgroundImage: 'radial-gradient(ellipse at 50% 50%, rgba(30, 10, 45, 0.9) 0%, rgba(5, 2, 10, 1) 100%)'
             }}
@@ -232,7 +232,7 @@ export default function HeartbeatTouch() {
             </div>
 
             {/* Top Navigation Bar */}
-            <div className="relative z-20 flex items-center justify-between px-6 pt-6 pb-2 pointer-events-auto">
+            <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 pt-4 pt-safe sm:pt-6 pb-2 pointer-events-auto">
                 <button
                     onClick={() => navigate('/dashboard')}
                     className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-all backdrop-blur-md flex items-center gap-2 text-xs font-semibold"

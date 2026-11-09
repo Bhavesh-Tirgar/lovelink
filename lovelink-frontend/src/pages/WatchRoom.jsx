@@ -714,7 +714,7 @@ export default function WatchRoom() {
     const isYouTube = movie.source_type === 'youtube';
 
     return (
-        <div className="min-h-screen bg-[#060814] text-white flex flex-col select-none relative overflow-x-hidden">
+        <div className="min-h-[100dvh] bg-[#060814] text-white flex flex-col select-none relative overflow-x-hidden pb-safe">
             <style>{`
                 @keyframes floatUp {
                     from { transform: translateY(0); opacity: 1; scale: 1; }
@@ -726,7 +726,7 @@ export default function WatchRoom() {
             {reactions.map(r => <FloatingReaction key={r.key} emoji={r.emoji} />)}
 
             {/* 1. Cinema Top Header */}
-            <header className="px-5 py-3 border-b border-white/10 bg-black/60 backdrop-blur-xl flex items-center justify-between sticky top-0 z-40">
+            <header className="px-4 sm:px-5 py-3 pt-safe border-b border-white/10 bg-black/60 backdrop-blur-xl flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/movies')}

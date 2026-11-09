@@ -471,7 +471,7 @@ export default function CoupleUno({
                                 key={card.id}
                                 onClick={() => handleCardClick(card)}
                                 disabled={!playable}
-                                className={`w-12 h-18 sm:w-14 sm:h-20 rounded-xl ${style.bg} border ${style.border} flex flex-col items-center justify-center shadow-lg transition-all ${
+                                className={`w-12 h-16 sm:w-14 sm:h-20 rounded-xl ${style.bg} border ${style.border} flex flex-col items-center justify-center shadow-lg transition-all ${
                                     playable
                                         ? 'hover:scale-110 active:scale-95 cursor-pointer -translate-y-2 ring-2 ring-pink-400 ring-offset-2 ring-offset-black shadow-[0_0_15px_rgba(244,114,182,0.8)]'
                                         : 'opacity-40 grayscale-[40%] cursor-default'

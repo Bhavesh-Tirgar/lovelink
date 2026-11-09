@@ -422,7 +422,7 @@ function Chat() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] md:h-screen w-full text-gray-100 overflow-hidden animate-in fade-in duration-700">
+        <div className="flex flex-col h-[100dvh] w-full text-gray-100 overflow-hidden animate-in fade-in duration-700">
             {/* Top Bar */}
             <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-4 bg-brand-darker/60 backdrop-blur-xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.3)] z-20">
                 <div className="flex items-center gap-4">
@@ -612,7 +612,7 @@ function Chat() {
             )}
 
             {/* Input Nav */}
-            <div className="flex-none p-4 pb-safe bg-brand-darker/70 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] z-20">
+            <div className="flex-none p-2.5 sm:p-4 pb-safe bg-brand-darker/80 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] z-20">
                 <div className="max-w-4xl mx-auto flex items-end gap-3 relative">
 
                     <label className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 mb-0 border border-transparent hover:border-pink-500/20" title="Send Photo">

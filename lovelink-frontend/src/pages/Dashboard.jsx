@@ -228,7 +228,7 @@ function Dashboard() {
   return (
     <div className="w-full">
       {/* Sleek Top Bar */}
-      <header className="flex items-center justify-between px-6 md:px-10 py-6 mb-2">
+      <header className="flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-6 pt-safe mb-2">
         <div className="flex items-center gap-3 relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 blur-lg opacity-40 group-hover:opacity-60 transition-opacity rounded-full" />
           <div className="relative w-10 h-10 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-xl">
@@ -296,7 +296,7 @@ function Dashboard() {
             {[
               { title: 'Snap Map', desc: 'Live GPS & Battery', icon: '📍', color: 'from-pink-600/30 to-rose-600/30 border-pink-500/30', path: '/map' },
               { title: 'Thumbkiss', desc: 'Heartbeat Touch', icon: '💋', color: 'from-purple-600/30 to-pink-600/30 border-purple-500/30', path: '/touch' },
-              { title: 'Truth / Dare', desc: 'Turn-Based Game', icon: '👑', color: 'from-amber-600/30 to-orange-600/30 border-amber-500/30', path: '/games' },
+              { title: 'Couple Games', desc: 'Chess, Ludo, Uno & More', icon: '🎮', color: 'from-amber-600/30 to-orange-600/30 border-amber-500/30', path: '/games' },
               { title: 'Our Universe', desc: '3D Memory Stars', icon: '🌌', color: 'from-indigo-600/30 to-purple-600/30 border-indigo-500/30', path: '/universe' },
               { title: 'Live Chat', desc: 'Audio & Photos', icon: '💬', color: 'from-blue-600/30 to-cyan-600/30 border-blue-500/30', path: '/chat' },
               { title: 'Call Partner', desc: 'Voice & Video', icon: '📞', color: 'from-emerald-600/30 to-green-600/30 border-emerald-500/30', action: () => startCall('video') },

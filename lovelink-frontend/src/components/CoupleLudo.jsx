@@ -128,7 +128,7 @@ export default function CoupleLudo({
     const turn = ludoState?.turn || 'pink';
     const isMyTurn = turn === myColor;
     const tokens = ludoState?.tokens || { pink: [-1, -1], blue: [-1, -1] };
-    const myTokens = tokens[myColor] || [-1, -1];
+    const myTokens = useMemo(() => tokens[myColor] || [-1, -1], [tokens, myColor]);
     const partnerTokens = tokens[partnerColor] || [-1, -1];
 
     const currentDice = ludoState?.dice;
@@ -354,7 +354,7 @@ export default function CoupleLudo({
 
             {/* ── 15x15 LUDO BOARD CONTAINER ─────────────────────────── */}
             <div className="relative p-2 rounded-3xl bg-black/60 border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.7)] backdrop-blur-xl">
-                <div className="grid grid-cols-15 grid-rows-15 w-[min(90vw,420px)] h-[min(90vw,420px)] rounded-2xl overflow-hidden bg-[#0d091a] border border-white/20 relative">
+                <div className="grid grid-cols-15 grid-rows-15 w-[min(92vw,420px)] h-[min(92vw,420px)] rounded-2xl overflow-hidden bg-[#0d091a] border border-white/20 relative" style={{ touchAction: 'manipulation' }}>
                     {/* Render 15x15 Grid Cells */}
                     {Array.from({ length: 15 }).map((_, r) =>
                         Array.from({ length: 15 }).map((_, c) => {

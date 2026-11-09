@@ -447,7 +447,7 @@ export default function CoupleChess({
 
             {/* ── 8x8 CHESSBOARD ────────────────────────────────────────── */}
             <div className="relative p-2.5 sm:p-3 rounded-3xl bg-gradient-to-b from-white/10 to-white/5 border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-                <div className="grid grid-cols-8 grid-rows-8 w-[min(88vw,420px)] h-[min(88vw,420px)] rounded-2xl overflow-hidden border border-white/20 shadow-inner">
+                <div className="grid grid-cols-8 grid-rows-8 w-[min(90vw,420px)] h-[min(90vw,420px)] rounded-2xl overflow-hidden border border-white/20 shadow-inner" style={{ touchAction: 'manipulation' }}>
                     {ranks.map((rank) =>
                         files.map((file) => {
                             const square = `${file}${rank}`;

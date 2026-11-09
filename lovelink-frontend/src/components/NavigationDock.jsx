@@ -29,15 +29,22 @@ export default function NavigationDock() {
         navigate('/login', { replace: true });
     };
 
-    // Hide dock on unauthenticated pages or fullscreen routes like calling, touch, universe
+    // Hide dock on unauthenticated pages or fullscreen/focused routes
     const hiddenPaths = ['/login', '/signup', '/link'];
-    if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/call/') || location.pathname === '/touch' || location.pathname === '/universe' || location.pathname === '/map') {
+    if (hiddenPaths.includes(location.pathname) || 
+        location.pathname.startsWith('/call/') || 
+        location.pathname.startsWith('/watch/') || 
+        location.pathname === '/touch' || 
+        location.pathname === '/universe' || 
+        location.pathname === '/map' || 
+        location.pathname === '/chat' || 
+        location.pathname === '/doodle') {
         return null;
     }
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-1.5 p-2.5 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.6)]">
+        <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[95vw] w-max">
+            <div className="flex items-center gap-1 sm:gap-1.5 p-1.5 sm:p-2.5 bg-black/60 backdrop-blur-2xl border border-white/15 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.7)] overflow-x-auto no-scrollbar max-w-full">
                 {navItems.map((item) => {
                     const isActive = location.pathname.startsWith(item.path);
                     const Icon = item.icon;
