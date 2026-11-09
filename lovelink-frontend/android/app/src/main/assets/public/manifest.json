@@ -1,0 +1,33 @@
+{
+  "short_name": "LoveLink",
+  "name": "LoveLink - Private Couple Space",
+  "description": "Your private, real-time encrypted couple space with live calling, synced movies, touch, and instant love notes.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#070913",
+  "background_color": "#070913",
+  "categories": [
+    "lifestyle",
+    "social"
+  ]
+}
