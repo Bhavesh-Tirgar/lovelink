@@ -10,6 +10,9 @@ on:
       - 'lovelink-frontend/android/**'
       - '.github/workflows/build-apk.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android APK
@@ -29,12 +32,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: lovelink-frontend/package-lock.json
 
       - name: Install Frontend Dependencies
         working-directory: lovelink-frontend
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
       - name: Build Web Application
         working-directory: lovelink-frontend
@@ -54,7 +55,7 @@ jobs:
 
       - name: Build Debug APK
         working-directory: lovelink-frontend/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK to LoveLink.apk
         run: |
@@ -70,7 +71,7 @@ jobs:
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         with:
           tag_name: v1.0.0-apk
           name: "LoveLink Android App v1.0"
