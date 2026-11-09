@@ -204,6 +204,22 @@ async def games_websocket(
                 "turn": "w",
                 "stakes": "Loser gives a 15-minute massage 💆",
                 "scores": {user_id: 0, (other_user_id or "partner"): 0}
+            },
+            "ludo": {
+                "player_pink": user_id,
+                "player_blue": other_user_id or "partner",
+                "turn": "pink",
+                "dice": None,
+                "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+                "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                "winner": None
+            },
+            "uno": {
+                "player_1": user_id,
+                "player_2": other_user_id or "partner",
+                "turn": user_id,
+                "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                "winner": None
             }
         }
 
@@ -223,11 +239,31 @@ async def games_websocket(
             "stakes": "Loser gives a 15-minute massage 💆",
             "scores": {user_id: 0, (other_user_id or "partner"): 0}
         }
+    if "ludo" not in session:
+        session["ludo"] = {
+            "player_pink": user_id,
+            "player_blue": other_user_id or "partner",
+            "turn": "pink",
+            "dice": None,
+            "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+            "scores": {user_id: 0, (other_user_id or "partner"): 0},
+            "winner": None
+        }
+    if "uno" not in session:
+        session["uno"] = {
+            "player_1": user_id,
+            "player_2": other_user_id or "partner",
+            "turn": user_id,
+            "scores": {user_id: 0, (other_user_id or "partner"): 0},
+            "winner": None
+        }
     await manager.send_personal(websocket, {
         "type": "session_init",
         "user_id": user_id,
         "tod": session["tod"],
-        "chess": session["chess"]
+        "chess": session["chess"],
+        "ludo": session["ludo"],
+        "uno": session["uno"]
     })
 
     try:
@@ -500,6 +536,170 @@ async def games_websocket(
                         "resigned_by": user_id,
                         "winner_id": winner_id,
                         "scores": chess_s.get("scores", {})
+                    })
+
+            # ── 6. LUDO 1V1 (COUPLE SHOWDOWN) ───────────
+            elif game == "ludo":
+                if "ludo" not in session:
+                    session["ludo"] = {
+                        "player_pink": user_id,
+                        "player_blue": other_user_id or "partner",
+                        "turn": "pink",
+                        "dice": None,
+                        "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+                        "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                        "winner": None
+                    }
+                ludo_s = session["ludo"]
+
+                if action == "roll_dice":
+                    dice = data.get("dice") or random.randint(1, 6)
+                    ludo_s["dice"] = dice
+                    await manager.broadcast(room, {
+                        "type": "ludo_dice_rolled",
+                        "dice": dice,
+                        "turn": ludo_s["turn"],
+                        "by_user": user_id
+                    })
+
+                elif action == "move_token":
+                    color = data.get("color")
+                    token_idx = data.get("token_idx")
+                    new_pos = data.get("new_pos")
+                    next_turn = data.get("next_turn")
+                    opponent_cut_idx = data.get("opponent_cut_idx")
+                    winner = data.get("winner")
+
+                    if color in ludo_s["tokens"] and 0 <= token_idx < len(ludo_s["tokens"][color]):
+                        ludo_s["tokens"][color][token_idx] = new_pos
+
+                    if opponent_cut_idx is not None:
+                        opp_color = "blue" if color == "pink" else "pink"
+                        if 0 <= opponent_cut_idx < len(ludo_s["tokens"][opp_color]):
+                            ludo_s["tokens"][opp_color][opponent_cut_idx] = -1
+
+                    if next_turn:
+                        ludo_s["turn"] = next_turn
+
+                    if winner:
+                        ludo_s["winner"] = winner
+                        ludo_s["scores"][user_id] = ludo_s["scores"].get(user_id, 0) + 1
+
+                    await manager.broadcast(room, {
+                        "type": "ludo_token_moved",
+                        "color": color,
+                        "token_idx": token_idx,
+                        "new_pos": new_pos,
+                        "opponent_cut_idx": opponent_cut_idx,
+                        "tokens": ludo_s["tokens"],
+                        "turn": ludo_s["turn"],
+                        "winner": ludo_s["winner"],
+                        "scores": ludo_s["scores"],
+                        "by_user": user_id
+                    })
+
+                elif action == "pass_turn":
+                    next_turn = "blue" if ludo_s["turn"] == "pink" else "pink"
+                    ludo_s["turn"] = next_turn
+                    await manager.broadcast(room, {
+                        "type": "ludo_turn_passed",
+                        "turn": next_turn,
+                        "by_user": user_id
+                    })
+
+                elif action == "reset":
+                    # Swap colors on rematch
+                    old_pink = ludo_s.get("player_pink")
+                    old_blue = ludo_s.get("player_blue")
+                    ludo_s["player_pink"] = old_blue
+                    ludo_s["player_blue"] = old_pink
+                    ludo_s["turn"] = "pink"
+                    ludo_s["dice"] = None
+                    ludo_s["tokens"] = {"pink": [-1, -1], "blue": [-1, -1]}
+                    ludo_s["winner"] = None
+
+                    await manager.broadcast(room, {
+                        "type": "ludo_reset",
+                        "player_pink": ludo_s["player_pink"],
+                        "player_blue": ludo_s["player_blue"],
+                        "tokens": ludo_s["tokens"],
+                        "turn": ludo_s["turn"],
+                        "scores": ludo_s["scores"],
+                        "by_user": user_id
+                    })
+
+            # ── 7. UNO / CRAZY EIGHTS (COUPLE CARD SHOWDOWN) ──
+            elif game == "uno":
+                if "uno" not in session:
+                    session["uno"] = {
+                        "player_1": user_id,
+                        "player_2": other_user_id or "partner",
+                        "turn": user_id,
+                        "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                        "winner": None
+                    }
+                uno_s = session["uno"]
+
+                if action == "sync_init":
+                    uno_s["deck"] = data.get("deck")
+                    uno_s["discard"] = data.get("discard")
+                    uno_s["top_card"] = data.get("top_card")
+                    uno_s["active_color"] = data.get("active_color")
+                    uno_s["turn"] = data.get("turn") or user_id
+                    uno_s["winner"] = None
+
+                    await manager.broadcast(room, {
+                        "type": "uno_synced_init",
+                        "deck": uno_s["deck"],
+                        "discard": uno_s["discard"],
+                        "top_card": uno_s["top_card"],
+                        "active_color": uno_s["active_color"],
+                        "turn": uno_s["turn"],
+                        "p1_hand": data.get("p1_hand"),
+                        "p2_hand": data.get("p2_hand"),
+                        "by_user": user_id
+                    }, exclude=websocket)
+
+                elif action == "play_card":
+                    card = data.get("card")
+                    active_color = data.get("active_color")
+                    next_turn = data.get("next_turn")
+                    draw_penalty = data.get("draw_penalty", 0)
+                    is_uno = data.get("is_uno", False)
+                    winner = data.get("winner")
+
+                    if winner:
+                        uno_s["winner"] = winner
+                        uno_s["scores"][user_id] = uno_s["scores"].get(user_id, 0) + 1
+
+                    await manager.broadcast(room, {
+                        "type": "uno_card_played",
+                        "card": card,
+                        "active_color": active_color,
+                        "next_turn": next_turn,
+                        "draw_penalty": draw_penalty,
+                        "is_uno": is_uno,
+                        "winner": winner,
+                        "scores": uno_s["scores"],
+                        "by_user": user_id
+                    })
+
+                elif action == "draw_card":
+                    card = data.get("card")
+                    next_turn = data.get("next_turn")
+                    await manager.broadcast(room, {
+                        "type": "uno_card_drawn",
+                        "card": card,
+                        "next_turn": next_turn,
+                        "by_user": user_id
+                    })
+
+                elif action == "reset":
+                    uno_s["winner"] = None
+                    await manager.broadcast(room, {
+                        "type": "uno_reset",
+                        "scores": uno_s["scores"],
+                        "by_user": user_id
                     })
 
     except WebSocketDisconnect:

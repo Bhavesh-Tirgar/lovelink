@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     Gamepad2, Flame, Heart, Sparkles, RotateCcw, 
-    CheckCircle2, Shuffle, Trophy, Zap, Crown, Send, Edit3
+    CheckCircle2, Shuffle, Trophy, Zap, Crown, Send, Edit3, Dices, Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import CoupleChess from '../components/CoupleChess';
+import CoupleLudo from '../components/CoupleLudo';
+import CoupleUno from '../components/CoupleUno';
 
 // Web Audio API Synthesizers for zero-dependency satisfying sound effects
 const playSound = (type) => {
@@ -51,7 +53,7 @@ const playSound = (type) => {
 };
 
 export default function Games() {
-    const [activeTab, setActiveTab] = useState('chess'); // chess, rps, tod, ttt, wyr
+    const [activeTab, setActiveTab] = useState('ludo'); // chess, rps, tod, ttt, wyr
     const [chessState, setChessState] = useState({
         fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         white: null,
@@ -60,6 +62,22 @@ export default function Games() {
         stakes: "Loser gives a 15-minute massage 💆",
         scores: {},
         lastMove: null
+    });
+
+    const [ludoState, setLudoState] = useState({
+        dice: null,
+        turn: 'pink',
+        tokens: { pink: [-1, -1], blue: [-1, -1] },
+        scores: {},
+        winner: null
+    });
+
+    const [unoState, setUnoState] = useState({
+        incomingSync: null,
+        lastPlayedCard: null,
+        lastDrawn: null,
+        scores: {},
+        winner: null
     });
     const [isLiveConnected, setIsLiveConnected] = useState(false);
 
@@ -565,6 +583,90 @@ export default function Games() {
                 }));
                 toast("Round surrendered with love 💕", { icon: '🏳️' });
                 break;
+
+            case 'ludo_dice_rolled':
+                setLudoState(prev => ({
+                    ...prev,
+                    dice: data.dice,
+                    turn: data.turn
+                }));
+                break;
+
+            case 'ludo_token_moved':
+                setLudoState(prev => ({
+                    ...prev,
+                    tokens: data.tokens,
+                    turn: data.turn,
+                    winner: data.winner,
+                    scores: data.scores || prev.scores,
+                    dice: null
+                }));
+                if (data.winner) {
+                    toast.success("Ludo Match Finished! 🏆", { icon: '🎉' });
+                } else if (data.opponent_cut_idx !== null) {
+                    toast("Token captured! Extra turn granted 💥", { icon: '⚡' });
+                }
+                break;
+
+            case 'ludo_turn_passed':
+                setLudoState(prev => ({
+                    ...prev,
+                    turn: data.turn,
+                    dice: null
+                }));
+                break;
+
+            case 'ludo_reset':
+                setLudoState(prev => ({
+                    ...prev,
+                    player_pink: data.player_pink,
+                    player_blue: data.player_blue,
+                    tokens: data.tokens,
+                    turn: data.turn,
+                    scores: data.scores || prev.scores,
+                    winner: null,
+                    dice: null
+                }));
+                toast("New Ludo round started! Colors swapped 🎲", { icon: '🔄' });
+                break;
+
+            case 'uno_synced_init':
+                setUnoState(prev => ({
+                    ...prev,
+                    incomingSync: data
+                }));
+                break;
+
+            case 'uno_card_played':
+                setUnoState(prev => ({
+                    ...prev,
+                    lastPlayedCard: data,
+                    scores: data.scores || prev.scores,
+                    winner: data.winner
+                }));
+                if (data.is_uno) {
+                    toast("Partner called UNO! 1 card left! 🔥", { icon: '⚠️' });
+                }
+                if (data.winner) {
+                    toast.success("Uno Round Completed! 🏆", { icon: '🎉' });
+                }
+                break;
+
+            case 'uno_card_drawn':
+                setUnoState(prev => ({
+                    ...prev,
+                    lastDrawn: data
+                }));
+                break;
+
+            case 'uno_reset':
+                setUnoState(prev => ({
+                    ...prev,
+                    scores: data.scores || prev.scores,
+                    winner: null
+                }));
+                toast("Uno round shuffled and restarted! 🃏", { icon: '🔄' });
+                break;
             case 'rps_locked':
                 setRpsPartnerLocked(true);
                 toast('Partner made their move! ⚡', { icon: '🤫' });
@@ -642,6 +744,12 @@ export default function Games() {
             case 'session_init':
                 if (data.chess) {
                     setChessState(prev => ({ ...prev, ...data.chess }));
+                }
+                if (data.ludo) {
+                    setLudoState(prev => ({ ...prev, ...data.ludo }));
+                }
+                if (data.uno) {
+                    setUnoState(prev => ({ ...prev, scores: data.uno.scores || {} }));
                 }
                 if (data.tod) {
                     if (data.tod.turn) setTodTurn(data.tod.turn);
@@ -777,8 +885,10 @@ export default function Games() {
             </div>
 
             {/* Game Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 p-1.5 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl mb-8">
                 {[
+                    { id: 'ludo', label: 'Ludo 1v1', icon: Dices, color: 'text-pink-400' },
+                    { id: 'uno', label: 'Couple Uno', icon: Layers, color: 'text-amber-400' },
                     { id: 'chess', label: 'Couple Chess', icon: Crown, color: 'text-amber-400' },
                     { id: 'rps', label: 'RPS Arena', icon: Zap, color: 'text-amber-400' },
                     { id: 'tod', label: 'Truth or Dare', icon: Flame, color: 'text-pink-400' },
@@ -808,6 +918,30 @@ export default function Games() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
+            {/* 0. LUDO 1V1 (COUPLE SHOWDOWN) */}
+            {activeTab === 'ludo' && (
+                <CoupleLudo
+                    userId={userId}
+                    coupleId={coupleId}
+                    partnerName={user?.partner_name || "Partner"}
+                    sendWs={sendWs}
+                    ludoState={ludoState}
+                    isLiveConnected={isLiveConnected}
+                />
+            )}
+
+            {/* 00. COUPLE UNO (CARD SHOWDOWN) */}
+            {activeTab === 'uno' && (
+                <CoupleUno
+                    userId={userId}
+                    coupleId={coupleId}
+                    partnerName={user?.partner_name || "Partner"}
+                    sendWs={sendWs}
+                    unoState={unoState}
+                    isLiveConnected={isLiveConnected}
+                />
+            )}
+
             {/* 0. ROYAL COUPLE CHESS */}
             {activeTab === 'chess' && (
                 <CoupleChess
