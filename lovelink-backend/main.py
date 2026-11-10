@@ -18,6 +18,7 @@ from routers.notes import router as notes_router
 from routers.countdowns import router as countdowns_router
 from routers.games import router as games_router
 from routers.universe import router as universe_router
+from routers.cycle import router as cycle_router
 from routers.media import router as media_router
 from routers.movies import router as movies_router
 from routers.calls import router as calls_router
@@ -27,8 +28,6 @@ from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
 from routers.music import router as music_router
-from routers.games import router as games_router
-from routers.universe import router as universe_router
 from scheduler.jobs import deliver_scheduled_notes, check_milestones
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -50,6 +49,7 @@ async def lifespan(app: FastAPI):
         from database import engine, Base
         from sqlalchemy import text
         import models.universe
+        import models.cycle
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             try:
@@ -147,6 +147,7 @@ app.include_router(coupons_router, prefix="/coupons", tags=["coupons"])
 app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
 app.include_router(universe_router, prefix="/universe", tags=["universe"])
+app.include_router(cycle_router, prefix="/cycle", tags=["cycle"])
 
 # Mount uploads directory for images, media, and voice notes
 from fastapi.staticfiles import StaticFiles

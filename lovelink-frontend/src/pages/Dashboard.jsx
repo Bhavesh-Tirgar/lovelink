@@ -296,6 +296,7 @@ function Dashboard() {
             {[
               { title: 'Snap Map', desc: 'Live GPS & Battery', icon: '📍', color: 'from-pink-600/30 to-rose-600/30 border-pink-500/30', path: '/map' },
               { title: 'Thumbkiss', desc: 'Heartbeat Touch', icon: '💋', color: 'from-purple-600/30 to-pink-600/30 border-purple-500/30', path: '/touch' },
+              { title: 'Period & Care', desc: 'Cycle & Empathy Tips', icon: '🌸', color: 'from-rose-500/30 to-pink-600/30 border-rose-500/30', path: '/cycle' },
               { title: 'Couple Games', desc: 'Chess, Ludo, Uno & More', icon: '🎮', color: 'from-amber-600/30 to-orange-600/30 border-amber-500/30', path: '/games' },
               { title: 'Our Universe', desc: '3D Memory Stars', icon: '🌌', color: 'from-indigo-600/30 to-purple-600/30 border-indigo-500/30', path: '/universe' },
               { title: 'Live Chat', desc: 'Audio & Photos', icon: '💬', color: 'from-blue-600/30 to-cyan-600/30 border-blue-500/30', path: '/chat' },
