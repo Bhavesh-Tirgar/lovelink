@@ -67,7 +67,7 @@ export default function Games() {
     const [ludoState, setLudoState] = useState({
         dice: null,
         turn: 'pink',
-        tokens: { pink: [-1, -1], blue: [-1, -1] },
+        tokens: { pink: [-1, -1, -1, -1], blue: [-1, -1, -1, -1] },
         scores: {},
         winner: null
     });

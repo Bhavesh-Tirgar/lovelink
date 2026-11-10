@@ -210,7 +210,7 @@ async def games_websocket(
                 "player_blue": other_user_id or "partner",
                 "turn": "pink",
                 "dice": None,
-                "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+                "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
                 "scores": {user_id: 0, (other_user_id or "partner"): 0},
                 "winner": None
             },
@@ -546,7 +546,7 @@ async def games_websocket(
                         "player_blue": other_user_id or "partner",
                         "turn": "pink",
                         "dice": None,
-                        "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+                        "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
                         "scores": {user_id: 0, (other_user_id or "partner"): 0},
                         "winner": None
                     }
@@ -615,7 +615,7 @@ async def games_websocket(
                     ludo_s["player_blue"] = old_pink
                     ludo_s["turn"] = "pink"
                     ludo_s["dice"] = None
-                    ludo_s["tokens"] = {"pink": [-1, -1], "blue": [-1, -1]}
+                    ludo_s["tokens"] = {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]}
                     ludo_s["winner"] = None
 
                     await manager.broadcast(room, {
