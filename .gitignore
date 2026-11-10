@@ -16,3 +16,5 @@ lovelink-backend/append_firebase_env.py
 **/build/
 lovelink-frontend/*.log
 lovelink-frontend/*_log.txt
+
+.cloudflare/

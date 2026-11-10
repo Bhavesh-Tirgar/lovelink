@@ -23,6 +23,7 @@ import HeartbeatTouch from './pages/HeartbeatTouch';
 import OurUniverse from './pages/OurUniverse';
 import LiveMap from './pages/LiveMap';
 import CycleTracker from './pages/CycleTracker';
+import CozyRoom from './pages/CozyRoom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import { CallProvider } from './context/CallContext';
@@ -66,6 +67,7 @@ function App() {
                 <Route path="/universe" element={<ProtectedRoute><OurUniverse /></ProtectedRoute>} />
                 <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
                 <Route path="/cycle" element={<ProtectedRoute><CycleTracker /></ProtectedRoute>} />
+                <Route path="/room" element={<ProtectedRoute><CozyRoom /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

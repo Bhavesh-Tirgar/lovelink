@@ -295,6 +295,7 @@ function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {[
               { title: 'Snap Map', desc: 'Live GPS & Battery', icon: '📍', color: 'from-pink-600/30 to-rose-600/30 border-pink-500/30', path: '/map' },
+              { title: 'Cozy Home', desc: 'Our Virtual Room', icon: '🏡', color: 'from-amber-600/30 to-pink-600/30 border-amber-500/30', path: '/room' },
               { title: 'Thumbkiss', desc: 'Heartbeat Touch', icon: '💋', color: 'from-purple-600/30 to-pink-600/30 border-purple-500/30', path: '/touch' },
               { title: 'Period & Care', desc: 'Cycle & Empathy Tips', icon: '🌸', color: 'from-rose-500/30 to-pink-600/30 border-rose-500/30', path: '/cycle' },
               { title: 'Couple Games', desc: 'Chess, Ludo, Uno & More', icon: '🎮', color: 'from-amber-600/30 to-orange-600/30 border-amber-500/30', path: '/games' },

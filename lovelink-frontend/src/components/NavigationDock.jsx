@@ -10,6 +10,7 @@ export default function NavigationDock() {
 
     const navItems = [
         { name: 'Home', path: '/dashboard', icon: Home },
+        { name: 'Cozy Room', path: '/room', icon: Sparkles },
         { name: 'Cycle Care', path: '/cycle', icon: Droplets },
         { name: 'Snap Map', path: '/map', icon: Flame },
         { name: 'Chat', path: '/chat', icon: MessageCircle },
