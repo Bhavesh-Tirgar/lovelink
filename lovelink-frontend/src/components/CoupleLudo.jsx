@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { Dices, RotateCcw, Crown, Volume2, VolumeX, ArrowRight, ArrowDown, ArrowLeft, ArrowUp } from 'lucide-react';
+import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
 // Web Audio synthesizer for Authentic Ludo Sound Effects
 const playLudoSound = (type, soundEnabled = true) => {
@@ -12,7 +12,6 @@ const playLudoSound = (type, soundEnabled = true) => {
         const now = ctx.currentTime;
 
         if (type === 'dice') {
-            // Dice roll rattling sound
             for (let i = 0; i < 6; i++) {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -26,7 +25,6 @@ const playLudoSound = (type, soundEnabled = true) => {
                 osc.stop(now + i * 0.04 + 0.035);
             }
         } else if (type === 'step') {
-            // Goti step click
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
@@ -38,7 +36,6 @@ const playLudoSound = (type, soundEnabled = true) => {
             osc.start(now);
             osc.stop(now + 0.06);
         } else if (type === 'open') {
-            // Goti opening on 6
             [400, 600, 800].forEach((freq, idx) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -52,7 +49,6 @@ const playLudoSound = (type, soundEnabled = true) => {
                 osc.stop(now + idx * 0.06 + 0.1);
             });
         } else if (type === 'cut') {
-            // Opponent goti cut sound
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sawtooth';
@@ -65,7 +61,6 @@ const playLudoSound = (type, soundEnabled = true) => {
             osc.start(now);
             osc.stop(now + 0.3);
         } else if (type === 'home') {
-            // Reached home fanfare
             [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -79,7 +74,6 @@ const playLudoSound = (type, soundEnabled = true) => {
                 osc.stop(now + idx * 0.08 + 0.2);
             });
         } else if (type === 'win') {
-            // Full game victory
             [440, 554, 659, 880, 1108].forEach((freq, idx) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -96,85 +90,86 @@ const playLudoSound = (type, soundEnabled = true) => {
     } catch {}
 };
 
-// ── 52 Standard Continuous Clockwise Ludo Track Coordinates [row, col] on a 15x15 Grid ──
-const TRACK_COORDS = [
+// ── 52 Standard Continuous Clockwise Ludo Track Coordinates [col, row] in 0-14 grid ──
+// Each unit = 40px in 600x600 SVG viewBox
+const TRACK_GRID = [
     // Red arm going right (indices 0 to 4)
-    [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+    [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
     // Green arm going up (indices 5 to 10)
-    [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+    [6, 5], [6, 4], [6, 3], [6, 2], [6, 1], [6, 0],
     // Top turn (index 11)
-    [0, 7],
-    // Green arm going down (indices 12 to 17)
-    [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
-    // Yellow arm going right (indices 18 to 23)
-    [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
-    // Right turn (index 24)
-    [7, 14],
-    // Yellow arm going left (indices 25 to 30)
-    [8, 14], [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
-    // Blue arm going down (indices 31 to 36)
-    [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
-    // Bottom turn (index 37)
-    [14, 7],
-    // Blue arm going up (indices 38 to 43)
-    [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
-    // Red arm going left (indices 44 to 49)
-    [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
-    // Left turn (indices 50 to 51)
     [7, 0],
-    [6, 0]
+    // Green arm going down (indices 12 to 17)
+    [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5],
+    // Yellow arm going right (indices 18 to 23)
+    [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6],
+    // Right turn (index 24)
+    [14, 7],
+    // Yellow arm going left (indices 25 to 30)
+    [14, 8], [13, 8], [12, 8], [11, 8], [10, 8], [9, 8],
+    // Blue arm going down (indices 31 to 36)
+    [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14],
+    // Bottom turn (index 37)
+    [7, 14],
+    // Blue arm going up (indices 38 to 43)
+    [6, 14], [6, 13], [6, 12], [6, 11], [6, 10], [6, 9],
+    // Red arm going left (indices 44 to 49)
+    [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
+    // Left turn (indices 50 to 51)
+    [0, 7],
+    [0, 6]
 ];
 
 // 8 Classical Star Safe Squares on the 52-cell track
 const SAFE_STAR_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
 
-// Player 1 (Red / Rose) Home Stretch leading into center triangle
+// Red Home Stretch [col, row]
 const RED_HOME_STRETCH = [
-    [7, 1], [7, 2], [7, 3], [7, 4], [7, 5]
+    [1, 7], [2, 7], [3, 7], [4, 7], [5, 7]
 ];
 
-// Player 2 (Yellow / Amber) Home Stretch leading into center triangle
+// Yellow Home Stretch [col, row]
 const YELLOW_HOME_STRETCH = [
-    [7, 13], [7, 12], [7, 11], [7, 10], [7, 9]
+    [13, 7], [12, 7], [11, 7], [10, 7], [9, 7]
 ];
 
-// 4 Base slot positions [row, col] inside the large circular base wells
-const RED_BASE_SLOTS = [
-    [1.8, 1.8], [1.8, 4.2], [4.2, 1.8], [4.2, 4.2]
+// Base Token Center Coordinates [cx, cy] in 600x600 viewBox
+const RED_BASE_CIRCLES = [
+    [80, 80], [160, 80], [80, 160], [160, 160]
 ];
-const YELLOW_BASE_SLOTS = [
-    [10.8, 10.8], [10.8, 13.2], [13.2, 10.8], [13.2, 13.2]
+const YELLOW_BASE_CIRCLES = [
+    [440, 440], [520, 440], [440, 520], [520, 520]
 ];
 
-// Realistic 3D Ludo Die Component with Authentic Dots
+// Realistic 3D Ludo Die Component with Real Dots (Pips)
 function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, isTurn = false, color = 'red' }) {
     const renderDots = (num) => {
-        const dotColor = num === 1 ? 'bg-red-500' : 'bg-gray-800';
+        const dotColor = num === 1 ? 'bg-red-600' : 'bg-gray-900';
         switch (num) {
             case 1:
                 return (
                     <div className="w-full h-full flex items-center justify-center">
-                        <span className={`w-3.5 h-3.5 rounded-full ${dotColor} shadow-inner`} />
+                        <span className={`w-4 h-4 rounded-full ${dotColor} shadow-inner`} />
                     </div>
                 );
             case 2:
                 return (
-                    <div className="w-full h-full flex flex-col justify-between p-1">
+                    <div className="w-full h-full flex flex-col justify-between p-1.5">
                         <div className="flex justify-start"><span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} /></div>
                         <div className="flex justify-end"><span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} /></div>
                     </div>
                 );
             case 3:
                 return (
-                    <div className="w-full h-full flex flex-col justify-between p-1">
-                        <div className="flex justify-start"><span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} /></div>
-                        <div className="flex justify-center"><span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} /></div>
-                        <div className="flex justify-end"><span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} /></div>
+                    <div className="w-full h-full flex flex-col justify-between p-1.5">
+                        <div className="flex justify-start"><span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} /></div>
+                        <div className="flex justify-center"><span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} /></div>
+                        <div className="flex justify-end"><span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} /></div>
                     </div>
                 );
             case 4:
                 return (
-                    <div className="w-full h-full flex flex-col justify-between p-1">
+                    <div className="w-full h-full flex flex-col justify-between p-1.5">
                         <div className="flex justify-between">
                             <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                             <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
@@ -187,34 +182,34 @@ function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, 
                 );
             case 5:
                 return (
-                    <div className="w-full h-full flex flex-col justify-between p-1">
+                    <div className="w-full h-full flex flex-col justify-between p-1.5">
                         <div className="flex justify-between">
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                         <div className="flex justify-center">
-                            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-inner" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-inner" />
                         </div>
                         <div className="flex justify-between">
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                     </div>
                 );
             case 6:
                 return (
-                    <div className="w-full h-full flex flex-col justify-between p-1">
+                    <div className="w-full h-full flex flex-col justify-between p-1.5">
                         <div className="flex justify-between">
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                         <div className="flex justify-between">
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                         <div className="flex justify-between">
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
+                            <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                     </div>
                 );
@@ -227,83 +222,25 @@ function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, 
         <button
             onClick={onClick}
             disabled={disabled}
-            className={`relative w-12 h-12 rounded-xl transition-all select-none flex items-center justify-center ${
+            className={`relative w-14 h-14 rounded-2xl transition-all select-none flex items-center justify-center ${
                 rolling ? 'animate-spin scale-110' : ''
             } ${
                 isTurn && !disabled
-                    ? 'ring-4 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] animate-bounce cursor-pointer'
+                    ? 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.8)] animate-bounce cursor-pointer'
                     : 'cursor-default opacity-85'
             }`}
             style={{
-                background: 'linear-gradient(145deg, #ffffff, #e6e6e6)',
+                background: 'linear-gradient(145deg, #ffffff, #e2e8f0)',
                 boxShadow: isTurn && !disabled
-                    ? '4px 4px 10px rgba(0,0,0,0.3), -2px -2px 6px rgba(255,255,255,0.8)'
-                    : '2px 2px 5px rgba(0,0,0,0.25)',
-                border: '1px solid #d4d4d8'
+                    ? '4px 6px 15px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.9)'
+                    : '2px 3px 6px rgba(0,0,0,0.3)',
+                border: '1.5px solid #cbd5e1'
             }}
         >
-            <div className="w-10 h-10 rounded-lg p-0.5">
+            <div className="w-12 h-12 rounded-xl p-0.5">
                 {renderDots(value || 6)}
             </div>
         </button>
-    );
-}
-
-// 3D Realistic Ludo Pawn (Goti) SVG Component
-function LudoPawn({ color = 'red', isClickable = false, isOpponent = false, count = 1 }) {
-    const isRed = color === 'pink' || color === 'red';
-    const mainGrad = isRed ? ['#ff4d6d', '#c9184a', '#800f2f'] : ['#facc15', '#eab308', '#ca8a04'];
-    const ringColor = isRed ? '#ffd166' : '#ffffff';
-
-    return (
-        <div className={`relative w-full h-full flex items-center justify-center ${isClickable ? 'cursor-pointer' : ''}`}>
-            {/* Pulsing ring when token is actionable */}
-            {isClickable && (
-                <div className="absolute inset-[-4px] rounded-full border-2 border-yellow-300 animate-ping opacity-75" />
-            )}
-
-            {/* Realistic 3D Pawn SVG */}
-            <svg
-                viewBox="0 0 32 36"
-                className={`w-[85%] h-[85%] drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] transition-transform duration-200 ${
-                    isClickable ? 'scale-110 -translate-y-1' : ''
-                }`}
-            >
-                <defs>
-                    <radialGradient id={`head-grad-${color}`} cx="35%" cy="35%" r="65%">
-                        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                        <stop offset="40%" stopColor={mainGrad[0]} />
-                        <stop offset="100%" stopColor={mainGrad[2]} />
-                    </radialGradient>
-                    <linearGradient id={`body-grad-${color}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor={mainGrad[0]} />
-                        <stop offset="60%" stopColor={mainGrad[1]} />
-                        <stop offset="100%" stopColor={mainGrad[2]} />
-                    </linearGradient>
-                </defs>
-
-                {/* Base Rim */}
-                <ellipse cx="16" cy="31" rx="13" ry="4" fill="#1c1917" opacity="0.3" />
-                <path d="M5 28 C 5 26, 27 26, 27 28 L 29 32 C 29 34, 3 34, 3 32 Z" fill={`url(#body-grad-${color})`} />
-                <ellipse cx="16" cy="28" rx="11" ry="3" fill={ringColor} opacity="0.9" />
-
-                {/* Pawn Body / Stem */}
-                <path d="M10 21 C 10 25, 6 28, 6 28 L 26 28 C 26 28, 22 25, 22 21 C 22 17, 18 16, 16 16 C 14 16, 10 17, 10 21 Z" fill={`url(#body-grad-${color})`} />
-
-                {/* Collar Ring */}
-                <ellipse cx="16" cy="15" rx="5" ry="1.5" fill={ringColor} />
-
-                {/* Spherical Head */}
-                <circle cx="16" cy="9" r="7" fill={`url(#head-grad-${color})`} />
-            </svg>
-
-            {/* Multiple tokens stacked badge */}
-            {count > 1 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/80 text-white text-[9px] font-black flex items-center justify-center border border-white/60 shadow">
-                    {count}
-                </span>
-            )}
-        </div>
     );
 }
 
@@ -319,7 +256,7 @@ export default function CoupleLudo({
     const [rolling, setRolling] = useState(false);
     const [diceDisplay, setDiceDisplay] = useState(ludoState?.dice || 6);
 
-    // Color Assignment: Red/Pink for Player 1, Yellow/Blue for Player 2
+    // Color assignment: Pink/Red for Player 1, Blue/Yellow for Player 2
     const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : true;
     const myColor = isPink ? 'pink' : 'blue';
     const partnerColor = isPink ? 'blue' : 'pink';
@@ -345,10 +282,12 @@ export default function CoupleLudo({
     const currentDice = ludoState?.dice;
     const winner = ludoState?.winner;
 
-    // Standard Ludo move validation:
-    // - -1: In Base, requires a 6 to open onto start square (step 0)
-    // - 56: Home, finished
-    // - Total track steps: 0 to 50 on outer track, 51 to 55 on home stretch, 56 is HOME
+    // Valid move logic:
+    // - -1: in base, needs 6
+    // - 56: home
+    // - 0 to 50: outer track
+    // - 51 to 55: home stretch
+    // - 56: Home!
     const canTokenMove = useCallback((step, diceVal) => {
         if (!diceVal) return false;
         if (step === -1) return diceVal === 6;
@@ -447,10 +386,10 @@ export default function CoupleLudo({
         if (isGameWon) {
             playLudoSound('win', soundEnabled);
             confetti({
-                particleCount: 200,
+                particleCount: 220,
                 spread: 120,
                 origin: { y: 0.5 },
-                colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899']
+                colors: ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db']
             });
         }
 
@@ -478,43 +417,45 @@ export default function CoupleLudo({
         });
     };
 
-    // Convert player step to board [row, col]
-    const getBoardPosition = useCallback((step, color, tokenIdx) => {
+    // Convert player step to SVG viewBox pixel coordinates [cx, cy]
+    const getSvgCoordinates = useCallback((step, color, tokenIdx) => {
         if (step === -1) {
-            return color === 'pink' ? RED_BASE_SLOTS[tokenIdx] : YELLOW_BASE_SLOTS[tokenIdx];
+            return color === 'pink' ? RED_BASE_CIRCLES[tokenIdx] : YELLOW_BASE_CIRCLES[tokenIdx];
         }
         if (step >= 0 && step <= 50) {
             const trackIdx = getTrackIndex(step, color);
-            return TRACK_COORDS[trackIdx];
+            const [c, r] = TRACK_GRID[trackIdx];
+            return [c * 40 + 20, r * 40 + 20];
         }
         if (step >= 51 && step <= 55) {
             const stretchIdx = step - 51;
-            return color === 'pink' ? RED_HOME_STRETCH[stretchIdx] : YELLOW_HOME_STRETCH[stretchIdx];
+            const [c, r] = color === 'pink' ? RED_HOME_STRETCH[stretchIdx] : YELLOW_HOME_STRETCH[stretchIdx];
+            return [c * 40 + 20, r * 40 + 20];
         }
         // Step 56: Home center
-        return color === 'pink' ? [7, 6.2] : [7, 7.8];
+        return color === 'pink' ? [270, 300] : [330, 300];
     }, [getTrackIndex]);
 
     // Compute token stacking to avoid overlap when 2+ tokens share a square
     const allTokensOnBoard = useMemo(() => {
         const list = [];
         myTokens.forEach((s, idx) => {
-            const [r, c] = getBoardPosition(s, myColor, idx);
-            list.push({ isMe: true, color: myColor, tokenIdx: idx, step: s, row: r, col: c });
+            const [cx, cy] = getSvgCoordinates(s, myColor, idx);
+            list.push({ isMe: true, color: myColor, tokenIdx: idx, step: s, cx, cy });
         });
         partnerTokens.forEach((s, idx) => {
-            const [r, c] = getBoardPosition(s, partnerColor, idx);
-            list.push({ isMe: false, color: partnerColor, tokenIdx: idx, step: s, row: r, col: c });
+            const [cx, cy] = getSvgCoordinates(s, partnerColor, idx);
+            list.push({ isMe: false, color: partnerColor, tokenIdx: idx, step: s, cx, cy });
         });
         return list;
-    }, [myTokens, partnerTokens, myColor, partnerColor, getBoardPosition]);
+    }, [myTokens, partnerTokens, myColor, partnerColor, getSvgCoordinates]);
 
     // Group by coordinate key to calculate stacking offsets
     const tokenOffsets = useMemo(() => {
         const groups = {};
         allTokensOnBoard.forEach(item => {
             if (item.step === -1) return; // Base slots don't stack
-            const key = `${Math.round(item.row * 10)}_${Math.round(item.col * 10)}`;
+            const key = `${Math.round(item.cx)}_${Math.round(item.cy)}`;
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
         });
@@ -531,18 +472,18 @@ export default function CoupleLudo({
 
     return (
         <div className="flex flex-col items-center max-w-xl mx-auto w-full px-2 sm:px-4 py-2 font-sans select-none animate-in fade-in duration-500">
-            {/* Top Bar Header */}
+            {/* Header */}
             <div className="w-full flex items-center justify-between gap-3 mb-2 px-1">
                 <div className="flex items-center gap-2">
-                    <span className="p-2 rounded-2xl bg-gradient-to-br from-red-500/20 via-yellow-500/20 to-green-500/20 border border-amber-500/30 text-amber-300">
-                        <Dices size={20} />
+                    <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-red-500 to-amber-500 border border-amber-400/40 text-white flex items-center justify-center font-black text-sm shadow">
+                        🎲
                     </span>
                     <div>
-                        <h2 className="text-base font-extrabold text-white flex items-center gap-1.5 tracking-wide">
+                        <h2 className="text-base font-black text-white flex items-center gap-1.5 tracking-wide">
                             Ludo King 1v1
                         </h2>
                         <p className="text-[11px] text-gray-400">
-                            Score — You: <strong className="text-rose-400">{myScore}</strong> • {partnerName}: <strong className="text-amber-400">{partnerScore}</strong>
+                            You: <strong className="text-red-400">{myScore}</strong> • {partnerName}: <strong className="text-amber-400">{partnerScore}</strong>
                         </p>
                     </div>
                 </div>
@@ -551,14 +492,14 @@ export default function CoupleLudo({
                     <button
                         onClick={() => setSoundEnabled(s => !s)}
                         className={`p-2 rounded-xl border transition-all ${soundEnabled ? 'bg-white/10 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}
-                        title={soundEnabled ? 'Mute Sounds' : 'Enable Sounds'}
+                        title={soundEnabled ? 'Mute' : 'Unmute'}
                     >
                         {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                     </button>
                     <button
                         onClick={handleReset}
                         className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/15 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow"
-                        title="New Round / Swap Colors"
+                        title="New Match"
                     >
                         <RotateCcw size={14} />
                         <span>Rematch</span>
@@ -566,21 +507,19 @@ export default function CoupleLudo({
                 </div>
             </div>
 
-            {/* ── PLAYER STATUS & DICE CONTROLS ─────────────────────── */}
+            {/* ── PLAYER CONTROL PANELS (YOU & PARTNER) ────────────────── */}
             <div className="w-full mb-2 grid grid-cols-2 gap-2">
-                {/* You (Player 1) */}
+                {/* You (Red) */}
                 <div
                     className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between ${
                         isMyTurn
-                            ? 'bg-gradient-to-r from-rose-950/70 to-black/60 border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                            ? 'bg-gradient-to-r from-red-950/80 to-black/70 border-red-500 ring-2 ring-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.35)]'
                             : 'bg-black/40 border-white/10 opacity-75'
                     }`}
                 >
                     <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-white shadow ${
-                            myColor === 'pink' ? 'bg-gradient-to-br from-rose-500 to-red-600' : 'bg-gradient-to-br from-amber-400 to-yellow-600'
-                        }`}>
-                            {myColor === 'pink' ? '🔴' : '🟡'}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                            🔴
                         </div>
                         <div>
                             <div className="text-xs font-bold text-white flex items-center gap-1">
@@ -599,23 +538,21 @@ export default function CoupleLudo({
                         onClick={handleRollDice}
                         disabled={!isMyTurn || rolling || !!currentDice || !!winner}
                         isTurn={isMyTurn && !currentDice && !winner}
-                        color={myColor}
+                        color="red"
                     />
                 </div>
 
-                {/* Partner (Player 2) */}
+                {/* Partner (Yellow) */}
                 <div
                     className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between ${
                         !isMyTurn
-                            ? 'bg-gradient-to-r from-amber-950/70 to-black/60 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                            ? 'bg-gradient-to-r from-amber-950/80 to-black/70 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
                             : 'bg-black/40 border-white/10 opacity-75'
                     }`}
                 >
                     <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs text-white shadow ${
-                            partnerColor === 'pink' ? 'bg-gradient-to-br from-rose-500 to-red-600' : 'bg-gradient-to-br from-amber-400 to-yellow-600'
-                        }`}>
-                            {partnerColor === 'pink' ? '🔴' : '🟡'}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                            🟡
                         </div>
                         <div>
                             <div className="text-xs font-bold text-white flex items-center gap-1">
@@ -633,231 +570,289 @@ export default function CoupleLudo({
                         rolling={false}
                         disabled={true}
                         isTurn={!isMyTurn && !currentDice && !winner}
-                        color={partnerColor}
+                        color="yellow"
                     />
                 </div>
             </div>
 
-            {/* Turn Status Guide Banner */}
-            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 flex items-center justify-between text-xs">
+            {/* Turn Announcement Banner */}
+            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center text-xs">
                 {winner ? (
-                    <span className="text-emerald-400 font-extrabold flex items-center gap-1.5 mx-auto">
-                        🏆 {winner === myColor ? 'Congratulations! You won the Ludo match!' : `${partnerName} won the match!`}
+                    <span className="text-emerald-400 font-black flex items-center gap-1.5 animate-bounce">
+                        🏆 {winner === myColor ? 'Victory! You won the Ludo match!' : `${partnerName} won the match!`}
                     </span>
                 ) : isMyTurn ? (
-                    <span className="text-amber-300 font-bold flex items-center gap-1 mx-auto animate-pulse">
-                        {currentDice ? `🎲 Rolled ${currentDice}! Tap a highlighted token to move.` : '✨ Your Turn! Tap your 3D Dice to roll.'}
+                    <span className="text-amber-300 font-extrabold flex items-center gap-1 animate-pulse">
+                        {currentDice ? `🎲 Rolled ${currentDice}! Tap a highlighted pawn to move.` : '✨ Your Turn! Tap your 3D Dice to roll.'}
                     </span>
                 ) : (
-                    <span className="text-gray-400 flex items-center gap-1.5 mx-auto">
+                    <span className="text-gray-400 flex items-center gap-1">
                         ⏳ Waiting for {partnerName} to roll...
                     </span>
                 )}
             </div>
 
-            {/* ── AUTHENTIC 15x15 LUDO BOARD ───────────────────────────── */}
-            <div className="relative p-2.5 rounded-3xl bg-[#1e1429] border-4 border-[#3a284c] shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
-                <div
-                    className="grid grid-cols-15 grid-rows-15 w-[min(92vw,430px)] h-[min(92vw,430px)] rounded-2xl overflow-hidden bg-white border-2 border-gray-400 relative shadow-2xl"
+            {/* ── 100% PURE VECTOR SVG AUTHENTIC LUDO BOARD (600x600) ──── */}
+            <div className="relative p-2 rounded-3xl bg-[#2a1b38] border-4 border-[#4c3263] shadow-[0_25px_60px_rgba(0,0,0,0.85)] max-w-full">
+                <svg
+                    viewBox="0 0 600 600"
+                    className="w-[min(92vw,430px)] h-[min(92vw,430px)] rounded-2xl shadow-2xl overflow-hidden"
                     style={{ touchAction: 'manipulation' }}
                 >
-                    {/* 1. Large Corner Quadrants (Bases) */}
-                    {/* Top-Left: RED BASE (6x6) */}
-                    <div
-                        className="absolute top-0 left-0 w-[40%] h-[40%] bg-gradient-to-br from-red-500 to-rose-600 border-r-2 border-b-2 border-gray-400 flex items-center justify-center p-3"
-                    >
-                        <div className="w-full h-full bg-white rounded-2xl shadow-inner grid grid-cols-2 grid-rows-2 p-2 gap-2 border border-red-300">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`red-slot-${i}`} className="rounded-full bg-red-100 border-2 border-red-500 shadow-inner flex items-center justify-center" />
-                            ))}
-                        </div>
-                    </div>
+                    <defs>
+                        {/* Standard Track Cell Template (40x40) */}
+                        <rect id="cell" width="40" height="40" fill="#ffffff" stroke="#1e293b" strokeWidth="1.2" />
 
-                    {/* Top-Right: GREEN BASE (6x6) */}
-                    <div
-                        className="absolute top-0 right-0 w-[40%] h-[40%] bg-gradient-to-bl from-emerald-500 to-green-600 border-l-2 border-b-2 border-gray-400 flex items-center justify-center p-3"
-                    >
-                        <div className="w-full h-full bg-white rounded-2xl shadow-inner grid grid-cols-2 grid-rows-2 p-2 gap-2 border border-green-300">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`green-slot-${i}`} className="rounded-full bg-green-100 border-2 border-green-500 shadow-inner flex items-center justify-center" />
-                            ))}
-                        </div>
-                    </div>
+                        {/* Star Symbol */}
+                        <g id="star">
+                            <path
+                                d="M 20,8 L 23.5,15.5 L 31.5,16.5 L 25.5,22 L 27,30 L 20,26 L 13,30 L 14.5,22 L 8.5,16.5 L 16.5,15.5 Z"
+                                fill="#eab308"
+                                stroke="#a16207"
+                                strokeWidth="0.8"
+                            />
+                        </g>
 
-                    {/* Bottom-Left: BLUE BASE (6x6) */}
-                    <div
-                        className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-gradient-to-tr from-blue-600 to-sky-500 border-r-2 border-t-2 border-gray-400 flex items-center justify-center p-3"
-                    >
-                        <div className="w-full h-full bg-white rounded-2xl shadow-inner grid grid-cols-2 grid-rows-2 p-2 gap-2 border border-blue-300">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`blue-slot-${i}`} className="rounded-full bg-blue-100 border-2 border-blue-500 shadow-inner flex items-center justify-center" />
-                            ))}
-                        </div>
-                    </div>
+                        {/* Head Gradients for 3D Pawns */}
+                        <radialGradient id="pawn-grad-pink" cx="35%" cy="35%" r="65%">
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                            <stop offset="35%" stopColor="#ff4d6d" />
+                            <stop offset="100%" stopColor="#800f2f" />
+                        </radialGradient>
+                        <radialGradient id="pawn-grad-blue" cx="35%" cy="35%" r="65%">
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                            <stop offset="35%" stopColor="#fde047" />
+                            <stop offset="100%" stopColor="#ca8a04" />
+                        </radialGradient>
+                    </defs>
 
-                    {/* Bottom-Right: YELLOW BASE (6x6) */}
-                    <div
-                        className="absolute bottom-0 right-0 w-[40%] h-[40%] bg-gradient-to-tl from-amber-500 to-yellow-400 border-l-2 border-t-2 border-gray-400 flex items-center justify-center p-3"
-                    >
-                        <div className="w-full h-full bg-white rounded-2xl shadow-inner grid grid-cols-2 grid-rows-2 p-2 gap-2 border border-yellow-300">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`yellow-slot-${i}`} className="rounded-full bg-yellow-100 border-2 border-amber-500 shadow-inner flex items-center justify-center" />
-                            ))}
-                        </div>
-                    </div>
+                    {/* Board Outer Boundary */}
+                    <rect x="0" y="0" width="600" height="600" fill="#ffffff" stroke="#0f172a" strokeWidth="4" />
 
-                    {/* 2. Central Home 4 Triangles (rows 6 to 8, cols 6 to 8 = 3x3 cells in exact center) */}
-                    <div className="absolute top-[40%] left-[40%] w-[20%] h-[20%] overflow-hidden border-2 border-gray-500 shadow-inner bg-slate-100">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                            {/* Left Triangle: Red */}
-                            <polygon points="0,0 50,50 0,100" fill="#e11d48" />
-                            {/* Top Triangle: Green */}
-                            <polygon points="0,0 100,0 50,50" fill="#059669" />
-                            {/* Right Triangle: Yellow */}
-                            <polygon points="100,0 100,100 50,50" fill="#f59e0b" />
-                            {/* Bottom Triangle: Blue */}
-                            <polygon points="0,100 50,50 100,100" fill="#2563eb" />
-                            {/* Golden Medallion in Center */}
-                            <circle cx="50" cy="50" r="14" fill="#fbbf24" stroke="#ffffff" strokeWidth="2" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <Crown size={16} className="text-amber-900 drop-shadow animate-pulse" />
-                        </div>
-                    </div>
+                    {/* ==================== 1. FOUR CORNER YARDS / BASES (6x6 each) ==================== */}
+                    {/* Top-Left: RED BASE */}
+                    <rect x="0" y="0" width="240" height="240" fill="#e74c3c" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="40" y="40" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+                    <circle cx="80" cy="80" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
+                    <circle cx="160" cy="80" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
+                    <circle cx="80" cy="160" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
+                    <circle cx="160" cy="160" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
 
-                    {/* 3. Render 15x15 Track Cells */}
-                    {Array.from({ length: 15 }).map((_, r) =>
-                        Array.from({ length: 15 }).map((_, c) => {
-                            // Skip quadrant base interiors & center 3x3 to avoid covering them
-                            const isBaseArea = (r < 6 && c < 6) || (r < 6 && c >= 9) || (r >= 9 && c < 6) || (r >= 9 && c >= 9);
-                            const isCenterArea = r >= 6 && r <= 8 && c >= 6 && c <= 8;
-                            if (isBaseArea || isCenterArea) return <div key={`${r}-${c}`} className="pointer-events-none" />;
+                    {/* Top-Right: GREEN BASE */}
+                    <rect x="360" y="0" width="240" height="240" fill="#2ecc71" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="400" y="40" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+                    <circle cx="440" cy="80" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
+                    <circle cx="520" cy="80" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
+                    <circle cx="440" cy="160" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
+                    <circle cx="520" cy="160" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
 
-                            // Red Arm specifics
-                            const isRedStart = r === 6 && c === 1;
-                            const isRedHomeStretch = r === 7 && c >= 1 && c <= 5;
-                            const isRedSafeStar = r === 8 && c === 2;
+                    {/* Bottom-Right: YELLOW BASE */}
+                    <rect x="360" y="360" width="240" height="240" fill="#f1c40f" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="400" y="400" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+                    <circle cx="440" cy="440" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
+                    <circle cx="520" cy="440" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
+                    <circle cx="440" cy="520" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
+                    <circle cx="520" cy="520" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
 
-                            // Green Arm specifics
-                            const isGreenStart = r === 1 && c === 8;
-                            const isGreenHomeStretch = c === 7 && r >= 1 && r <= 5;
-                            const isGreenSafeStar = r === 2 && c === 6;
+                    {/* Bottom-Left: BLUE BASE */}
+                    <rect x="0" y="360" width="240" height="240" fill="#3498db" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="40" y="400" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+                    <circle cx="80" cy="440" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
+                    <circle cx="160" cy="440" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
+                    <circle cx="80" cy="520" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
+                    <circle cx="160" cy="520" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
 
-                            // Yellow Arm specifics
-                            const isYellowStart = r === 8 && c === 13;
-                            const isYellowHomeStretch = r === 7 && c >= 9 && c <= 13;
-                            const isYellowSafeStar = r === 6 && c === 12;
+                    {/* ==================== 2. TRACK GRIDS ==================== */}
+                    {/* Left Arm (Cols 0-5, Rows 6-8: X 0-240, Y 240-360) */}
+                    <g transform="translate(0, 240)">
+                        {/* Row 6 */}
+                        <use href="#cell" x="0" y="0" />
+                        <use href="#cell" x="40" y="0" fill="#e74c3c" />{/* Red Start */}
+                        <use href="#cell" x="80" y="0" /><use href="#cell" x="120" y="0" /><use href="#cell" x="160" y="0" /><use href="#cell" x="200" y="0" />
 
-                            // Blue Arm specifics
-                            const isBlueStart = r === 13 && c === 6;
-                            const isBlueHomeStretch = c === 7 && r >= 9 && r <= 13;
-                            const isBlueSafeStar = r === 12 && c === 8;
+                        {/* Row 7 (Red Home Stretch) */}
+                        <use href="#cell" x="0" y="40" />
+                        <use href="#cell" x="40" y="40" fill="#e74c3c" /><use href="#cell" x="80" y="40" fill="#e74c3c" /><use href="#cell" x="120" y="40" fill="#e74c3c" /><use href="#cell" x="160" y="40" fill="#e74c3c" /><use href="#cell" x="200" y="40" fill="#e74c3c" />
 
-                            let cellBg = 'bg-white';
-                            let cellBorder = 'border border-gray-300';
-                            let icon = null;
+                        {/* Row 8 */}
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" /><use href="#cell" x="80" y="80" /><use href="#cell" x="120" y="80" /><use href="#cell" x="160" y="80" /><use href="#cell" x="200" y="80" />
+                    </g>
 
-                            // Colors for starting squares & home stretch
-                            if (isRedStart) {
-                                cellBg = 'bg-rose-500 text-white';
-                                icon = <span className="text-[11px] font-black drop-shadow">★</span>;
-                            } else if (isRedHomeStretch) {
-                                cellBg = 'bg-rose-500 text-white';
-                                if (c === 1) icon = <ArrowRight size={10} className="text-white drop-shadow" />;
-                            } else if (isGreenStart) {
-                                cellBg = 'bg-emerald-500 text-white';
-                                icon = <span className="text-[11px] font-black drop-shadow">★</span>;
-                            } else if (isGreenHomeStretch) {
-                                cellBg = 'bg-emerald-500 text-white';
-                                if (r === 1) icon = <ArrowDown size={10} className="text-white drop-shadow" />;
-                            } else if (isYellowStart) {
-                                cellBg = 'bg-amber-400 text-amber-900';
-                                icon = <span className="text-[11px] font-black drop-shadow">★</span>;
-                            } else if (isYellowHomeStretch) {
-                                cellBg = 'bg-amber-400 text-amber-900';
-                                if (c === 13) icon = <ArrowLeft size={10} className="text-amber-900 drop-shadow" />;
-                            } else if (isBlueStart) {
-                                cellBg = 'bg-blue-500 text-white';
-                                icon = <span className="text-[11px] font-black drop-shadow">★</span>;
-                            } else if (isBlueHomeStretch) {
-                                cellBg = 'bg-blue-500 text-white';
-                                if (r === 13) icon = <ArrowUp size={10} className="text-white drop-shadow" />;
-                            } else if (isRedSafeStar || isGreenSafeStar || isYellowSafeStar || isBlueSafeStar) {
-                                icon = <span className="text-amber-500 text-[12px] font-black drop-shadow-sm">★</span>;
-                            }
+                    {/* Top Arm (Cols 6-8, Rows 0-5: X 240-360, Y 0-240) */}
+                    <g transform="translate(240, 0)">
+                        <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" /><use href="#cell" x="80" y="0" />
+                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#2ecc71" /><use href="#cell" x="80" y="40" fill="#2ecc71" />{/* Green Start */}
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#2ecc71" /><use href="#cell" x="80" y="80" />
+                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#2ecc71" /><use href="#cell" x="80" y="120" />
+                        <use href="#cell" x="0" y="160" /><use href="#cell" x="40" y="160" fill="#2ecc71" /><use href="#cell" x="80" y="160" />
+                        <use href="#cell" x="0" y="200" /><use href="#cell" x="40" y="200" fill="#2ecc71" /><use href="#cell" x="80" y="200" />
+                    </g>
 
-                            return (
-                                <div
-                                    key={`${r}-${c}`}
-                                    className={`relative flex items-center justify-center ${cellBg} ${cellBorder}`}
-                                >
-                                    {icon}
-                                </div>
-                            );
-                        })
-                    )}
+                    {/* Right Arm (Cols 9-14, Rows 6-8: X 360-600, Y 240-360) */}
+                    <g transform="translate(360, 240)">
+                        {/* Row 6 */}
+                        <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" /><use href="#cell" x="80" y="0" /><use href="#cell" x="120" y="0" /><use href="#cell" x="160" y="0" /><use href="#cell" x="200" y="0" />
 
-                    {/* 4. OVERLAY TOKENS (PAWNS / GOTTIYAN) */}
+                        {/* Row 7 (Yellow Home Stretch) */}
+                        <use href="#cell" x="0" y="40" fill="#f1c40f" /><use href="#cell" x="40" y="40" fill="#f1c40f" /><use href="#cell" x="80" y="40" fill="#f1c40f" /><use href="#cell" x="120" y="40" fill="#f1c40f" /><use href="#cell" x="160" y="40" fill="#f1c40f" />
+                        <use href="#cell" x="200" y="40" />
+
+                        {/* Row 8 */}
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" /><use href="#cell" x="80" y="80" /><use href="#cell" x="120" y="80" />
+                        <use href="#cell" x="160" y="80" fill="#f1c40f" />{/* Yellow Start */}
+                        <use href="#cell" x="200" y="80" />
+                    </g>
+
+                    {/* Bottom Arm (Cols 6-8, Rows 9-14: X 240-360, Y 360-600) */}
+                    <g transform="translate(240, 360)">
+                        <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" fill="#3498db" /><use href="#cell" x="80" y="0" />
+                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#3498db" /><use href="#cell" x="80" y="40" />
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#3498db" /><use href="#cell" x="80" y="80" />
+                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#3498db" /><use href="#cell" x="80" y="120" />
+                        <use href="#cell" x="0" y="160" fill="#3498db" />{/* Blue Start */}
+                        <use href="#cell" x="40" y="160" fill="#3498db" /><use href="#cell" x="80" y="160" />
+                        <use href="#cell" x="0" y="200" /><use href="#cell" x="40" y="200" /><use href="#cell" x="80" y="200" />
+                    </g>
+
+                    {/* ==================== 3. CENTER HOME TRIANGLES (3x3: 240 to 360) ==================== */}
+                    <g transform="translate(240, 240)">
+                        <rect x="0" y="0" width="120" height="120" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+                        {/* Red Triangle (Left) */}
+                        <polygon points="0,0 60,60 0,120" fill="#e74c3c" stroke="#0f172a" strokeWidth="1.5" />
+                        {/* Green Triangle (Top) */}
+                        <polygon points="0,0 120,0 60,60" fill="#2ecc71" stroke="#0f172a" strokeWidth="1.5" />
+                        {/* Yellow Triangle (Right) */}
+                        <polygon points="120,0 120,120 60,60" fill="#f1c40f" stroke="#0f172a" strokeWidth="1.5" />
+                        {/* Blue Triangle (Bottom) */}
+                        <polygon points="0,120 60,60 120,120" fill="#3498db" stroke="#0f172a" strokeWidth="1.5" />
+
+                        {/* Golden Center Medallion */}
+                        <circle cx="60" cy="60" r="16" fill="#fbbf24" stroke="#ffffff" strokeWidth="2" />
+                        <text x="60" y="65" textAnchor="middle" fontSize="14" fill="#78350f" fontWeight="bold">👑</text>
+                    </g>
+
+                    {/* ==================== 4. 8 SAFE STARS ==================== */}
+                    {/* Red Start Star */}
+                    <use href="#star" x="40" y="240" />
+                    {/* Left Arm Safe Star */}
+                    <use href="#star" x="80" y="320" />
+
+                    {/* Green Start Star */}
+                    <use href="#star" x="320" y="40" />
+                    {/* Top Arm Safe Star */}
+                    <use href="#star" x="240" y="80" />
+
+                    {/* Yellow Start Star */}
+                    <use href="#star" x="520" y="320" />
+                    {/* Right Arm Safe Star */}
+                    <use href="#star" x="480" y="240" />
+
+                    {/* Blue Start Star */}
+                    <use href="#star" x="240" y="520" />
+                    {/* Bottom Arm Safe Star */}
+                    <use href="#star" x="320" y="480" />
+
+                    {/* Directional Arrows for Home Stretch */}
+                    <text x="45" y="295" fontSize="14" fill="#ffffff" fontWeight="bold">➜</text>
+                    <text x="545" y="295" fontSize="14" fill="#78350f" fontWeight="bold">⬅</text>
+                    <text x="295" y="45" fontSize="14" fill="#ffffff" fontWeight="bold">⬇</text>
+                    <text x="295" y="565" fontSize="14" fill="#ffffff" fontWeight="bold">⬆</text>
+
+                    {/* ==================== 5. 3D GLOSSY PAWNS (GOTTIYAN) ==================== */}
                     {allTokensOnBoard.map((item) => {
-                        const { isMe, color, tokenIdx, step, row, col } = item;
+                        const { isMe, color, tokenIdx, step, cx, cy } = item;
                         const canMove = isMe && isMyTurn && canTokenMove(step, currentDice);
 
-                        // Calculate dynamic offset if multiple tokens share this square
-                        let offsetX = 0;
-                        let offsetY = 0;
-                        let tokenScale = 1;
+                        // Multi-token stacking offsets
+                        let ox = 0;
+                        let oy = 0;
+                        let scale = 1;
 
                         if (step !== -1) {
-                            const key = `${Math.round(row * 10)}_${Math.round(col * 10)}`;
+                            const key = `${Math.round(cx)}_${Math.round(cy)}`;
                             const cluster = tokenOffsets[key] || [];
                             if (cluster.length > 1) {
-                                const indexInCluster = cluster.findIndex(
+                                const idxInCluster = cluster.findIndex(
                                     t => t.color === color && t.tokenIdx === tokenIdx
                                 );
-                                tokenScale = 0.72;
-                                if (indexInCluster === 0) { offsetX = -18; offsetY = -18; }
-                                else if (indexInCluster === 1) { offsetX = 18; offsetY = -18; }
-                                else if (indexInCluster === 2) { offsetX = -18; offsetY = 18; }
-                                else { offsetX = 18; offsetY = 18; }
+                                scale = 0.75;
+                                if (idxInCluster === 0) { ox = -8; oy = -8; }
+                                else if (idxInCluster === 1) { ox = 8; oy = -8; }
+                                else if (idxInCluster === 2) { ox = -8; oy = 8; }
+                                else { ox = 8; oy = 8; }
                             }
                         }
 
+                        const finalX = cx + ox;
+                        const finalY = cy + oy;
+                        const isRedPawn = color === 'pink';
+
                         return (
-                            <div
+                            <g
                                 key={`${color}-token-${tokenIdx}`}
+                                transform={`translate(${finalX}, ${finalY}) scale(${scale})`}
                                 onClick={() => isMe && handleMoveToken(tokenIdx)}
-                                className={`absolute z-30 transition-all duration-300 flex items-center justify-center ${
-                                    canMove ? 'z-50 cursor-pointer animate-bounce' : ''
-                                }`}
-                                style={{
-                                    width: 'calc(100% / 15)',
-                                    height: 'calc(100% / 15)',
-                                    top: `calc(${row} * 100% / 15)`,
-                                    left: `calc(${col} * 100% / 15)`,
-                                    transform: `translate(${offsetX}%, ${offsetY}%) scale(${tokenScale})`
-                                }}
+                                className={canMove ? 'cursor-pointer' : ''}
                             >
-                                <LudoPawn
-                                    color={color}
-                                    isClickable={canMove}
-                                    isOpponent={!isMe}
+                                {/* Highlight Pulsing Ring on Playable Pawn */}
+                                {canMove && (
+                                    <>
+                                        <circle cx="0" cy="0" r="22" fill="none" stroke="#facc15" strokeWidth="3" opacity="0.8" />
+                                        <circle cx="0" cy="0" r="26" fill="none" stroke="#facc15" strokeWidth="2" opacity="0.5" className="animate-ping" />
+                                    </>
+                                )}
+
+                                {/* Pawn Shadow */}
+                                <ellipse cx="0" cy="14" rx="14" ry="5" fill="#000000" opacity="0.35" />
+
+                                {/* Pawn Flared Base */}
+                                <ellipse
+                                    cx="0"
+                                    cy="11"
+                                    rx="13"
+                                    ry="4"
+                                    fill={isRedPawn ? '#c9184a' : '#d97706'}
+                                    stroke="#ffffff"
+                                    strokeWidth="1.5"
                                 />
-                            </div>
+
+                                {/* Pawn Stem */}
+                                <path
+                                    d="M -9,10 C -9,4 -4,0 -4,-3 L 4,-3 C 4,0 9,4 9,10 Z"
+                                    fill={isRedPawn ? '#ff4d6d' : '#facc15'}
+                                    stroke="#ffffff"
+                                    strokeWidth="1"
+                                />
+
+                                {/* Metallic Collar */}
+                                <ellipse cx="0" cy="-4" rx="5" ry="1.5" fill="#ffd700" stroke="#b45309" strokeWidth="0.5" />
+
+                                {/* Glossy Head */}
+                                <circle
+                                    cx="0"
+                                    cy="-11"
+                                    r="8"
+                                    fill={`url(#pawn-grad-${color})`}
+                                    stroke="#ffffff"
+                                    strokeWidth="1.2"
+                                />
+                                <circle cx="-2.5" cy="-13.5" r="2.5" fill="#ffffff" opacity="0.75" />
+                            </g>
                         );
                     })}
-                </div>
+                </svg>
             </div>
 
-            {/* Bottom Rules / Legend */}
-            <div className="w-full mt-2.5 p-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-[11px] text-gray-300">
+            {/* Bottom Rules Legend */}
+            <div className="w-full mt-2 p-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-[11px] text-gray-300">
                 <span className="flex items-center gap-1">
-                    <span className="text-amber-400 font-bold">★</span> Safe Star (No Cut)
+                    <span className="text-amber-400 font-bold">★</span> Safe Star
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="text-rose-400 font-bold">🎲 6</span> Opens Pawn & Extra Turn
+                    <span className="text-red-400 font-bold">🎲 6</span> Opens Pawn & Extra Roll
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="text-emerald-400 font-bold">⚡ Cut</span> Gives Bonus Roll
+                    <span className="text-emerald-400 font-bold">⚡ Cut</span> Gives Bonus Turn
                 </span>
             </div>
         </div>
