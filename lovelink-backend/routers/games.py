@@ -580,6 +580,8 @@ async def games_websocket(
 
                     if next_turn:
                         ludo_s["turn"] = next_turn
+                    ludo_s["dice"] = None
+                    ludo_s["dice"] = None
 
                     if winner:
                         ludo_s["winner"] = winner
@@ -601,6 +603,7 @@ async def games_websocket(
                 elif action == "pass_turn":
                     next_turn = "blue" if ludo_s["turn"] == "pink" else "pink"
                     ludo_s["turn"] = next_turn
+                    ludo_s["dice"] = None
                     await manager.broadcast(room, {
                         "type": "ludo_turn_passed",
                         "turn": next_turn,

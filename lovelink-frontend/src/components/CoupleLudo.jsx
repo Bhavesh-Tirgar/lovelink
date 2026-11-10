@@ -9,6 +9,9 @@ const playLudoSound = (type, soundEnabled = true) => {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext();
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
         const now = ctx.currentTime;
 
         if (type === 'dice') {
@@ -255,6 +258,8 @@ export default function CoupleLudo({
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [rolling, setRolling] = useState(false);
     const [diceDisplay, setDiceDisplay] = useState(ludoState?.dice || 6);
+    const [myLastDice, setMyLastDice] = useState(6);
+    const [partnerLastDice, setPartnerLastDice] = useState(6);
 
     // Color assignment: Pink/Red for Player 1, Blue/Yellow for Player 2
     const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : true;
@@ -281,6 +286,16 @@ export default function CoupleLudo({
 
     const currentDice = ludoState?.dice;
     const winner = ludoState?.winner;
+
+    useEffect(() => {
+        if (currentDice) {
+            if (turn === myColor) {
+                setMyLastDice(currentDice);
+            } else {
+                setPartnerLastDice(currentDice);
+            }
+        }
+    }, [currentDice, turn, myColor]);
 
     // Valid move logic:
     // - -1: in base, needs 6
@@ -533,7 +548,7 @@ export default function CoupleLudo({
                     </div>
 
                     <RealisticDice
-                        value={isMyTurn ? (currentDice || diceDisplay) : diceDisplay}
+                        value={isMyTurn ? (currentDice || (rolling ? diceDisplay : myLastDice)) : myLastDice}
                         rolling={rolling}
                         onClick={handleRollDice}
                         disabled={!isMyTurn || rolling || !!currentDice || !!winner}
@@ -566,7 +581,7 @@ export default function CoupleLudo({
                     </div>
 
                     <RealisticDice
-                        value={!isMyTurn ? (currentDice || diceDisplay) : diceDisplay}
+                        value={!isMyTurn ? (currentDice || partnerLastDice) : partnerLastDice}
                         rolling={false}
                         disabled={true}
                         isTurn={!isMyTurn && !currentDice && !winner}
@@ -794,6 +809,9 @@ export default function CoupleLudo({
                                 onClick={() => isMe && handleMoveToken(tokenIdx)}
                                 className={canMove ? 'cursor-pointer' : ''}
                             >
+                                {/* Full-area Touch Target Circle for Mobile Fingers */}
+                                <circle cx="0" cy="0" r="26" fill="#ffffff" opacity="0.001" />
+
                                 {/* Highlight Pulsing Ring on Playable Pawn */}
                                 {canMove && (
                                     <>
