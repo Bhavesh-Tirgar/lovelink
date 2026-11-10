@@ -19,15 +19,25 @@ class ConnectionManager:
                 del self.connections[couple_id]
 
     async def broadcast(self, couple_id: str, data: dict, exclude: WebSocket = None):
-        """Broadcast data to all connected partners in a couple"""
+        """Broadcast data to all connected partners in a couple, cleaning up dead sockets"""
         connections = self.connections.get(couple_id, [])
+        dead_sockets = []
+
         for connection in connections:
             if connection != exclude:
                 try:
                     await connection.send_json(data)
                 except Exception:
-                    # Client disconnected unexpectedly without ws.close()
-                    pass
+                    # Client disconnected abruptly (network drop, app closed)
+                    dead_sockets.append(connection)
+
+        # Evict dead sockets from memory to prevent RAM leak
+        if dead_sockets and couple_id in self.connections:
+            for dead in dead_sockets:
+                if dead in self.connections[couple_id]:
+                    self.connections[couple_id].remove(dead)
+            if not self.connections[couple_id]:
+                del self.connections[couple_id]
 
     async def send_personal(self, websocket: WebSocket, data: dict):
         try:

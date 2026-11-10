@@ -115,3 +115,28 @@ async def check_milestones():
                     print(f"Milestone notification generated for couple {couple.id} ({days} days)")
                     
         await db.commit()
+
+
+async def ping_keep_alive():
+    """Keeps the Render free tier awake by pinging its health endpoint every 12 minutes."""
+    import httpx
+    import os
+    base_url = os.getenv("API_BASE_URL", "https://lovelink-sfzx.onrender.com").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{base_url}/")
+            logger.info(f"Keep-alive ping to {base_url}/ -> status {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"Keep-alive ping notice: {e}")
+
+async def prune_stale_sessions():
+    """Evicts old game sessions from memory to prevent RAM exhaustion on 512MB hosts."""
+    try:
+        from routers.games import game_sessions
+        if len(game_sessions) > 40:
+            keys = list(game_sessions.keys())
+            for k in keys[:-20]:
+                game_sessions.pop(k, None)
+            logger.info("Evicted stale game sessions from memory")
+    except Exception as e:
+        logger.warning(f"Session prune notice: {e}")

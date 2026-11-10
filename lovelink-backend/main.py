@@ -28,7 +28,8 @@ from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
 from routers.music import router as music_router
-from scheduler.jobs import deliver_scheduled_notes, check_milestones
+from scheduler.jobs import deliver_scheduled_notes, check_milestones, ping_keep_alive, prune_stale_sessions
+from starlette.middleware.gzip import GZipMiddleware
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
@@ -44,6 +45,8 @@ async def lifespan(app: FastAPI):
         id="deliver_notes",
     )
     scheduler.add_job(check_milestones, "cron", hour=9, minute=0, timezone="Asia/Kolkata")
+    scheduler.add_job(ping_keep_alive, "interval", minutes=12, id="keep_alive")
+    scheduler.add_job(prune_stale_sessions, "interval", minutes=30, id="prune_sessions")
     scheduler.start()
     try:
         from database import engine, Base
@@ -81,6 +84,7 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=600,
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
