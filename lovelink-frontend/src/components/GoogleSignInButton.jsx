@@ -6,12 +6,13 @@ import toast from 'react-hot-toast';
 export default function GoogleSignInButton({ onError }) {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [gsiLoaded, setGsiLoaded] = useState(false);
     const googleBtnRef = useRef(null);
 
     const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
     const handleGoogleResponse = useCallback(async (response) => {
-        if (!response.credential) {
+        if (!response || !response.credential) {
             toast.error('Google sign in did not return credentials');
             return;
         }
@@ -45,71 +46,140 @@ export default function GoogleSignInButton({ onError }) {
         }
     }, [navigate, onError]);
 
+    // Handle OAuth2 redirect return (extracts id_token from URL hash)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const hash = window.location.hash;
+        if (hash && hash.includes('id_token=')) {
+            try {
+                const params = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
+                const idToken = params.get('id_token');
+                if (idToken) {
+                    window.history.replaceState(null, '', window.location.pathname);
+                    handleGoogleResponse({ credential: idToken });
+                }
+            } catch (e) {
+                console.error('Failed to parse OAuth redirect hash:', e);
+            }
+        }
+    }, [handleGoogleResponse]);
+
+    // Initialize Google Identity Services
     useEffect(() => {
         if (typeof window === 'undefined' || !clientId) return;
 
-        // If Google Identity script is loaded, initialize official button
-        const checkGoogle = () => {
-            if (window.google?.accounts?.id) {
-                try {
-                    window.google.accounts.id.initialize({
-                        client_id: clientId,
-                        callback: handleGoogleResponse,
-                        auto_select: false,
-                        cancel_on_tap_outside: true,
-                    });
+        let checkInterval = null;
+        let observer = null;
 
-                    if (googleBtnRef.current) {
-                        window.google.accounts.id.renderButton(googleBtnRef.current, {
-                            theme: 'filled_black',
-                            size: 'large',
-                            width: '100%',
-                            text: 'continue_with',
-                            shape: 'pill',
-                        });
+        const renderGoogleButton = () => {
+            if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+
+            try {
+                window.google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: handleGoogleResponse,
+                    auto_select: false,
+                    cancel_on_tap_outside: true,
+                });
+
+                // Google GSI requires width in pixels: integer between 200 and 400
+                const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 360;
+                const buttonWidth = Math.min(380, Math.max(220, Math.floor(screenWidth - 64)));
+
+                window.google.accounts.id.renderButton(googleBtnRef.current, {
+                    theme: 'filled_black',
+                    size: 'large',
+                    width: buttonWidth,
+                    text: 'continue_with',
+                    shape: 'pill',
+                });
+
+                // Check if Google successfully injected an iframe / button
+                setTimeout(() => {
+                    if (googleBtnRef.current && googleBtnRef.current.children.length > 0) {
+                        setGsiLoaded(true);
                     }
-                } catch (e) {
-                    console.warn('Google Identity initialization error:', e);
-                }
+                }, 400);
+            } catch (e) {
+                console.warn('Google Identity initialization error:', e);
             }
         };
 
         if (window.google?.accounts?.id) {
-            checkGoogle();
+            renderGoogleButton();
         } else {
-            const timer = setInterval(() => {
+            checkInterval = setInterval(() => {
                 if (window.google?.accounts?.id) {
-                    clearInterval(timer);
-                    checkGoogle();
+                    clearInterval(checkInterval);
+                    renderGoogleButton();
                 }
             }, 300);
-            return () => clearInterval(timer);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        return () => {
+            if (checkInterval) clearInterval(checkInterval);
+            if (observer) observer.disconnect();
+        };
     }, [clientId, handleGoogleResponse]);
+
+    const launchOAuthRedirect = () => {
+        if (!clientId) {
+            toast.error('Google Client ID not configured. Please use Email / Phone login.');
+            return;
+        }
+
+        setLoading(true);
+        const redirectUri = window.location.origin + window.location.pathname;
+        const nonce = Math.random().toString(36).substring(2, 15);
+        const scope = encodeURIComponent('openid email profile');
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${encodeURIComponent(clientId)}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&response_type=id_token` +
+            `&scope=${scope}` +
+            `&nonce=${nonce}` +
+            `&prompt=select_account`;
+
+        window.location.href = authUrl;
+    };
 
     const handleCustomClick = () => {
         if (!clientId) {
-            toast.error('Google Client ID not configured. Please add REACT_APP_GOOGLE_CLIENT_ID to .env or sign in with Email / Phone.');
+            toast.error('Google Sign-In is not configured. Please use Email or Phone login.');
             return;
         }
+
         if (window.google?.accounts?.id) {
-            window.google.accounts.id.prompt();
+            try {
+                window.google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        launchOAuthRedirect();
+                    }
+                });
+                return;
+            } catch (e) {
+                console.warn('Google prompt failed, falling back to redirect:', e);
+            }
         }
+
+        launchOAuthRedirect();
     };
 
     return (
         <div className="w-full flex flex-col items-center">
-            {/* Native Google One-Tap container (hidden if rendering custom styled button) */}
-            <div ref={googleBtnRef} className={clientId ? "w-full flex justify-center" : "hidden"} />
+            {/* Google Identity Services official container */}
+            <div
+                ref={googleBtnRef}
+                className={gsiLoaded ? "w-full flex justify-center min-h-[44px]" : "hidden"}
+            />
 
-            {/* Custom Modern Romantic Google Sign-In Button */}
-            {!clientId && (
+            {/* Custom Modern Romantic Google Sign-In Button (shown when GSI is loading or in WebView) */}
+            {!gsiLoaded && (
                 <button
                     type="button"
                     onClick={handleCustomClick}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-black/40 group"
+                    className="w-full max-w-[360px] flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-black/40 group disabled:opacity-50"
                 >
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                         <path
