@@ -5,12 +5,11 @@ import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, RefreshCw, 
-  Shirt, RotateCw, Heart, StickyNote, Image
+  Shirt, Heart, StickyNote, Image, Sparkles
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import SnapchatFriendshipProfile from '../components/SnapchatFriendshipProfile';
-import Snapchat3DCanvas from '../components/Snapchat3DCanvas';
+import Real3DAvatarStage from '../components/Real3DAvatarStage';
 import AvatarCreatorModal from '../components/AvatarCreatorModal';
 import AvatarWardrobeModal from '../components/AvatarWardrobeModal';
 import CoupleInteractionsModal from '../components/CoupleInteractionsModal';
@@ -19,7 +18,6 @@ export default function CozyRoom() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
-  const [activeTab, setActiveTab] = useState('snapchat'); // 'snapchat' | '3d_webgl'
   
   // Interactive Modals
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -70,7 +68,7 @@ export default function CozyRoom() {
         } else {
           setPartnerAvatar(data.avatar);
           confetti({ particleCount: 35, spread: 55, origin: { y: 0.6 } });
-          toast.success(data.message || 'Your partner changed their avatar! ✨');
+          toast.success(data.message || 'Your partner updated their 3D Avatar! ✨');
         }
       } else if (data.action === 'couple_interaction') {
         confetti({
@@ -103,7 +101,7 @@ export default function CozyRoom() {
       }
     } catch (err) {
       console.error('Failed to load room:', err);
-      toast.error('Could not load room');
+      toast.error('Could not load 3D studio');
     } finally {
       setLoading(false);
     }
@@ -175,10 +173,10 @@ export default function CozyRoom() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0f15] text-slate-100 pb-20 pt-4 px-3 sm:px-6 select-none flex flex-col items-center">
+    <div className="min-h-screen bg-[#090b10] text-slate-100 pb-20 pt-4 px-3 sm:px-6 select-none flex flex-col items-center">
       
       {/* 1. CLEAN APP HEADER */}
-      <div className="w-full max-w-lg flex items-center justify-between mb-3 z-30">
+      <div className="w-full max-w-xl flex items-center justify-between mb-3 z-30">
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all text-xs font-bold shadow-md"
@@ -189,12 +187,22 @@ export default function CozyRoom() {
 
         <div className="text-center">
           <h1 className="text-base sm:text-lg font-black tracking-tight flex items-center justify-center gap-1.5">
-            <span>Our Snapchat Stage</span>
-            <span className="text-amber-400">💛</span>
+            <span>3D Avatar Studio</span>
+            <span className="text-amber-400">✨</span>
           </h1>
+          <p className="text-[11px] text-slate-400 font-medium">Interactive 3D Characters • 360° View</p>
         </div>
 
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShow3DCreatorModal(true)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold shadow hover:scale-105 active:scale-95 transition-all"
+            title="Create 3D Avatar from Selfie"
+          >
+            <Sparkles size={13} className="text-yellow-300" />
+            <span className="hidden sm:inline">3D Selfie</span>
+          </button>
+
           <button
             onClick={() => setShowWardrobeModal(true)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold shadow hover:scale-105 active:scale-95 transition-all"
@@ -209,64 +217,24 @@ export default function CozyRoom() {
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
           <RefreshCw className="animate-spin text-amber-400" size={32} />
-          <p className="text-xs text-slate-400 font-semibold">Loading your 3D stage...</p>
+          <p className="text-xs text-slate-400 font-semibold">Initializing 3D WebGL Studio...</p>
         </div>
       ) : (
-        <div className="w-full max-w-lg flex flex-col items-center space-y-4">
+        <div className="w-full max-w-xl flex flex-col items-center space-y-4">
           
-          {/* 2. MODE TOGGLE: SNAPCHAT 3D STAGE vs 3D WEBGL SPIN */}
-          <div className="flex items-center justify-center">
-            <div className="flex items-center bg-black/75 backdrop-blur-xl p-1 rounded-full border border-white/15 shadow-2xl">
-              <button
-                onClick={() => setActiveTab('snapchat')}
-                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-                  activeTab === 'snapchat'
-                    ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-stone-950 shadow-md scale-[1.02]'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <span>💛</span>
-                <span>Snapchat 3D Stage</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('3d_webgl')}
-                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-                  activeTab === '3d_webgl'
-                    ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 text-white shadow-md scale-[1.02]'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <RotateCw size={12} />
-                <span>3D WebGL Spin 🔄</span>
-              </button>
-            </div>
+          {/* 2. REAL THREE.JS 3D AVATAR STAGE (NO 2D IMAGES, NO ROOM CLUTTER) */}
+          <div className="w-full flex justify-center animate-fadeIn">
+            <Real3DAvatarStage
+              myGlbUrl={myAvatar?.glb_url}
+              partnerGlbUrl={partnerAvatar?.glb_url}
+              myName={room?.my_name}
+              partnerName={room?.partner_name}
+              onOpenCreator={() => setShow3DCreatorModal(true)}
+            />
           </div>
 
-          {/* 3. MAIN STAGE VIEW */}
-          {activeTab === 'snapchat' ? (
-            <div className="w-full flex justify-center animate-fadeIn">
-              <SnapchatFriendshipProfile
-                myName={room?.my_name}
-                partnerName={room?.partner_name}
-                onOpenCreator={() => setShow3DCreatorModal(true)}
-                onOpen3DCanvas={() => setActiveTab('3d_webgl')}
-              />
-            </div>
-          ) : (
-            <div className="w-full bg-black/50 backdrop-blur-2xl p-4 sm:p-5 rounded-[36px] border border-white/15 shadow-2xl flex flex-col items-center animate-fadeIn">
-              <Snapchat3DCanvas
-                myGlb={myAvatar?.glb_url}
-                partnerGlb={partnerAvatar?.glb_url}
-                myName={room?.my_name}
-                partnerName={room?.partner_name}
-                onOpenCreator={() => setShow3DCreatorModal(true)}
-              />
-            </div>
-          )}
-
-          {/* 4. UTILITY ACTION HUBS (LOVE NOTES, MEMORIES, COUPLE ACTIONS) */}
-          <div className="grid grid-cols-3 gap-2 w-full pt-1">
+          {/* 3. UTILITY ACTION HUBS (LOVE NOTES, MEMORIES, COUPLE ACTIONS) */}
+          <div className="grid grid-cols-3 gap-2.5 w-full pt-1">
             <button
               onClick={() => setShowInteractionsModal(true)}
               className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex flex-col items-center text-center group active:scale-95"
