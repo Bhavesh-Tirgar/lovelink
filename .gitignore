@@ -1,20 +1,27 @@
+# Virtual Environments & Caches
 lovelink-backend/venv/
 **/__pycache__/
 **/*.pyc
-lovelink-backend/.env
-.env
-lovelink-frontend/node_modules/
-lovelink-frontend/build/
 .DS_Store
 *.log
 
+# Environment variables & secrets (Never commit real values)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 lovelink-backend/firebase_credentials.json
 lovelink-backend/append_firebase_env.py
 
 # Frontend dependencies and build files
+node_modules/
 **/node_modules/
+build/
 **/build/
 lovelink-frontend/*.log
 lovelink-frontend/*_log.txt
 
+# Cloud & tooling
 .cloudflare/
