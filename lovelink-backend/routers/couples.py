@@ -150,3 +150,40 @@ async def get_my_couple(
         partner=partner_summary,
     )
 
+
+
+@router.get("/partner-key")
+async def get_partner_public_key(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Fetches the linked partner's public key (JWK) for client-side ECDH shared secret derivation."""
+    result = await db.execute(
+        select(Couple).where(
+            or_(
+                Couple.user1_id == current_user.id,
+                Couple.user2_id == current_user.id,
+            ),
+            Couple.user2_id.is_not(None),
+        )
+    )
+    couple = result.scalars().first()
+    if not couple:
+        return {"linked": False, "partner_id": None, "public_key": None, "has_key": False}
+
+    partner_id = couple.user2_id if couple.user1_id == current_user.id else couple.user1_id
+    if not partner_id:
+        return {"linked": False, "partner_id": None, "public_key": None, "has_key": False}
+
+    res_partner = await db.execute(select(User).where(User.id == partner_id))
+    partner = res_partner.scalars().first()
+    if not partner:
+        return {"linked": False, "partner_id": None, "public_key": None, "has_key": False}
+
+    return {
+        "linked": True,
+        "partner_id": str(partner.id),
+        "partner_name": partner.name,
+        "public_key": partner.public_key,
+        "has_key": partner.public_key is not None,
+    }

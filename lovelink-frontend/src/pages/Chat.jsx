@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock, Lock } from 'lucide-react';
-import { encryptText, decryptText, isE2EEMessage } from '../utils/crypto';
+import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock, Lock, ShieldCheck } from 'lucide-react';
+import SafetyCodeModal from '../components/SafetyCodeModal';
+import { encryptText, decryptText, isE2EEMessage, initDeviceE2EEKey } from '../utils/crypto';
 import {
     getCachedMessages,
     saveMessagesToCache,
@@ -31,6 +32,7 @@ function Chat() {
     const [typingPartner, setTypingPartner] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [calling, setCalling] = useState(false);
+    const [showSafetyCode, setShowSafetyCode] = useState(false);
 
     const messagesEndRef = useRef(null);
     const listRef = useRef(null);
@@ -44,6 +46,7 @@ function Chat() {
     // Reset calling state on mount
     useEffect(() => {
         setCalling(false);
+        initDeviceE2EEKey().catch(console.error);
     }, []);
 
     // Instant offline cache load (0ms WhatsApp speed)
@@ -460,9 +463,14 @@ function Chat() {
                                 <p className="text-xs font-medium uppercase tracking-widest text-pink-300/80">
                                     {typingPartner ? 'typing...' : (isConnected ? 'Online' : 'Offline')}
                                 </p>
-                                <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">
-                                    <Lock size={9} /> E2EE
-                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSafetyCode(true)}
+                                    className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/25 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono transition cursor-pointer"
+                                    title="View E2EE Safety Code & Verify Keys"
+                                >
+                                    <ShieldCheck size={11} /> E2EE Verified
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -708,6 +716,7 @@ function Chat() {
 
                 </div>
             </div>
+            <SafetyCodeModal isOpen={showSafetyCode} onClose={() => setShowSafetyCode(false)} partnerName={partner?.name || 'Partner'} />
         </div>
     );
 }

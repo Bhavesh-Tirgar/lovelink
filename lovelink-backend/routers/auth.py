@@ -618,3 +618,51 @@ async def generate_websocket_ticket(
     from utils.tickets import create_ws_ticket
     ticket = create_ws_ticket(str(current_user.id), ttl_seconds=30)
     return {"ticket": ticket, "expires_in": 30}
+
+
+class PublicKeyUpdateRequest(BaseModel):
+    public_key: str
+
+
+class KeyBackupRequest(BaseModel):
+    encrypted_private_key: str
+
+
+@router.put("/e2ee/public-key")
+async def update_public_key(
+    payload: PublicKeyUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Stores the device ECDH P-256 public key (JWK format). Server never sees the private key."""
+    current_user.public_key = payload.public_key
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return {"saved": True, "public_key": current_user.public_key}
+
+
+@router.post("/e2ee/backup")
+async def save_encrypted_private_key_backup(
+    payload: KeyBackupRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Stores the client-side encrypted private key blob (wrapped by user PIN). Server cannot decrypt."""
+    current_user.encrypted_private_key = payload.encrypted_private_key
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return {"saved": True}
+
+
+@router.get("/e2ee/backup")
+async def get_encrypted_private_key_backup(
+    current_user: User = Depends(get_current_user)
+):
+    """Returns the encrypted private key bundle for new-device restoration."""
+    return {
+        "has_backup": current_user.encrypted_private_key is not None,
+        "encrypted_private_key": current_user.encrypted_private_key,
+        "public_key": current_user.public_key,
+    }
