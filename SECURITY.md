@@ -142,7 +142,31 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 - **Referrer-Policy**: `strict-origin-when-cross-origin`.
 - **Permissions-Policy**: Restricted to `camera=(self), microphone=(self), geolocation=(self)`.
 
-## 5. Known Limitations & Threat Model
+---
+
+## 5. Reliability, Uptime Monitoring & Storage Safeguards (Phase 5)
+
+### 🩺 Lightweight `/health` Endpoint & External Uptime Monitoring
+- **Dedicated Health Check**: FastAPI provides an ultra-lightweight `GET /health` endpoint that immediately returns `{"status": "ok", "service": "LoveLink Backend API"}` without running any database queries or consuming memory.
+- **Retirement of In-App Self-Ping**: The in-app self-pinging background job has been retired. Self-pinging inside a sleeping container cannot prevent a container from sleeping on free-tier platforms like Render once the host puts the container to sleep.
+- **External Pinger Setup Guide**:
+  To keep the Render free-tier service awake and responsive:
+  1. Create a free account on [UptimeRobot](https://uptimerobot.com) or [cron-job.org](https://cron-job.org).
+  2. Create a new HTTP monitor:
+     - **Monitor Type**: HTTP(s)
+     - **URL**: `https://<your-render-app>.onrender.com/health`
+     - **Monitoring Interval**: Every 10 minutes (Render sleep threshold is 15 minutes).
+     - **HTTP Method**: GET or HEAD.
+  3. This ensures the backend remains active without consuming container compute or running unnecessary internal loops.
+
+### 💾 Neon PostgreSQL 0.5 GiB Free Tier Storage Safeguard
+- **Zero Binary Blobs**: Verified across all database models (`media`, `movies`, `messages`, `love_notes`, `couple_rooms`, `users`). No columns use `BYTEA`, `LargeBinary`, or raw base64 image strings.
+- **Object Storage Architecture**:
+  - High-resolution photos, movie files, voice recordings, and thumbnails are stored externally in **Cloudflare R2** (S3-compatible object storage) or static `/uploads/` filesystem storage.
+  - The PostgreSQL database stores only lightweight string URL references (`file_url`, `photo_url`, `thumbnail_url`).
+  - This ensures that database storage remains in megabytes and never risks exceeding Neon's 0.5 GiB free tier ceiling.
+
+## 6. Known Limitations & Threat Model
 
 1. **Carrier SMS**: SMS OTP is not connected to a carrier gateway. Email OTP is currently the active, verified channel.
 2. **Device Compromise**: If an attacker gains full physical control or root/malware access to an unlocked phone, they may inspect active DOM state or memory.
@@ -150,17 +174,17 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 6. Security Roadmap
+## 7. Security Roadmap
 
 - [x] **Phase 0**: Secure `.gitignore`, untrack `.env.production`, add `.env.example` templates, audit git history.
 - [x] **Phase 1**: Real E2EE with ECDH P-256, IndexedDB non-extractable storage, `e2ee2:` format, 310k iteration PBKDF2 PIN recovery, Safety Code screen, and Secret Notes random salt vault.
 - [x] **Phase 2**: Client-side encryption for cycle logs, live location radar (15-min TTL), and mood notes with automated 30-day call log retention pruning.
 - [x] **Phase 3**: Rotating refresh tokens, token revocation, rate limiting on auth endpoints, and lockout protection.
 - [x] **Phase 4**: Restricted CORS origins, WebSocket token authentication and per-connection message rate limits, IDOR authorization checks on all REST routes.
-- [ ] **Phase 5**: Lightweight `/health` endpoint and documented external uptime pinger.
+- [x] **Phase 5**: Lightweight `/health` endpoint, documented external uptime pinger, and Neon PostgreSQL storage verification.
 
 ---
 
-## 7. Reporting a Vulnerability
+## 8. Reporting a Vulnerability
 
 If you discover a security issue or vulnerability in LoveLink, please open an issue or contact the repository maintainers directly.

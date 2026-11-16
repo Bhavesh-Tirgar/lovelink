@@ -175,3 +175,18 @@ Follow these step-by-step instructions to manually verify the security fixes and
     - `X-Frame-Options: SAMEORIGIN`
     - `Referrer-Policy: strict-origin-when-cross-origin`
     - `Content-Security-Policy`
+
+---
+
+## 9. Phase 5: Reliability & Storage Safeguards Verification
+
+- [ ] **Lightweight `/health` Endpoint**:
+  - Run `curl -i http://localhost:8000/health`:
+    - Verify response status: `HTTP/1.1 200 OK`.
+    - Verify body: `{"status":"ok","service":"LoveLink Backend API"}`.
+    - Confirm zero database queries are executed.
+- [ ] **External Uptime Pinger Configuration**:
+  - Verify external pinger (UptimeRobot / cron-job.org) can hit `https://<backend-url>/health` every 10 minutes.
+- [ ] **Neon PostgreSQL Storage Verification**:
+  - Verify `Media`, `Movie`, `Message`, and `LoveNote` tables only store URL strings (`VARCHAR`/`TEXT`), with no `BYTEA` or binary blobs.
+  - Upload a test photo in Chat or Albums: verify the file is stored in Cloudflare R2 / filesystem, and the database only stores the URL string.

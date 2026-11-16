@@ -29,7 +29,7 @@ from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
 from routers.music import router as music_router
-from scheduler.jobs import deliver_scheduled_notes, check_milestones, ping_keep_alive, prune_stale_sessions, prune_stale_sensitive_data
+from scheduler.jobs import deliver_scheduled_notes, check_milestones, prune_stale_sessions, prune_stale_sensitive_data
 from starlette.middleware.gzip import GZipMiddleware
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -46,7 +46,6 @@ async def lifespan(app: FastAPI):
         id="deliver_notes",
     )
     scheduler.add_job(check_milestones, "cron", hour=9, minute=0, timezone="Asia/Kolkata")
-    scheduler.add_job(ping_keep_alive, "interval", minutes=12, id="keep_alive")
     scheduler.add_job(prune_stale_sessions, "interval", minutes=30, id="prune_sessions")
     scheduler.add_job(prune_stale_sensitive_data, "interval", hours=1, id="prune_sensitive_data")
     scheduler.start()
@@ -191,7 +190,11 @@ async def root():
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return PlainTextResponse("OK", status_code=200, headers={"Content-Length": "2"})
+    """Lightweight, unauthenticated health check endpoint for external uptime pingers (UptimeRobot, cron-job.org)."""
+    return JSONResponse(
+        status_code=200,
+        content={"status": "ok", "service": "LoveLink Backend API"}
+    )
 
 @app.api_route("/ping", methods=["GET", "HEAD"])
 async def ping():
