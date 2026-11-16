@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import FriendmojiCouple from '../components/FriendmojiCouple';
+import Studio3DStage from '../components/Studio3DStage';
+import AvatarCreatorModal from '../components/AvatarCreatorModal';
 import AvatarWardrobeModal from '../components/AvatarWardrobeModal';
 import CoupleInteractionsModal from '../components/CoupleInteractionsModal';
 
@@ -25,6 +26,7 @@ export default function CozyRoom() {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [showInteractionsModal, setShowInteractionsModal] = useState(false);
+  const [show3DCreatorModal, setShow3DCreatorModal] = useState(false);
 
   // Avatar & Couple State
   const [myAvatar, setMyAvatar] = useState({
@@ -273,15 +275,7 @@ export default function CozyRoom() {
     }
   };
 
-  const actionLabels = {
-    hug: { label: 'Warm Hug', emoji: '🤗', note: 'Embracing each other warmly' },
-    kiss: { label: 'Sweet Kiss', emoji: '💋', note: 'Sharing a tender kiss' },
-    hand_hold: { label: 'Holding Hands', emoji: '🤝', note: 'Holding hands closely' },
-    dance: { label: 'Slow Dancing', emoji: '💃', note: 'Dancing to the vinyl' },
-    spoon: { label: 'Tucked In & Cuddling', emoji: '🛌', note: 'Cozy nap under the duvet' },
-    toast: { label: 'Coffee Toast', emoji: '☕', note: 'Enjoying morning coffee' },
-    couch: { label: 'Lounging on Couch', emoji: '🛋️', note: 'Relaxing side-by-side' },
-  };
+
 
   return (
     <div className={`min-h-screen ${isNightMode ? 'bg-[#0f1115] text-slate-100' : 'bg-[#f7f5f0] text-stone-800'} transition-colors duration-700 pb-28 pt-4 px-3 sm:px-6 select-none`}>
@@ -406,7 +400,7 @@ export default function CozyRoom() {
 
             {/* A. WARDROBE RACK (Interactive element on the left wall) */}
             <div 
-              onClick={() => setShowWardrobeModal(true)}
+              onClick={() => setShow3DCreatorModal(true)}
               className="absolute top-1/2 -translate-y-8 left-3 sm:left-6 cursor-pointer group flex flex-col items-center z-10"
               title="Click to open Wardrobe"
             >
@@ -414,50 +408,22 @@ export default function CozyRoom() {
                 <span className="text-xl sm:text-2xl">👗</span>
                 <span className="text-[8px] font-bold mt-0.5">Wardrobe</span>
               </div>
-              <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-pink-500 text-white font-bold shadow-sm mt-1 animate-pulse">
-                Dress Up ✨
+              <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold shadow-sm mt-1 animate-pulse">
+                3D Studio ✨
               </span>
             </div>
 
-            {/* B. MAIN INTERACTIVE STAGE: SNAPCHAT 3D FRIENDMOJI COUPLE */}
-            <div className="absolute bottom-8 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
-              
-              {/* Couple Action Floating Status Pill */}
-              <div 
-                onClick={() => setShowInteractionsModal(true)}
-                className={`mb-2 px-3.5 py-1 rounded-full cursor-pointer group transition-all transform hover:scale-105 flex items-center gap-1.5 shadow-lg border ${
-                  coupleAction === 'hug'
-                    ? 'bg-rose-500 text-white border-rose-400'
-                    : coupleAction === 'kiss'
-                    ? 'bg-pink-600 text-white border-pink-400'
-                    : coupleAction === 'dance'
-                    ? 'bg-purple-600 text-white border-purple-400'
-                    : coupleAction === 'spoon'
-                    ? 'bg-indigo-600 text-white border-indigo-400'
-                    : coupleAction === 'toast'
-                    ? 'bg-emerald-600 text-white border-emerald-400'
-                    : isNightMode
-                    ? 'bg-slate-900/95 text-amber-300 border-slate-700'
-                    : 'bg-white/95 text-stone-800 border-stone-300'
-                }`}
-              >
-                <span className="text-xs">{actionLabels[coupleAction]?.emoji || '💕'}</span>
-                <span className="text-[10px] font-bold">
-                  {actionLabels[coupleAction]?.label || 'Lounging Together'}
-                </span>
-                <span className="text-[9px] opacity-80 underline underline-offset-2 ml-1">Change 💕</span>
-              </div>
-
-              {/* SNAPCHAT 3D BITMOJI FRIENDMOJI COUPLE STAGE */}
-              <FriendmojiCouple
-                action={coupleAction}
+            {/* B. MAIN INTERACTIVE STAGE: 3D MOVABLE READY PLAYER ME & BITMOJI STUDIO */}
+            <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center w-full px-2">
+              <Studio3DStage
+                coupleAction={coupleAction}
                 myAvatar={myAvatar}
                 partnerAvatar={partnerAvatar}
                 myName={room?.my_name}
                 partnerName={room?.partner_name}
                 isNightMode={isNightMode}
-                onAvatarClick={() => setShowWardrobeModal(true)}
-                onActionClick={() => setShowInteractionsModal(true)}
+                onOpenCreator={() => setShow3DCreatorModal(true)}
+                onOpenInteractions={() => setShowInteractionsModal(true)}
               />
             </div>
 
@@ -784,6 +750,21 @@ export default function CozyRoom() {
         onClose={() => setShowInteractionsModal(false)}
         partnerName={room?.partner_name}
         onInteractionTriggered={(action) => setCoupleAction(action)}
+      />
+
+      {/* ============================================================== */}
+      {/* 5. READY PLAYER ME 3D AVATAR CREATOR MODAL (Selfie to 3D) */}
+      {/* ============================================================== */}
+      <AvatarCreatorModal
+        isOpen={show3DCreatorModal}
+        onClose={() => setShow3DCreatorModal(false)}
+        onAvatarSaved={(updated) => {
+          setMyAvatar(prev => ({
+            ...prev,
+            ...updated,
+            glb_url: updated.glb_url || updated.avatar_url
+          }));
+        }}
       />
     </div>
   );
