@@ -195,12 +195,15 @@ export default function FriendmojiCouple({
             title="Click to customize your Bitmoji"
           >
             {/* If users have the default Snap avatars, render the authentic Snapchat coffee toast sticker! */}
-            {(myAvatar?.avatar_url === '/assets/avatars/snap_me.png' && partnerAvatar?.avatar_url === '/assets/avatars/snap_partner.png') ? (
-              <img
-                src="/assets/avatars/snap_couple.png"
-                alt="Snapchat Couple"
-                className="h-44 sm:h-52 object-contain drop-shadow-xl"
-              />
+            {(myAvatar?.avatar_url?.includes('snap_') || partnerAvatar?.avatar_url?.includes('snap_')) ? (
+              <div className="flex flex-col items-center">
+                <img
+                  src="/assets/avatars/snap_couple_hd.png"
+                  alt="Snapchat Couple"
+                  className="h-64 sm:h-80 md:h-88 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+                />
+                <div className="w-48 sm:w-64 h-3.5 mx-auto bg-black/25 blur-sm rounded-full -mt-2 mb-1" />
+              </div>
             ) : (
               <div className="flex items-center justify-center gap-3">
                 <div className="flex flex-col items-center z-20">
@@ -235,20 +238,25 @@ export default function FriendmojiCouple({
             className="cursor-pointer hover:scale-105 transition-transform flex items-center justify-center"
             title="Click to customize your Bitmoji"
           >
-            {(myAvatar?.avatar_url === '/assets/avatars/snap_me.png' && partnerAvatar?.avatar_url === '/assets/avatars/snap_partner.png') ? (
-              <div className="flex flex-col items-center">
-                <img
-                  src="/assets/avatars/snap_couple.png"
-                  alt="Snapchat Couple"
-                  className="h-44 sm:h-52 object-contain drop-shadow-xl"
-                />
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {myName}
+            {/* Default Snapchat Bitmoji Couple in HD - Full & Prominent */}
+            {(myAvatar?.avatar_url?.includes('snap_') || partnerAvatar?.avatar_url?.includes('snap_')) ? (
+              <div className="flex flex-col items-center group">
+                <div className="relative">
+                  <img
+                    src="/assets/avatars/snap_couple_hd.png"
+                    alt="Snapchat Couple"
+                    className="h-64 sm:h-80 md:h-88 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {/* Soft 3D Ground Shadow */}
+                  <div className="w-48 sm:w-64 h-3.5 mx-auto bg-black/25 blur-sm rounded-full -mt-2 mb-1" />
+                </div>
+                <div className="flex items-center gap-3 mt-1 bg-black/50 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/10 shadow-lg">
+                  <span className="text-xs font-bold text-amber-300">
+                    {partnerName} ☕
                   </span>
-                  <span className="text-xs text-rose-500">❤️</span>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {partnerName}
+                  <span className="text-xs text-rose-400">❤️</span>
+                  <span className="text-xs font-bold text-amber-300">
+                    {myName} ☕
                   </span>
                 </div>
               </div>

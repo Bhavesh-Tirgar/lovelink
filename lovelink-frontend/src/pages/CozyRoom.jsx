@@ -337,7 +337,7 @@ export default function CozyRoom() {
           {/* ============================================================== */}
           {/* THE REAL AESTHETIC STUDIO ROOM (Architectural Perspective) */}
           {/* ============================================================== */}
-          <div className={`relative w-full aspect-[4/3] sm:aspect-[16/10] max-h-[540px] rounded-3xl overflow-hidden border ${isNightMode ? 'border-white/10 bg-[#161920] shadow-[0_25px_60px_rgba(0,0,0,0.8)]' : 'border-stone-200 bg-[#ede8df] shadow-[0_20px_50px_rgba(0,0,0,0.08)]'}`}>
+          <div className={`relative w-full aspect-[4/3] sm:aspect-[16/10] min-h-[460px] sm:min-h-[540px] max-h-[620px] rounded-3xl overflow-hidden border ${isNightMode ? 'border-white/10 bg-[#161920] shadow-[0_25px_60px_rgba(0,0,0,0.8)]' : 'border-stone-200 bg-[#ede8df] shadow-[0_20px_50px_rgba(0,0,0,0.08)]'}`}>
             
             {/* 1. ROOM ARCHITECTURE (Clean Walls & French Windows) */}
             <div className="absolute inset-0 flex flex-col pointer-events-none">
