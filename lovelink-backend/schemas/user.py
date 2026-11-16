@@ -74,6 +74,10 @@ class TokenResponse(BaseModel):
     token_type: str
     user: UserResponse
     couple_id: str | None = None
+    refresh_token: str | None = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 class GoogleAuthRequest(BaseModel):

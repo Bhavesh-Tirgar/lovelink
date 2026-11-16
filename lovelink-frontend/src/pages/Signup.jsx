@@ -140,6 +140,7 @@ function Signup() {
       });
       const { access_token, user } = res.data;
       window.localStorage.setItem('token', access_token);
+      if (res.data.refresh_token) window.localStorage.setItem('refresh_token', res.data.refresh_token);
       window.localStorage.setItem('user', JSON.stringify(user));
       navigate('/link');
     } catch (err) {

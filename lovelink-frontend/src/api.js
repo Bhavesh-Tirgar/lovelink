@@ -20,17 +20,84 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest?._retry) {
       if (typeof window !== 'undefined') {
+        const refreshToken = window.localStorage.getItem('refresh_token');
         const path = window.location.pathname;
-        window.localStorage.removeItem('token');
-        window.localStorage.removeItem('user');
-        // Prevent infinite reload loops if already on login/signup page!
-        if (path !== '/login' && path !== '/signup') {
-          window.location.replace('/login');
+
+        // Skip refresh attempts for auth routes or missing refresh token
+        if (
+          !refreshToken ||
+          originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/signup') ||
+          originalRequest.url?.includes('/auth/refresh')
+        ) {
+          window.localStorage.removeItem('token');
+          window.localStorage.removeItem('refresh_token');
+          window.localStorage.removeItem('user');
+          if (path !== '/login' && path !== '/signup') {
+            window.location.replace('/login');
+          }
+          return Promise.reject(error);
+        }
+
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers['Authorization'] = `Bearer ${token}`;
+              return api(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const baseURL = api.defaults.baseURL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+          const res = await axios.post(`${baseURL}/auth/refresh`, {
+            refresh_token: refreshToken,
+          });
+          const { access_token, refresh_token: newRefreshToken } = res.data;
+          window.localStorage.setItem('token', access_token);
+          if (newRefreshToken) {
+            window.localStorage.setItem('refresh_token', newRefreshToken);
+          }
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+          originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
+          processQueue(null, access_token);
+          return api(originalRequest);
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          window.localStorage.removeItem('token');
+          window.localStorage.removeItem('refresh_token');
+          window.localStorage.removeItem('user');
+          if (path !== '/login' && path !== '/signup') {
+            window.location.replace('/login');
+          }
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
         }
       }
     }

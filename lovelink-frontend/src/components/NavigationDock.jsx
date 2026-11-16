@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, MessageCircle, Droplets, HeartHandshake, CalendarClock, Camera, Film, Ticket, ListTodo, Heart, LogOut, Headphones, Gamepad2, Flame, Sparkles } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
+import api from '../api';
 
 export default function NavigationDock() {
     const navigate = useNavigate();
@@ -26,9 +27,18 @@ export default function NavigationDock() {
         { name: 'Countdowns', path: '/countdowns', icon: CalendarClock },
     ];
 
-    const handleLogout = () => {
-        window.localStorage.clear();
-        navigate('/login', { replace: true });
+    const handleLogout = async () => {
+        const refreshToken = window.localStorage.getItem('refresh_token');
+        try {
+            if (refreshToken) {
+                await api.post('/auth/logout', { refresh_token: refreshToken });
+            }
+        } catch (e) {
+            // Ignore network errors on logout
+        } finally {
+            window.localStorage.clear();
+            navigate('/login', { replace: true });
+        }
     };
 
     // Hide dock on unauthenticated pages or fullscreen/focused routes

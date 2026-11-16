@@ -72,13 +72,44 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 3. Authentication & Credential Security
-
-- **Passwords**: One-way hashed using **Bcrypt (12 salt rounds)**.
-- **One-Time Passwords (OTP)**: 6-digit numeric codes with a 5-minute time-to-live (TTL) delivered via Gmail Secure SMTP over SSL (Port 465).
-- **Google OAuth**: Verified server-side via Google's tokeninfo API. Android WebView configured with a Mobile Chrome user-agent override and third-party cookie support to prevent `403 disallowed_useragent` blocks.
-
 ---
+
+## 3. Authentication & Credential Security (Phase 3 Hardened)
+
+### 🔑 JWT Access & Rotating Refresh Tokens
+- **Access Tokens**: Short-lived (30 minutes). Encoded using HMAC-SHA256 with strong environment-configured `SECRET_KEY`.
+- **Refresh Tokens**: Long-lived (30 days) cryptographically random 64-byte URL-safe strings (`secrets.token_urlsafe(64)`).
+- **Hashed Database Storage**: Only SHA-256 hashes of refresh tokens are stored in the database (`refresh_tokens.token_hash`). If the database is compromised, plaintext refresh tokens cannot be recovered.
+- **Strict Single-Use Rotation**: Every `/auth/refresh` request revokes the presented refresh token and issues a brand-new token pair. Replaying an old refresh token is immediately rejected.
+- **Revocation & Logout**:
+  - `/auth/logout`: Revokes the current session's refresh token.
+  - `/auth/logout-all`: Revokes all active refresh tokens for the authenticated user across all devices.
+  - Password Reset: Automatically revokes all existing refresh tokens.
+
+### 📱 Token Storage Architecture & Trade-Offs
+- **Web vs Mobile Environment**:
+  - LoveLink runs across a decoupled frontend (`lovelink-pearl.vercel.app`), a hosted FastAPI backend (`lovelink-backend.onrender.com`), and an Android APK built with Capacitor.
+  - Cross-domain `httpOnly` cookies between separate domains (Vercel and Render) face aggressive third-party cookie blocking on modern mobile WebViews and Safari ITP.
+  - Inside the Capacitor Android APK, requests originate from `http://localhost` or `capacitor://localhost`, where cookie jars are frequently cleared during background OS memory eviction.
+  - **Selected Approach**: Access and refresh tokens are managed via the Axios API client with an automatic 401 refresh interceptor and stored in isolated client storage. On 401, pending requests are queued while `/auth/refresh` seamlessly acquires a new access token without user disruption.
+
+### 🔢 One-Time Passwords (OTP)
+- **Generation**: Cryptographically secure 6-digit codes generated using `secrets.randbelow(900000) + 100000`.
+- **Hash-Only Storage**: The server stores only the SHA-256 hash (`user.otp_code = hash_otp(raw_otp)`). The raw OTP is never stored in the database.
+- **5-Minute TTL Expiration**: Codes expire and are wiped after 5 minutes.
+- **Brute-Force & Attempt Limiting**: Maximum 5 attempts allowed. If 5 incorrect codes are entered, the OTP is immediately destroyed and the user must request a new code.
+- **Constant-Time Verification**: Verification uses `hmac.compare_digest` to prevent timing attacks.
+- **Immediate Invalidation**: Once verified, the OTP is instantly set to `NULL` to prevent replay attacks.
+- **Rate-Limiting & Cooldown**: A 30-second cooldown is enforced between OTP requests (`otp_sent_at`).
+
+### 🛡️ Login Hardening & Account Lockout
+- **Account Lockout**: 5 consecutive failed password attempts trigger a **15-minute temporary lockout** (`locked_until`).
+- **Timing Attack Mitigation**: When a non-existent identifier is submitted, constant-time dummy password hashing runs to equalize response time.
+- **Anti-Enumeration**: Login, OTP verification, and password reset endpoints return generic error messages ("Invalid email or password", "If this account exists, a code has been sent") to prevent user enumeration.
+
+### 🌐 Cryptographic Google OAuth Verification
+- Google ID tokens are verified server-side using the official `google-auth` library (`google.oauth2.id_token.verify_oauth2_token`).
+- Verifies cryptographic signature using Google's live public keys, validates token audience (Client ID), issuer (`accounts.google.com`), and expiry timestamp. Raw unverified claims and external HTTP tokeninfo proxies are no longer trusted.
 
 ## 4. Known Limitations & Threat Model
 
@@ -93,7 +124,7 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 - [x] **Phase 0**: Secure `.gitignore`, untrack `.env.production`, add `.env.example` templates, audit git history.
 - [x] **Phase 1**: Real E2EE with ECDH P-256, IndexedDB non-extractable storage, `e2ee2:` format, 310k iteration PBKDF2 PIN recovery, Safety Code screen, and Secret Notes random salt vault.
 - [x] **Phase 2**: Client-side encryption for cycle logs, live location radar (15-min TTL), and mood notes with automated 30-day call log retention pruning.
-- [ ] **Phase 3**: Rotating refresh tokens, token revocation, rate limiting on auth endpoints, and lockout protection.
+- [x] **Phase 3**: Rotating refresh tokens, token revocation, rate limiting on auth endpoints, and lockout protection.
 - [ ] **Phase 4**: Restricted CORS origins, WebSocket token authentication and per-connection message rate limits, IDOR authorization checks on all REST routes.
 - [ ] **Phase 5**: Lightweight `/health` endpoint and documented external uptime pinger.
 

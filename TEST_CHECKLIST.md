@@ -109,3 +109,41 @@ Follow these step-by-step instructions to manually verify the security fixes and
 - [ ] **Call Log Retention Pruning**:
   - Verify backend scheduler job `prune_stale_sensitive_data` is registered.
   - Query `calls` table: verify call records older than 30 days are automatically deleted.
+
+---
+
+## 7. Phase 3: Auth Hardening & Token Rotation Verification
+
+- [ ] **Access & Refresh Token Issuance**:
+  - Perform login or verify OTP.
+  - Open DevTools -> **Application** tab -> **Local Storage**.
+  - Verify both `token` (30-min access token) and `refresh_token` (64-character token) are present.
+- [ ] **Transparent Token Refresh on 401**:
+  - In DevTools -> **Console**, invalidate the access token manually:
+    `localStorage.setItem('token', 'invalid_expired_token')`
+  - Navigate to `/notes` or trigger any API call.
+  - In DevTools -> **Network** tab:
+    - Observe the initial 401 response.
+    - Observe automatic request to `POST /auth/refresh` sending `{ refresh_token: "..." }`.
+    - Observe 200 response with new `access_token` and rotated `refresh_token`.
+    - Observe the original request being retried and succeeding without user interruption or page reload.
+- [ ] **Refresh Token Rotation & Single-Use Enforcement**:
+  - Attempt to send the old, used `refresh_token` to `POST /auth/refresh` via Postman or curl.
+  - Verify the server rejects it with `401 Invalid refresh token`.
+- [ ] **User Logout & Token Revocation**:
+  - In the navigation dock, click **Logout**.
+  - Inspect DevTools -> **Network** tab: verify `POST /auth/logout` is called with the current `refresh_token`.
+  - Verify local storage is cleared and redirected to `/login`.
+  - In the database, verify the corresponding row in `refresh_tokens` has `revoked = true`.
+- [ ] **OTP 5-Attempt Lockout & Invalidation**:
+  - Request an OTP on `/login`.
+  - Enter an incorrect OTP 5 times.
+  - On the 5th attempt, verify error: *"Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."*
+  - In the database, verify `user.otp_code` has been wiped to `NULL`.
+- [ ] **Login Lockout Protection**:
+  - On `/login`, enter an existing email with an incorrect password 5 times.
+  - On the 5th attempt, verify the account is locked for 15 minutes.
+  - Attempt a 6th login: verify error: *"Account temporarily locked due to repeated failed attempts. Please try again in 15 minutes."*
+- [ ] **Generic Error Anti-Enumeration**:
+  - Submit login with a non-existent email address.
+  - Verify response returns `401 Invalid email or password` (no revelation that the email does not exist).

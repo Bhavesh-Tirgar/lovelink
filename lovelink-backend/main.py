@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS encrypted_private_key TEXT"))
                 await conn.execute(text("ALTER TABLE cycle_logs ADD COLUMN IF NOT EXISTS encrypted_payload TEXT"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_attempts INTEGER DEFAULT 0"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_sent_at TIMESTAMP"))
             except Exception as me:
                 print(f"Column migration notice: {me}")
     except Exception as e:

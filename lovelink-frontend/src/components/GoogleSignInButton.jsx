@@ -27,6 +27,7 @@ export default function GoogleSignInButton({ onError }) {
             const activeCoupleId = couple_id || user?.couple_id;
 
             window.localStorage.setItem('token', access_token);
+            if (res.data.refresh_token) window.localStorage.setItem('refresh_token', res.data.refresh_token);
             window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
             if (activeCoupleId) {
                 window.localStorage.setItem('couple_id', activeCoupleId);
