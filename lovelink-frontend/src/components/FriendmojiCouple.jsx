@@ -182,29 +182,41 @@ export default function FriendmojiCouple({
       {/* ======================================================== */}
       {/* 6. COFFEE TOAST (Morning coffee clinking mugs) */}
       {action === 'toast' && (
-        <div className="relative flex items-center justify-center gap-3 mb-2">
+        <div className="relative flex flex-col items-center justify-center mb-2">
           <div className="absolute -top-6 flex items-center gap-2 text-amber-500 animate-bounce pointer-events-none z-30">
             <span className="text-base">☕</span>
-            <span className="text-xs font-bold bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-300">Cheers! ✨</span>
+            <span className="text-xs font-bold bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-300">Coffee Toast! ✨</span>
             <span className="text-base">☕</span>
           </div>
 
           <div 
             onClick={onAvatarClick}
-            className="hover:scale-105 transition-transform cursor-pointer flex flex-col items-center z-20"
+            className="cursor-pointer hover:scale-105 transition-transform flex flex-col items-center"
             title="Click to customize your Bitmoji"
           >
-            <BitmojiAvatar {...myAvatar} expression="smile" size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          <div className="hover:scale-105 transition-transform flex flex-col items-center z-10">
-            <BitmojiAvatar {...partnerAvatar} expression="smile" size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            {/* If users have the default Snap avatars, render the authentic Snapchat coffee toast sticker! */}
+            {(myAvatar?.avatar_url === '/assets/avatars/snap_me.png' && partnerAvatar?.avatar_url === '/assets/avatars/snap_partner.png') ? (
+              <img
+                src="/assets/avatars/snap_couple.png"
+                alt="Snapchat Couple"
+                className="h-44 sm:h-52 object-contain drop-shadow-xl"
+              />
+            ) : (
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex flex-col items-center z-20">
+                  <BitmojiAvatar {...myAvatar} expression="smile" size={115} />
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {myName}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center z-10">
+                  <BitmojiAvatar {...partnerAvatar} expression="smile" size={115} />
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {partnerName}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -220,20 +232,42 @@ export default function FriendmojiCouple({
 
           <div 
             onClick={onAvatarClick}
-            className="hover:scale-105 transition-transform cursor-pointer flex flex-col items-center z-20"
+            className="cursor-pointer hover:scale-105 transition-transform flex items-center justify-center"
             title="Click to customize your Bitmoji"
           >
-            <BitmojiAvatar {...myAvatar} size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          <div className="hover:scale-105 transition-transform flex flex-col items-center z-10">
-            <BitmojiAvatar {...partnerAvatar} size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            {(myAvatar?.avatar_url === '/assets/avatars/snap_me.png' && partnerAvatar?.avatar_url === '/assets/avatars/snap_partner.png') ? (
+              <div className="flex flex-col items-center">
+                <img
+                  src="/assets/avatars/snap_couple.png"
+                  alt="Snapchat Couple"
+                  className="h-44 sm:h-52 object-contain drop-shadow-xl"
+                />
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {myName}
+                  </span>
+                  <span className="text-xs text-rose-500">❤️</span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {partnerName}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center -space-x-1">
+                <div className="flex flex-col items-center z-20">
+                  <BitmojiAvatar {...myAvatar} size={115} />
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {myName}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center z-10">
+                  <BitmojiAvatar {...partnerAvatar} size={115} />
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
+                    {partnerName}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

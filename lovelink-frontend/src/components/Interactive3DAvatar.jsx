@@ -10,12 +10,16 @@ const DEFAULT_RPM_AVATAR = 'https://models.readyplayer.me/646dd3d70cc52f671393b4
 
 export default function Interactive3DAvatar({
   glbUrl,
+  avatarUrl,
   name = 'Avatar',
   size = 280,
   showEmotes = true,
   onOpenCreator,
   className = '',
 }) {
+  const [spinDeg, setSpinDeg] = useState(0);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
   const mountRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [currentReaction, setCurrentReaction] = useState(null);
@@ -310,6 +314,93 @@ export default function Interactive3DAvatar({
       }
     };
   }, [glbUrl, size]);
+
+  // If no 3D glbUrl yet, render the authentic Snapchat Bitmoji avatar with 3D rotation and emote triggers!
+  if (!glbUrl && avatarUrl) {
+    return (
+      <div className={`relative flex flex-col items-center select-none ${className}`}>
+        <div
+          onPointerDown={(e) => {
+            isDraggingRef.current = true;
+            startXRef.current = e.clientX;
+          }}
+          onPointerMove={(e) => {
+            if (!isDraggingRef.current) return;
+            const deltaX = e.clientX - startXRef.current;
+            setSpinDeg(prev => (prev + deltaX * 1.2) % 360);
+            startXRef.current = e.clientX;
+          }}
+          onPointerUp={() => { isDraggingRef.current = false; }}
+          onPointerLeave={() => { isDraggingRef.current = false; }}
+          onClick={() => triggerReaction(currentReaction === 'wave' ? 'dance' : 'wave')}
+          className="cursor-grab active:cursor-grabbing relative flex items-center justify-center p-2 transition-transform duration-75"
+          style={{
+            width: size,
+            height: size * 1.35,
+            perspective: 800,
+          }}
+          title="Drag to spin 360° • Tap to react"
+        >
+          <img
+            src={avatarUrl}
+            alt={name}
+            className={`w-full h-full object-contain drop-shadow-2xl transition-all duration-300 ${
+              currentReaction === 'dance' ? 'animate-bounce' : currentReaction === 'wave' ? 'animate-pulse' : ''
+            }`}
+            style={{
+              transform: `rotateY(${spinDeg}deg)`,
+              transformStyle: 'preserve-3d',
+            }}
+          />
+        </div>
+
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-[9px] text-slate-300 border border-white/10 pointer-events-none">
+          <RotateCw size={10} />
+          <span>360° Spin</span>
+        </div>
+
+        <div className="text-center mt-1">
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white/90 text-stone-900 shadow-sm">
+            {name}
+          </span>
+        </div>
+
+        {showEmotes && (
+          <div className="flex items-center gap-1.5 mt-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 shadow-lg">
+            <button
+              onClick={() => triggerReaction('wave')}
+              className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-xs transition-transform active:scale-90"
+              title="Wave Hello"
+            >
+              👋
+            </button>
+            <button
+              onClick={() => triggerReaction('kiss')}
+              className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-xs transition-transform active:scale-90"
+              title="Blow Sweet Kiss"
+            >
+              💋
+            </button>
+            <button
+              onClick={() => triggerReaction('dance')}
+              className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-xs transition-transform active:scale-90"
+              title="Dance"
+            >
+              💃
+            </button>
+            <button
+              onClick={onOpenCreator}
+              className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm active:scale-95"
+              title="Open 3D Studio to take a selfie or customize"
+            >
+              <Sparkles size={11} />
+              <span>3D Studio</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>

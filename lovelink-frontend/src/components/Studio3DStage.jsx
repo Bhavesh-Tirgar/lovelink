@@ -16,7 +16,9 @@ export default function Studio3DStage({
   const [viewMode, setViewMode] = useState('3d_interactive'); // '3d_interactive' or 'couple_scene'
   const [active3DUser, setActive3DUser] = useState('me'); // 'me' or 'partner'
 
-  const activeGlb = active3DUser === 'me' ? myAvatar?.glb_url : partnerAvatar?.glb_url;
+  const activeAvatar = active3DUser === 'me' ? myAvatar : partnerAvatar;
+  const activeGlb = activeAvatar?.glb_url;
+  const activeAvatarUrl = activeAvatar?.avatar_url || (active3DUser === 'me' ? '/assets/avatars/snap_me.png' : '/assets/avatars/snap_partner.png');
   const activeName = active3DUser === 'me' ? myName : partnerName;
 
   const actionLabels = {
@@ -104,6 +106,7 @@ export default function Studio3DStage({
         <div className="relative flex flex-col items-center">
           <Interactive3DAvatar
             glbUrl={activeGlb}
+            avatarUrl={activeAvatarUrl}
             name={activeName}
             size={240}
             showEmotes={true}

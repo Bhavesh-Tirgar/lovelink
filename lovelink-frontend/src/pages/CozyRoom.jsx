@@ -28,26 +28,28 @@ export default function CozyRoom() {
   const [showInteractionsModal, setShowInteractionsModal] = useState(false);
   const [show3DCreatorModal, setShow3DCreatorModal] = useState(false);
 
-  // Avatar & Couple State
+  // Avatar & Couple State (Default to Authentic Snapchat Avatars)
   const [myAvatar, setMyAvatar] = useState({
     skin: 'fair',
-    hair_style: 'wavy_locks',
-    hair_color: 'dark_brown',
-    eye_color: 'deep_brown',
-    outfit: 'streetwear_hoodie',
-    accessory: 'none',
-    expression: 'smile',
-    avatar_url: ''
-  });
-  const [partnerAvatar, setPartnerAvatar] = useState({
-    skin: 'porcelain',
     hair_style: 'short_fade',
     hair_color: 'jet_black',
     eye_color: 'deep_brown',
     outfit: 'varsity_jacket',
+    accessory: 'black_frames',
+    expression: 'smile',
+    avatar_url: '/assets/avatars/snap_me.png',
+    glb_url: null
+  });
+  const [partnerAvatar, setPartnerAvatar] = useState({
+    skin: 'fair',
+    hair_style: 'wavy_locks',
+    hair_color: 'dark_brown',
+    eye_color: 'deep_brown',
+    outfit: 'autumn_coat',
     accessory: 'none',
     expression: 'smile',
-    avatar_url: ''
+    avatar_url: '/assets/avatars/snap_partner.png',
+    glb_url: null
   });
   const [coupleAction, setCoupleAction] = useState('couch');
 

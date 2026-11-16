@@ -110,24 +110,26 @@ async def get_room(
         "my_name": current_user.name,
         "partner_name": partner.name if partner else "Partner",
         "my_avatar": current_user.avatar_config or {
+            "avatar_url": "/assets/avatars/snap_me.png",
             "skin": "fair",
-            "hair_style": "wavy_locks",
-            "hair_color": "dark_brown",
-            "eye_color": "deep_brown",
-            "outfit": "streetwear_hoodie",
-            "accessory": "none",
-            "expression": "smile",
-            "avatar_url": None
-        },
-        "partner_avatar": (partner.avatar_config if partner else None) or {
-            "skin": "porcelain",
             "hair_style": "short_fade",
             "hair_color": "jet_black",
             "eye_color": "deep_brown",
             "outfit": "varsity_jacket",
+            "accessory": "black_frames",
+            "expression": "smile",
+            "glb_url": None
+        },
+        "partner_avatar": (partner.avatar_config if partner else None) or {
+            "avatar_url": "/assets/avatars/snap_partner.png",
+            "skin": "fair",
+            "hair_style": "wavy_locks",
+            "hair_color": "dark_brown",
+            "eye_color": "deep_brown",
+            "outfit": "autumn_coat",
             "accessory": "none",
             "expression": "smile",
-            "avatar_url": None
+            "glb_url": None
         },
         "couple_action": room.couple_action,
         "couple_action_by": room.couple_action_by,
