@@ -6,11 +6,13 @@ import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, RefreshCw, 
   Droplets, Plus, Trash2, Camera, Sun, Moon,
-  Check, X, Shirt
+  Check, X, Shirt, RotateCw
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import Studio3DStage from '../components/Studio3DStage';
+import SnapchatFriendshipProfile from '../components/SnapchatFriendshipProfile';
+import Snapchat3DCanvas from '../components/Snapchat3DCanvas';
+import FriendmojiCouple from '../components/FriendmojiCouple';
 import AvatarCreatorModal from '../components/AvatarCreatorModal';
 import AvatarWardrobeModal from '../components/AvatarWardrobeModal';
 import CoupleInteractionsModal from '../components/CoupleInteractionsModal';
@@ -20,6 +22,7 @@ export default function CozyRoom() {
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [isNightMode, setIsNightMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('snapchat'); // 'snapchat', 'apartment', '3d_webgl'
   
   // Interactive Modals
   const [showFridgeModal, setShowFridgeModal] = useState(false);
@@ -335,8 +338,83 @@ export default function CozyRoom() {
         <div className="max-w-4xl mx-auto space-y-4">
           
           {/* ============================================================== */}
-          {/* THE REAL AESTHETIC STUDIO ROOM (Architectural Perspective) */}
+          {/* SNAPCHAT 3D / APARTMENT / 3D WEBGL SEGMENTED SWITCHER */}
           {/* ============================================================== */}
+          <div className="flex items-center justify-center pt-1 pb-2">
+            <div className="flex items-center bg-black/75 backdrop-blur-xl p-1 rounded-full border border-white/15 shadow-2xl">
+              <button
+                onClick={() => setActiveTab('snapchat')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
+                  activeTab === 'snapchat'
+                    ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-stone-950 shadow-md scale-[1.02]'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <span>💛</span>
+                <span>Snapchat 3D Stage</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('apartment')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
+                  activeTab === 'apartment'
+                    ? 'bg-white/25 text-white shadow-md scale-[1.02]'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <span>🛋️</span>
+                <span>Cozy Apartment</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('3d_webgl')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
+                  activeTab === '3d_webgl'
+                    ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 text-white shadow-md scale-[1.02]'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <RotateCw size={12} />
+                <span>3D WebGL Spin 🔄</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ------------------------------------------------------------- */}
+          {/* TAB 1: SNAPCHAT FRIENDSHIP PROFILE 💛 (HERO 3D STAGE) */}
+          {/* ------------------------------------------------------------- */}
+          {activeTab === 'snapchat' && (
+            <div className="relative w-full flex justify-center py-2 animate-fadeIn">
+              <SnapchatFriendshipProfile
+                myName={room?.my_name}
+                partnerName={room?.partner_name}
+                onOpenCreator={() => setShow3DCreatorModal(true)}
+                onOpen3DCanvas={() => setActiveTab('3d_webgl')}
+              />
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------- */}
+          {/* TAB 2: 3D WEBGL THREE.JS CANVAS 🎮 (360° SPIN DRAG) */}
+          {/* ------------------------------------------------------------- */}
+          {activeTab === '3d_webgl' && (
+            <div className="relative w-full flex justify-center py-2 animate-fadeIn">
+              <div className="w-full max-w-lg bg-black/45 backdrop-blur-2xl p-4 sm:p-5 rounded-[36px] border border-white/15 shadow-2xl flex flex-col items-center">
+                <Snapchat3DCanvas
+                  myGlb={myAvatar?.glb_url}
+                  partnerGlb={partnerAvatar?.glb_url}
+                  myName={room?.my_name}
+                  partnerName={room?.partner_name}
+                  onOpenCreator={() => setShow3DCreatorModal(true)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------- */}
+          {/* TAB 3: THE REAL AESTHETIC STUDIO ROOM (Architectural Perspective) */}
+          {/* ------------------------------------------------------------- */}
+          {activeTab === 'apartment' && (
           <div className={`relative w-full aspect-[4/3] sm:aspect-[16/10] min-h-[460px] sm:min-h-[540px] max-h-[620px] rounded-3xl overflow-hidden border ${isNightMode ? 'border-white/10 bg-[#161920] shadow-[0_25px_60px_rgba(0,0,0,0.8)]' : 'border-stone-200 bg-[#ede8df] shadow-[0_20px_50px_rgba(0,0,0,0.08)]'}`}>
             
             {/* 1. ROOM ARCHITECTURE (Clean Walls & French Windows) */}
@@ -415,17 +493,17 @@ export default function CozyRoom() {
               </span>
             </div>
 
-            {/* B. MAIN INTERACTIVE STAGE: 3D MOVABLE READY PLAYER ME & BITMOJI STUDIO */}
+            {/* B. MAIN INTERACTIVE STAGE: BITMOJI & 3D STUDIO */}
             <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center w-full px-2">
-              <Studio3DStage
-                coupleAction={coupleAction}
+              <FriendmojiCouple
+                action={coupleAction}
                 myAvatar={myAvatar}
                 partnerAvatar={partnerAvatar}
                 myName={room?.my_name}
                 partnerName={room?.partner_name}
                 isNightMode={isNightMode}
-                onOpenCreator={() => setShow3DCreatorModal(true)}
-                onOpenInteractions={() => setShowInteractionsModal(true)}
+                onAvatarClick={() => setShow3DCreatorModal(true)}
+                onActionClick={() => setShowInteractionsModal(true)}
               />
             </div>
 
@@ -504,6 +582,7 @@ export default function CozyRoom() {
               </span>
             </div>
           </div>
+          )}
 
           {/* CLEAN INTERACTIVE HUBS */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

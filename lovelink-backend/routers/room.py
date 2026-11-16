@@ -35,6 +35,7 @@ class AvatarConfigRequest(BaseModel):
     accessory: Optional[str] = "none"
     expression: Optional[str] = "smile"
     avatar_url: Optional[str] = None
+    glb_url: Optional[str] = None
 
 class CoupleInteractionRequest(BaseModel):
     action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch"
@@ -110,7 +111,7 @@ async def get_room(
         "my_name": current_user.name,
         "partner_name": partner.name if partner else "Partner",
         "my_avatar": current_user.avatar_config or {
-            "avatar_url": "/assets/avatars/snap_me.png",
+            "avatar_url": "/assets/avatars/snap_me_hd.png",
             "skin": "fair",
             "hair_style": "short_fade",
             "hair_color": "jet_black",
@@ -121,7 +122,7 @@ async def get_room(
             "glb_url": None
         },
         "partner_avatar": (partner.avatar_config if partner else None) or {
-            "avatar_url": "/assets/avatars/snap_partner.png",
+            "avatar_url": "/assets/avatars/snap_partner_hd.png",
             "skin": "fair",
             "hair_style": "wavy_locks",
             "hair_color": "dark_brown",

@@ -1,60 +1,62 @@
 import React from 'react';
-import BitmojiAvatar from './BitmojiAvatar';
-import { Heart } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 
 export default function FriendmojiCouple({
   action = 'couch',
   myAvatar,
   partnerAvatar,
   myName = 'Me',
-  partnerName = 'Partner',
+  partnerName = 'Neha',
   isNightMode = false,
   onAvatarClick,
   onActionClick,
 }) {
+  const myAvatarSrc = myAvatar?.avatar_url || '/assets/avatars/snap_me_hd.png';
+  const partnerAvatarSrc = partnerAvatar?.avatar_url || '/assets/avatars/snap_partner_hd.png';
+
   return (
-    <div className="relative flex flex-col items-center select-none">
+    <div className="relative flex flex-col items-center select-none w-full">
       
-      {/* ======================================================== */}
-      {/* 1. WARM HUG (Authentic Snapchat Bitmoji Embrace) */}
-      {/* ======================================================== */}
+      {/* ------------------------------------------------------------- */}
+      {/* 1. INTERACTION SCENE WITH AUTHENTIC HD SNAPCHAT BITMOJIS */}
+      {/* ------------------------------------------------------------- */}
+      
+      {/* A. WARM HUG */}
       {action === 'hug' && (
-        <div className="relative flex items-center justify-center -space-x-8 mb-2">
-          {/* Floating Bitmoji Hearts */}
-          <div className="absolute -top-7 flex items-center gap-4 text-rose-500 animate-bounce pointer-events-none z-30">
+        <div className="relative flex flex-col items-center">
+          <div className="absolute -top-7 flex items-center gap-3 text-rose-500 animate-bounce pointer-events-none z-30">
             <span className="text-xl">💖</span>
             <span className="text-2xl drop-shadow-md">❤️</span>
             <span className="text-xl">💕</span>
           </div>
 
-          {/* Left Avatar wrapping arms in embrace */}
           <div 
             onClick={onAvatarClick}
-            className="transform rotate-8 hover:scale-105 transition-transform cursor-pointer relative z-20 flex flex-col items-center"
-            title="Click to customize your Bitmoji"
+            className="relative flex items-end justify-center -space-x-12 sm:-space-x-16 cursor-pointer hover:scale-105 transition-transform"
           >
-            <BitmojiAvatar {...myAvatar} expression="blush" size={120} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          {/* Right Avatar leaning in tenderly with arms wrapped around waist */}
-          <div className="transform -rotate-8 hover:scale-105 transition-transform relative z-10 flex flex-col items-center">
-            <BitmojiAvatar {...partnerAvatar} expression="blush" size={120} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            {/* Left Avatar (Neha) leaning in */}
+            <div className="flex flex-col items-center z-10 transform rotate-6">
+              <img
+                src={partnerAvatarSrc}
+                alt={partnerName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
+            {/* Right Avatar (User) leaning in */}
+            <div className="flex flex-col items-center z-20 transform -rotate-6">
+              <img
+                src={myAvatarSrc}
+                alt={myName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 2. SWEET KISS (Snapchat Friendmoji Romantic Kiss) */}
-      {/* ======================================================== */}
+      {/* B. SWEET KISS */}
       {action === 'kiss' && (
-        <div className="relative flex items-center justify-center -space-x-7 mb-2">
-          {/* Kiss Sparkle Burst */}
+        <div className="relative flex flex-col items-center">
           <div className="absolute -top-8 text-pink-500 animate-ping pointer-events-none z-30">
             <span className="text-2xl">💋</span>
           </div>
@@ -65,59 +67,58 @@ export default function FriendmojiCouple({
 
           <div 
             onClick={onAvatarClick}
-            className="transform rotate-6 hover:scale-105 transition-transform cursor-pointer z-20 flex flex-col items-center"
-            title="Click to customize your Bitmoji"
+            className="relative flex items-end justify-center -space-x-10 sm:-space-x-14 cursor-pointer hover:scale-105 transition-transform"
           >
-            <BitmojiAvatar {...myAvatar} expression="blush" size={120} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          <div className="transform -rotate-6 hover:scale-105 transition-transform z-10 flex flex-col items-center">
-            <BitmojiAvatar {...partnerAvatar} expression="blush" size={120} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            <div className="flex flex-col items-center z-10 transform rotate-8">
+              <img
+                src={partnerAvatarSrc}
+                alt={partnerName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
+            <div className="flex flex-col items-center z-20 transform -rotate-8">
+              <img
+                src={myAvatarSrc}
+                alt={myName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 3. HOLD HANDS (Intertwined fingers & gentle gaze) */}
-      {/* ======================================================== */}
+      {/* C. HOLD HANDS */}
       {action === 'hand_hold' && (
-        <div className="relative flex items-center justify-center -space-x-2 mb-2">
-          {/* Pulsing Love Heart between hands */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 text-rose-500 animate-pulse pointer-events-none z-30">
-            <Heart size={16} className="fill-rose-500 text-rose-500 drop-shadow" />
+        <div className="relative flex flex-col items-center">
+          <div className="absolute -top-5 text-rose-500 animate-pulse pointer-events-none z-30">
+            <Heart size={20} className="fill-rose-500 text-rose-500 drop-shadow" />
           </div>
 
           <div 
             onClick={onAvatarClick}
-            className="hover:scale-105 transition-transform cursor-pointer z-20 flex flex-col items-center"
-            title="Click to customize your Bitmoji"
+            className="relative flex items-end justify-center -space-x-4 sm:-space-x-6 cursor-pointer hover:scale-105 transition-transform"
           >
-            <BitmojiAvatar {...myAvatar} size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          <div className="hover:scale-105 transition-transform z-10 flex flex-col items-center">
-            <BitmojiAvatar {...partnerAvatar} size={115} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            <div className="flex flex-col items-center z-10">
+              <img
+                src={partnerAvatarSrc}
+                alt={partnerName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
+            <div className="flex flex-col items-center z-20">
+              <img
+                src={myAvatarSrc}
+                alt={myName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 4. SLOW DANCE (Ballroom / Prom slow dance sway) */}
-      {/* ======================================================== */}
+      {/* D. SLOW DANCE */}
       {action === 'dance' && (
-        <div className="relative flex items-center justify-center -space-x-3 mb-2 animate-pulse">
+        <div className="relative flex flex-col items-center animate-pulse">
           <div className="absolute -top-7 flex items-center gap-3 text-purple-400 pointer-events-none z-30">
             <span className="text-sm">🎵</span>
             <span className="text-xl">🎶</span>
@@ -126,171 +127,103 @@ export default function FriendmojiCouple({
 
           <div 
             onClick={onAvatarClick}
-            className="transform -rotate-4 hover:scale-105 transition-transform cursor-pointer z-20 flex flex-col items-center"
-            title="Click to customize your Bitmoji"
+            className="relative flex items-end justify-center -space-x-8 sm:-space-x-12 cursor-pointer hover:scale-105 transition-transform"
           >
-            <BitmojiAvatar {...myAvatar} expression="smile" size={118} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {myName}
-            </span>
-          </div>
-
-          <div className="transform rotate-4 hover:scale-105 transition-transform z-10 flex flex-col items-center">
-            <BitmojiAvatar {...partnerAvatar} expression="smile" size={118} />
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-              {partnerName}
-            </span>
+            <div className="flex flex-col items-center z-10 transform -rotate-4">
+              <img
+                src={partnerAvatarSrc}
+                alt={partnerName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
+            <div className="flex flex-col items-center z-20 transform rotate-4">
+              <img
+                src={myAvatarSrc}
+                alt={myName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
+            </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 5. TUCK IN & CUDDLE / SPOON (Bed scene with plush pillows) */}
-      {/* ======================================================== */}
+      {/* E. SPOON & CUDDLE */}
       {action === 'spoon' && (
-        <div className="relative flex flex-col items-center mb-2">
-          {/* Floating ZZZ and heart */}
+        <div className="relative flex flex-col items-center">
           <div className="absolute -top-6 flex items-center gap-2 text-indigo-400 pointer-events-none z-30">
             <span className="text-xs">💤</span>
-            <span className="text-sm font-bold">Zzz...</span>
+            <span className="text-sm font-bold">Cuddling...</span>
             <span className="text-xs">💖</span>
           </div>
 
-          {/* Bed Duvet & Soft Pillows Backdrop */}
-          <div className="relative flex items-center -space-x-4 p-2.5 pt-3 pb-1 rounded-3xl bg-indigo-950/50 border border-indigo-500/30 shadow-inner">
-            <div 
-              onClick={onAvatarClick}
-              className="cursor-pointer flex flex-col items-center z-20"
-              title="Click to customize your Bitmoji"
-            >
-              <BitmojiAvatar {...myAvatar} expression="sleep" size={110} />
-              <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-indigo-900/90 text-indigo-200 mt-0.5">
-                {myName}
-              </span>
+          <div 
+            onClick={onAvatarClick}
+            className="relative flex items-end justify-center -space-x-14 sm:-space-x-18 cursor-pointer hover:scale-105 transition-transform"
+          >
+            <div className="flex flex-col items-center z-10 transform -rotate-6">
+              <img
+                src={partnerAvatarSrc}
+                alt={partnerName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
             </div>
-
-            <div className="flex flex-col items-center z-10">
-              <BitmojiAvatar {...partnerAvatar} expression="sleep" size={110} />
-              <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-indigo-900/90 text-indigo-200 mt-0.5">
-                {partnerName}
-              </span>
+            <div className="flex flex-col items-center z-20 transform -rotate-3">
+              <img
+                src={myAvatarSrc}
+                alt={myName}
+                className="h-56 sm:h-72 md:h-80 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 6. COFFEE TOAST (Morning coffee clinking mugs) */}
-      {action === 'toast' && (
-        <div className="relative flex flex-col items-center justify-center mb-2">
-          <div className="absolute -top-6 flex items-center gap-2 text-amber-500 animate-bounce pointer-events-none z-30">
-            <span className="text-base">☕</span>
-            <span className="text-xs font-bold bg-amber-400/20 px-2 py-0.5 rounded-full text-amber-300">Coffee Toast! ✨</span>
-            <span className="text-base">☕</span>
-          </div>
+      {/* F. COFFEE TOAST OR COUCH LOUNGE (Default Hero Presentation) */}
+      {(action === 'toast' || action === 'couch' || !action) && (
+        <div className="relative flex flex-col items-center">
+          {action === 'toast' && (
+            <div className="absolute -top-7 flex items-center gap-2 text-amber-500 animate-bounce pointer-events-none z-30">
+              <span className="text-base">☕</span>
+              <span className="text-xs font-bold bg-amber-400/25 px-2.5 py-0.5 rounded-full text-amber-300">Coffee Toast! ✨</span>
+              <span className="text-base">☕</span>
+            </div>
+          )}
 
           <div 
             onClick={onAvatarClick}
-            className="cursor-pointer hover:scale-105 transition-transform flex flex-col items-center"
-            title="Click to customize your Bitmoji"
+            className="relative flex flex-col items-center cursor-pointer hover:scale-105 transition-transform group"
+            title="Click to open 3D Studio"
           >
-            {/* If users have the default Snap avatars, render the authentic Snapchat coffee toast sticker! */}
-            {(myAvatar?.avatar_url?.includes('snap_') || partnerAvatar?.avatar_url?.includes('snap_')) ? (
-              <div className="flex flex-col items-center">
-                <img
-                  src="/assets/avatars/snap_couple_hd.png"
-                  alt="Snapchat Couple"
-                  className="h-64 sm:h-80 md:h-88 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)]"
-                />
-                <div className="w-48 sm:w-64 h-3.5 mx-auto bg-black/25 blur-sm rounded-full -mt-2 mb-1" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex flex-col items-center z-20">
-                  <BitmojiAvatar {...myAvatar} expression="smile" size={115} />
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {myName}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center z-10">
-                  <BitmojiAvatar {...partnerAvatar} expression="smile" size={115} />
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {partnerName}
-                  </span>
-                </div>
-              </div>
-            )}
+            {/* Full HD Snapchat Couple Image (Both partners clearly visible) */}
+            <img
+              src="/assets/avatars/snap_couple_hd.png"
+              alt="Snapchat Couple"
+              className="h-60 sm:h-76 md:h-84 w-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-105"
+            />
+            {/* 3D Soft Ground Shadow */}
+            <div className="w-48 sm:w-64 h-3.5 mx-auto bg-black/25 blur-sm rounded-full -mt-2 mb-1" />
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 7. COUCH LOUNGE (Default Casual Seating with Arm Around) */}
-      {/* ======================================================== */}
-      {(!action || action === 'couch') && (
-        <div className="relative flex items-center justify-center -space-x-1 mb-2">
-          <div className="absolute -top-3 text-amber-500 animate-bounce pointer-events-none z-30">
-            <Heart size={14} className="fill-amber-500 text-amber-500" />
-          </div>
+      {/* Ground Contact Shadow */}
+      <div className="w-52 sm:w-64 h-3 bg-black/20 blur-sm rounded-full mx-auto -mt-2 mb-2" />
 
-          <div 
-            onClick={onAvatarClick}
-            className="cursor-pointer hover:scale-105 transition-transform flex items-center justify-center"
-            title="Click to customize your Bitmoji"
-          >
-            {/* Default Snapchat Bitmoji Couple in HD - Full & Prominent */}
-            {(myAvatar?.avatar_url?.includes('snap_') || partnerAvatar?.avatar_url?.includes('snap_')) ? (
-              <div className="flex flex-col items-center group">
-                <div className="relative">
-                  <img
-                    src="/assets/avatars/snap_couple_hd.png"
-                    alt="Snapchat Couple"
-                    className="h-64 sm:h-80 md:h-88 w-auto object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {/* Soft 3D Ground Shadow */}
-                  <div className="w-48 sm:w-64 h-3.5 mx-auto bg-black/25 blur-sm rounded-full -mt-2 mb-1" />
-                </div>
-                <div className="flex items-center gap-3 mt-1 bg-black/50 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/10 shadow-lg">
-                  <span className="text-xs font-bold text-amber-300">
-                    {partnerName} ☕
-                  </span>
-                  <span className="text-xs text-rose-400">❤️</span>
-                  <span className="text-xs font-bold text-amber-300">
-                    {myName} ☕
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center -space-x-1">
-                <div className="flex flex-col items-center z-20">
-                  <BitmojiAvatar {...myAvatar} size={115} />
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {myName}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center z-10">
-                  <BitmojiAvatar {...partnerAvatar} size={115} />
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${isNightMode ? 'bg-slate-900/95 text-slate-200' : 'bg-white/95 text-stone-800 shadow-sm'}`}>
-                    {partnerName}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Authentic Oatmeal Boucle Couch */}
+      {/* Authentic Snapchat Handle Pill */}
       <div 
         onClick={onActionClick}
-        className={`w-56 sm:w-72 h-14 sm:h-18 rounded-2xl ${isNightMode ? 'bg-[#232834] border border-slate-700 shadow-2xl' : 'bg-[#d8cfc4] border border-stone-300 shadow-lg'} flex items-center justify-between px-3 cursor-pointer group hover:scale-[1.02] transition-transform`}
+        className="flex items-center gap-2.5 bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-xl cursor-pointer hover:bg-black/85 transition-all group active:scale-95"
       >
-        <span className="text-xs">🛋️</span>
-        <span className="text-[10px] font-semibold tracking-wide opacity-80 group-hover:text-amber-500 transition-colors">
-          Tap to Hug, Kiss or Cuddle 💕
+        <span className="text-xs font-black text-amber-300 group-hover:text-amber-200">
+          @ neha_xmusic
         </span>
-        <span className="text-xs">🛋️</span>
+        <span className="text-xs text-rose-400">❤️</span>
+        <span className="text-xs font-black text-amber-300 group-hover:text-amber-200">
+          @ {myName.toLowerCase().replace(/\s+/g, '_')}
+        </span>
+        <Sparkles size={12} className="text-yellow-400 ml-0.5 group-hover:rotate-45 transition-transform" />
       </div>
+
     </div>
   );
 }
