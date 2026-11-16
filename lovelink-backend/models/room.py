@@ -34,6 +34,9 @@ class CoupleRoom(Base):
     # Avatar states (e.g. "couch", "bed", "window", "kitchen")
     user1_action: Mapped[str] = mapped_column(String(50), default="couch")
     user2_action: Mapped[str] = mapped_column(String(50), default="couch")
+    couple_action: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
+    couple_action_by: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
+    couple_action_updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
     
     # Jukebox
     music_playing: Mapped[bool] = mapped_column(default=False)

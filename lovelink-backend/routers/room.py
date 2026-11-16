@@ -26,6 +26,17 @@ class WallPhotoCreate(BaseModel):
 class AvatarActionRequest(BaseModel):
     action: str # "couch", "bed", "window", "fireplace", "reading"
 
+class AvatarConfigRequest(BaseModel):
+    skin: Optional[str] = "fair"
+    hair_style: Optional[str] = "wavy"
+    hair_color: Optional[str] = "dark_brown"
+    outfit: Optional[str] = "oversized_hoodie"
+    accessory: Optional[str] = "none"
+    expression: Optional[str] = "smile"
+
+class CoupleInteractionRequest(BaseModel):
+    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch"
+
 class RoomThemeRequest(BaseModel):
     theme: Optional[str] = None
     flooring: Optional[str] = None
@@ -96,6 +107,25 @@ async def get_room(
         "partner_action": room.user2_action if is_user1 else room.user1_action,
         "my_name": current_user.name,
         "partner_name": partner.name if partner else "Partner",
+        "my_avatar": current_user.avatar_config or {
+            "skin": "fair",
+            "hair_style": "wavy",
+            "hair_color": "dark_brown",
+            "outfit": "oversized_hoodie",
+            "accessory": "none",
+            "expression": "smile"
+        },
+        "partner_avatar": (partner.avatar_config if partner else None) or {
+            "skin": "porcelain",
+            "hair_style": "short_curly",
+            "hair_color": "jet_black",
+            "outfit": "varsity_jacket",
+            "accessory": "none",
+            "expression": "smile"
+        },
+        "couple_action": room.couple_action,
+        "couple_action_by": room.couple_action_by,
+        "couple_action_updated_at": room.couple_action_updated_at.isoformat() if room.couple_action_updated_at else None,
     }
 
 @router.post("/water-plant")
@@ -304,3 +334,70 @@ async def toggle_jukebox(
     })
 
     return {"music_playing": room.music_playing}
+
+
+@router.post("/avatar/customize")
+async def customize_avatar(
+    payload: AvatarConfigRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, current_user.id)
+    current_user.avatar_config = payload.model_dump()
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+
+    await manager.broadcast(str(couple.id), {
+        "type": "room_update",
+        "action": "avatar_customized",
+        "user_id": str(current_user.id),
+        "user_name": current_user.name,
+        "avatar": current_user.avatar_config,
+        "message": f"{current_user.name} changed into a new outfit! ✨"
+    })
+
+    return {"saved": True, "avatar": current_user.avatar_config}
+
+
+@router.post("/couple-interaction")
+async def trigger_couple_interaction(
+    payload: CoupleInteractionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, current_user.id)
+    room = await _get_or_create_room(db, couple.id)
+
+    action = payload.action
+    room.couple_action = action
+    room.couple_action_by = current_user.name
+    room.couple_action_updated_at = datetime.utcnow()
+
+    db.add(room)
+    await db.commit()
+
+    action_messages = {
+        "hug": f"{current_user.name} wrapped you in a warm hug! 🤗💖",
+        "kiss": f"{current_user.name} gave you a sweet kiss! 💋✨",
+        "hand_hold": f"{current_user.name} held your hand! 🤝💕",
+        "spoon": f"{current_user.name} cuddled up close with you! 🛌💤",
+        "dance": f"{current_user.name} pulled you in for a slow dance! 💃🎶",
+        "toast": f"{current_user.name} cheered morning coffee with you! ☕🥂",
+        "couch": f"{current_user.name} sat next to you on the couch! 🛋️",
+    }
+    msg = action_messages.get(action, f"{current_user.name} interacted with you in the room! 💕")
+
+    await manager.broadcast(str(couple.id), {
+        "type": "room_update",
+        "action": "couple_interaction",
+        "interaction": action,
+        "initiated_by": current_user.name,
+        "message": msg
+    })
+
+    return {
+        "action": action,
+        "initiated_by": current_user.name,
+        "message": msg
+    }
