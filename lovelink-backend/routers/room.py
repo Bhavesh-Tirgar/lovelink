@@ -28,11 +28,13 @@ class AvatarActionRequest(BaseModel):
 
 class AvatarConfigRequest(BaseModel):
     skin: Optional[str] = "fair"
-    hair_style: Optional[str] = "wavy"
+    hair_style: Optional[str] = "wavy_locks"
     hair_color: Optional[str] = "dark_brown"
-    outfit: Optional[str] = "oversized_hoodie"
+    eye_color: Optional[str] = "deep_brown"
+    outfit: Optional[str] = "streetwear_hoodie"
     accessory: Optional[str] = "none"
     expression: Optional[str] = "smile"
+    avatar_url: Optional[str] = None
 
 class CoupleInteractionRequest(BaseModel):
     action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch"
@@ -109,19 +111,23 @@ async def get_room(
         "partner_name": partner.name if partner else "Partner",
         "my_avatar": current_user.avatar_config or {
             "skin": "fair",
-            "hair_style": "wavy",
+            "hair_style": "wavy_locks",
             "hair_color": "dark_brown",
-            "outfit": "oversized_hoodie",
+            "eye_color": "deep_brown",
+            "outfit": "streetwear_hoodie",
             "accessory": "none",
-            "expression": "smile"
+            "expression": "smile",
+            "avatar_url": None
         },
         "partner_avatar": (partner.avatar_config if partner else None) or {
             "skin": "porcelain",
-            "hair_style": "short_curly",
+            "hair_style": "short_fade",
             "hair_color": "jet_black",
+            "eye_color": "deep_brown",
             "outfit": "varsity_jacket",
             "accessory": "none",
-            "expression": "smile"
+            "expression": "smile",
+            "avatar_url": None
         },
         "couple_action": room.couple_action,
         "couple_action_by": room.couple_action_by,

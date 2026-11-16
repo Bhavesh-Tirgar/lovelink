@@ -6,11 +6,11 @@ import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, RefreshCw, 
   Droplets, Plus, Trash2, Camera, Sun, Moon,
-  Check, X, Heart, Shirt
+  Check, X, Shirt
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import ChibiAvatar from '../components/ChibiAvatar';
+import FriendmojiCouple from '../components/FriendmojiCouple';
 import AvatarWardrobeModal from '../components/AvatarWardrobeModal';
 import CoupleInteractionsModal from '../components/CoupleInteractionsModal';
 
@@ -29,19 +29,23 @@ export default function CozyRoom() {
   // Avatar & Couple State
   const [myAvatar, setMyAvatar] = useState({
     skin: 'fair',
-    hair_style: 'wavy',
+    hair_style: 'wavy_locks',
     hair_color: 'dark_brown',
-    outfit: 'teddy_hoodie',
+    eye_color: 'deep_brown',
+    outfit: 'streetwear_hoodie',
     accessory: 'none',
-    expression: 'smile'
+    expression: 'smile',
+    avatar_url: ''
   });
   const [partnerAvatar, setPartnerAvatar] = useState({
     skin: 'porcelain',
-    hair_style: 'short_clean',
+    hair_style: 'short_fade',
     hair_color: 'jet_black',
+    eye_color: 'deep_brown',
     outfit: 'varsity_jacket',
     accessory: 'none',
-    expression: 'smile'
+    expression: 'smile',
+    avatar_url: ''
   });
   const [coupleAction, setCoupleAction] = useState('couch');
 
@@ -415,13 +419,13 @@ export default function CozyRoom() {
               </span>
             </div>
 
-            {/* B. MAIN INTERACTIVE STAGE: AVATARS ON COUCH / DANCE / BED / HUG / KISS */}
-            <div className="absolute bottom-10 sm:bottom-16 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
+            {/* B. MAIN INTERACTIVE STAGE: SNAPCHAT 3D FRIENDMOJI COUPLE */}
+            <div className="absolute bottom-8 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
               
               {/* Couple Action Floating Status Pill */}
               <div 
                 onClick={() => setShowInteractionsModal(true)}
-                className={`mb-2 px-3 py-1 rounded-full cursor-pointer group transition-all transform hover:scale-105 flex items-center gap-1.5 shadow-md border ${
+                className={`mb-2 px-3.5 py-1 rounded-full cursor-pointer group transition-all transform hover:scale-105 flex items-center gap-1.5 shadow-lg border ${
                   coupleAction === 'hug'
                     ? 'bg-rose-500 text-white border-rose-400'
                     : coupleAction === 'kiss'
@@ -433,7 +437,7 @@ export default function CozyRoom() {
                     : coupleAction === 'toast'
                     ? 'bg-emerald-600 text-white border-emerald-400'
                     : isNightMode
-                    ? 'bg-slate-900/90 text-amber-300 border-slate-700'
+                    ? 'bg-slate-900/95 text-amber-300 border-slate-700'
                     : 'bg-white/95 text-stone-800 border-stone-300'
                 }`}
               >
@@ -444,230 +448,17 @@ export default function CozyRoom() {
                 <span className="text-[9px] opacity-80 underline underline-offset-2 ml-1">Change 💕</span>
               </div>
 
-              {/* -------------------------------------------------------- */}
-              {/* INTERACTIVE AVATAR DISPLAY (Dynamic Action Animations) */}
-              {/* -------------------------------------------------------- */}
-
-              {/* ACTION 1: WARM HUG */}
-              {coupleAction === 'hug' && (
-                <div className="relative flex items-center justify-center -space-x-10 mb-2">
-                  {/* Floating Heart Particles */}
-                  <div className="absolute -top-6 flex items-center gap-4 text-rose-500 animate-bounce pointer-events-none z-20">
-                    <span className="text-base">💖</span>
-                    <span className="text-xl">❤️</span>
-                    <span className="text-base">💕</span>
-                  </div>
-
-                  {/* My Avatar leaning right */}
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="transform rotate-12 hover:scale-105 transition-transform cursor-pointer relative z-10 flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} size={100} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  {/* Partner Avatar leaning left into hug */}
-                  <div className="transform -rotate-12 hover:scale-105 transition-transform relative z-0 flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} size={100} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 2: SWEET KISS */}
-              {coupleAction === 'kiss' && (
-                <div className="relative flex items-center justify-center -space-x-8 mb-2">
-                  {/* Sparkle Kiss Burst */}
-                  <div className="absolute -top-7 text-pink-500 animate-ping pointer-events-none z-20">
-                    <span className="text-2xl">💋</span>
-                  </div>
-                  <div className="absolute -top-4 flex items-center gap-3 text-pink-400 pointer-events-none z-20">
-                    <span className="text-sm">✨</span>
-                    <span className="text-sm">✨</span>
-                  </div>
-
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="transform rotate-6 hover:scale-105 transition-transform cursor-pointer z-10 flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} expression="blush" size={100} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  <div className="transform -rotate-6 hover:scale-105 transition-transform z-10 flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} expression="blush" size={100} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 3: HOLD HANDS */}
-              {coupleAction === 'hand_hold' && (
-                <div className="relative flex items-center justify-center -space-x-3 mb-2">
-                  <div className="absolute -top-4 text-amber-500 animate-pulse pointer-events-none z-20">
-                    <Heart size={16} className="fill-amber-500 text-amber-500" />
-                  </div>
-
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="hover:scale-105 transition-transform cursor-pointer z-10 flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  <div className="hover:scale-105 transition-transform z-10 flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 4: SLOW DANCE */}
-              {coupleAction === 'dance' && (
-                <div className="relative flex items-center justify-center -space-x-4 mb-2 animate-pulse">
-                  <div className="absolute -top-7 flex items-center gap-3 text-purple-400 pointer-events-none z-20">
-                    <span className="text-sm">🎵</span>
-                    <span className="text-lg">🎶</span>
-                    <span className="text-sm">✨</span>
-                  </div>
-
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="transform -rotate-6 hover:scale-105 transition-transform cursor-pointer z-10 flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  <div className="transform rotate-6 hover:scale-105 transition-transform z-10 flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 5: TUCKED IN BED / SPOON */}
-              {coupleAction === 'spoon' && (
-                <div className="relative flex flex-col items-center mb-2">
-                  {/* Floating ZZZ and heart */}
-                  <div className="absolute -top-6 flex items-center gap-2 text-indigo-400 pointer-events-none z-20">
-                    <span className="text-xs">💤</span>
-                    <span className="text-sm font-bold">Zzz...</span>
-                    <span className="text-xs">💖</span>
-                  </div>
-
-                  {/* Bed Duvet / Pillows Background */}
-                  <div className="relative flex items-center -space-x-6 p-2 pt-3 pb-1 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 shadow-inner">
-                    <div 
-                      onClick={() => setShowWardrobeModal(true)}
-                      className="cursor-pointer flex flex-col items-center"
-                      title="Click to customize your avatar"
-                    >
-                      <ChibiAvatar {...myAvatar} expression="sleep" size={90} />
-                      <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-indigo-900/90 text-indigo-200 mt-1">
-                        {room?.my_name}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col items-center">
-                      <ChibiAvatar {...partnerAvatar} expression="sleep" size={90} />
-                      <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-indigo-900/90 text-indigo-200 mt-1">
-                        {room?.partner_name}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 6: COFFEE TOAST */}
-              {coupleAction === 'toast' && (
-                <div className="relative flex items-center justify-center gap-3 mb-2">
-                  <div className="absolute -top-6 flex items-center gap-2 text-amber-500 animate-bounce pointer-events-none z-20">
-                    <span className="text-sm">☕</span>
-                    <span className="text-xs font-bold">Cheers! ✨</span>
-                    <span className="text-sm">☕</span>
-                  </div>
-
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="hover:scale-105 transition-transform cursor-pointer flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  <div className="hover:scale-105 transition-transform flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ACTION 7: DEFAULT COUCH LOUNGE */}
-              {(!coupleAction || coupleAction === 'couch') && (
-                <div className="relative flex items-center justify-center -space-x-2 mb-2">
-                  <div className="absolute -top-3 text-amber-500 animate-bounce pointer-events-none z-20">
-                    <Heart size={14} className="fill-amber-500 text-amber-500" />
-                  </div>
-
-                  <div 
-                    onClick={() => setShowWardrobeModal(true)}
-                    className="hover:scale-105 transition-transform cursor-pointer flex flex-col items-center"
-                    title="Click to customize your avatar"
-                  >
-                    <ChibiAvatar {...myAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.my_name}
-                    </span>
-                  </div>
-
-                  <div className="hover:scale-105 transition-transform flex flex-col items-center">
-                    <ChibiAvatar {...partnerAvatar} size={95} />
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full mt-1 ${isNightMode ? 'bg-slate-900/90 text-slate-200' : 'bg-white/90 text-stone-800 shadow-sm'}`}>
-                      {room?.partner_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Realistic Boucle Couch under avatars */}
-              <div 
-                onClick={() => setShowInteractionsModal(true)}
-                className={`w-52 sm:w-72 h-14 sm:h-20 rounded-2xl ${isNightMode ? 'bg-[#232834] border border-slate-700 shadow-2xl' : 'bg-[#d8cfc4] border border-stone-300 shadow-lg'} flex items-center justify-between px-3 cursor-pointer group hover:scale-[1.02] transition-transform`}
-              >
-                <span className="text-xs">🛋️</span>
-                <span className="text-[10px] font-semibold tracking-wide opacity-80 group-hover:text-amber-500 transition-colors">
-                  Tap to Hug, Kiss or Cuddle 💕
-                </span>
-                <span className="text-xs">🛋️</span>
-              </div>
+              {/* SNAPCHAT 3D BITMOJI FRIENDMOJI COUPLE STAGE */}
+              <FriendmojiCouple
+                action={coupleAction}
+                myAvatar={myAvatar}
+                partnerAvatar={partnerAvatar}
+                myName={room?.my_name}
+                partnerName={room?.partner_name}
+                isNightMode={isNightMode}
+                onAvatarClick={() => setShowWardrobeModal(true)}
+                onActionClick={() => setShowInteractionsModal(true)}
+              />
             </div>
 
             {/* C. SMEG-STYLE RETRO FRIDGE & STICKY NOTES (Right Side) */}
@@ -757,8 +548,8 @@ export default function CozyRoom() {
                 <span className="text-[10px] font-bold text-pink-600 bg-pink-100 dark:bg-pink-950/60 px-2 py-0.5 rounded-full">Costumes</span>
               </div>
               <div>
-                <h4 className="text-xs font-bold">Avatar Wardrobe</h4>
-                <p className="text-[10px] opacity-60">Change outfit & look</p>
+                <h4 className="text-xs font-bold">Bitmoji Wardrobe</h4>
+                <p className="text-[10px] opacity-60">Streetwear & 3D Deluxe</p>
               </div>
             </button>
 
