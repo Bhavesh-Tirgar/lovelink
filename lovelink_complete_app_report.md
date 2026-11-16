@@ -89,7 +89,7 @@ sequenceDiagram
 | **Google Sign-In** | Web GSI + Android WebView Chrome User-Agent override. | 🟢 Verified | Verified on laptop web; Android APK user-agent override committed. |
 | **E2EE Couple Chat** | Real-time chat with ECDH P-256 AES-GCM encryption. | 🟢 Verified | End-to-end encryption active (`e2ee2:` format). |
 | **Safety Code** | 12-digit & 4-emoji fingerprint modal for MITM check. | 🟢 Verified | Built and mounted in Chat header. |
-| **Cozy Virtual Room** | Minimalist Scandinavian studio apartment. | 🟢 Verified | French windows, plant watering, fridge sticky notes live. |
+| **Studio Apartment & Avatars** | Scandinavian apartment with Snapchat/Bitmoji customizable avatars & couple interactions. | 🟢 Verified | 8 costumes, 8 hairstyles, 6 skin tones, wardrobe studio, and live WebSocket synchronized couple animations (hug, kiss, hand hold, slow dance, bed spoon/cuddle, coffee toast, couch lounge). |
 | **Video & Voice Calls** | 1v1 calling via WebRTC + ZegoCloud fallback. | 🟡 Partial | Native WebRTC signaling tested; network firewall dependent. |
 | **Live Snap Map** | Real-time GPS location sharing & distance calculation. | 🟡 Partial | Leaflet map logic implemented; relies on device GPS permission. |
 | **Heartbeat Touch** | Real-time synchronized haptic touch vibrations. | 🟡 Partial | WebSocket sync tested; haptics depend on device vibration API. |
