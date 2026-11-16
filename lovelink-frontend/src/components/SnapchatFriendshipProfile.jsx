@@ -321,15 +321,29 @@ export default function SnapchatFriendshipProfile({
           {/* Authentic Stage: Both partners standing proudly side-by-side */}
           <div className="relative flex items-end justify-center w-full h-[82%] sm:h-[86%]">
             
-            {/* The Authentic Snapchat Bitmoji Couple Image (Huge, Sharp, High Resolution) */}
-            <img
-              src="/assets/avatars/snap_friendship_stage.jpg"
-              alt="Snapchat Couple"
-              className="w-full h-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.3)] transition-transform duration-300 pointer-events-none select-none"
-              style={{
-                imageRendering: '-webkit-optimize-contrast',
-              }}
-            />
+            {/* The Authentic Snapchat Bitmoji Couple Image */}
+            {currentTheme === 'yellow' ? (
+              <img
+                src="/assets/avatars/snap_friendship_stage.jpg"
+                alt="Snapchat Couple"
+                className="w-full h-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.3)] transition-transform duration-300 pointer-events-none select-none"
+                style={{
+                  imageRendering: '-webkit-optimize-contrast',
+                }}
+              />
+            ) : (
+              <div className="relative flex flex-col items-center justify-end w-full h-full">
+                <img
+                  src="/assets/avatars/snap_couple_hd.png"
+                  alt="Snapchat Couple"
+                  className="w-full h-[88%] object-contain filter drop-shadow-[0_25px_40px_rgba(0,0,0,0.45)] pointer-events-none select-none"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                />
+                <div className="w-56 sm:w-64 h-3.5 mx-auto bg-black/35 blur-sm rounded-full -mt-2 mb-1" />
+              </div>
+            )}
 
             {/* Interactive Tap Zones over Left Partner, Right Partner, and Center Coffee Cups */}
             <div 
