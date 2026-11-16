@@ -111,7 +111,38 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 - Google ID tokens are verified server-side using the official `google-auth` library (`google.oauth2.id_token.verify_oauth2_token`).
 - Verifies cryptographic signature using Google's live public keys, validates token audience (Client ID), issuer (`accounts.google.com`), and expiry timestamp. Raw unverified claims and external HTTP tokeninfo proxies are no longer trusted.
 
-## 4. Known Limitations & Threat Model
+---
+
+## 4. API & WebSocket Security Architecture (Phase 4 Hardened)
+
+### 🌐 Strict CORS Lockdown
+- **No Wildcard `*`**: CORS is strictly locked down. Untrusted origins are never granted access or reflected in credentials headers.
+- **Allowed Origins**:
+  - Production Vercel: `https://lovelink-pearl.vercel.app`, `https://lovelink.vercel.app`
+  - Vercel Previews: Regex-matched `^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$`
+  - Capacitor Mobile Apps: `capacitor://localhost`, `https://localhost`, `http://localhost`
+  - Local Dev: `http://localhost:3000`, `http://127.0.0.1:3000`, `http://localhost:5173`
+- **Header Restrictions**: Only standard headers are allowed (`Authorization`, `Content-Type`, `Accept`, `Origin`, `X-Requested-With`).
+- **Safe Exception Handlers**: `HTTPException`, `RequestValidationError`, and global exception handlers only attach CORS headers if the caller\'s origin is in the verified allowlist, eliminating origin reflection vulnerabilities.
+
+### 🔌 WebSocket Zero-Trust Security
+- **Authentication Handshake**: Every WebSocket connection (`/chat/{couple_id}`, `/games/ws/{couple_id}`, `/movies/ws/{couple_id}`, `/music/ws/{couple_id}`) requires an authenticated single-use ticket or JWT token.
+- **Couple Authorization**: Verified against the database before accepting traffic (`user_id in [couple.user1_id, couple.user2_id]`). Connections attempting to access a foreign `couple_id` are instantly terminated with `code=4003 Forbidden`.
+- **Frame Size Limits**: Incoming WebSocket messages are strictly capped at **64 KB** (`65,536` bytes). Payloads exceeding this limit trigger immediate closure with `code=1009 Message Too Big` to prevent buffer overflow and memory exhaustion.
+- **Per-Connection Rate Limiting**: Enforces a sliding-window limit of **30 messages/second**. Connection flooding triggers immediate disconnection with `code=1008 Policy Violation`.
+
+### 🛡️ IDOR & Authorization Defense
+- Every REST endpoint that manipulates resources by ID (`calls`, `movies`, `media`, `notes`, `coupons`, `bucket_list`, `countdowns`, `cycle`) strictly joins or verifies against `couple_id == current_user.couple_id`.
+- Modifying a URL identifier (such as `call_id`, `movie_id`, `album_id`, `media_id`) from another couple returns `404 Not Found` without disclosing the existence of foreign resources.
+
+### 🔒 Frontend Security Headers (Vercel & Public HTML)
+- **Content-Security-Policy (CSP)**: Locked to `'self'`, Google Identity Services, Firebase, YouTube embeds, and backend APIs.
+- **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing).
+- **X-Frame-Options**: `SAMEORIGIN` (mitigates clickjacking).
+- **Referrer-Policy**: `strict-origin-when-cross-origin`.
+- **Permissions-Policy**: Restricted to `camera=(self), microphone=(self), geolocation=(self)`.
+
+## 5. Known Limitations & Threat Model
 
 1. **Carrier SMS**: SMS OTP is not connected to a carrier gateway. Email OTP is currently the active, verified channel.
 2. **Device Compromise**: If an attacker gains full physical control or root/malware access to an unlocked phone, they may inspect active DOM state or memory.
@@ -119,17 +150,17 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 5. Security Roadmap
+## 6. Security Roadmap
 
 - [x] **Phase 0**: Secure `.gitignore`, untrack `.env.production`, add `.env.example` templates, audit git history.
 - [x] **Phase 1**: Real E2EE with ECDH P-256, IndexedDB non-extractable storage, `e2ee2:` format, 310k iteration PBKDF2 PIN recovery, Safety Code screen, and Secret Notes random salt vault.
 - [x] **Phase 2**: Client-side encryption for cycle logs, live location radar (15-min TTL), and mood notes with automated 30-day call log retention pruning.
 - [x] **Phase 3**: Rotating refresh tokens, token revocation, rate limiting on auth endpoints, and lockout protection.
-- [ ] **Phase 4**: Restricted CORS origins, WebSocket token authentication and per-connection message rate limits, IDOR authorization checks on all REST routes.
+- [x] **Phase 4**: Restricted CORS origins, WebSocket token authentication and per-connection message rate limits, IDOR authorization checks on all REST routes.
 - [ ] **Phase 5**: Lightweight `/health` endpoint and documented external uptime pinger.
 
 ---
 
-## 6. Reporting a Vulnerability
+## 7. Reporting a Vulnerability
 
 If you discover a security issue or vulnerability in LoveLink, please open an issue or contact the repository maintainers directly.

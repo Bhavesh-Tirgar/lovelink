@@ -1,3 +1,5 @@
+MAX_FRAME_SIZE = 65536  # 64 KB
+MAX_MSGS_PER_SEC = 30
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -173,19 +175,23 @@ async def games_websocket(
         await websocket.close(code=4001, reason="Authentication failed")
         return
 
-    room = f"games_{couple_id}"
-    await manager.connect(websocket, room)
-
-    # Resolve partner user ID for turn switching
+    # Verify user belongs to this couple
     other_user_id = None
     try:
         async with AsyncSessionLocal() as db:
             c_res = await db.execute(select(Couple).where(Couple.id == couple_id))
             couple = c_res.scalars().first()
-            if couple:
-                other_user_id = str(couple.user2_id) if str(couple.user1_id) == user_id else str(couple.user1_id)
+            if not couple or (str(couple.user1_id) != user_id and str(couple.user2_id) != user_id):
+                await websocket.close(code=4003, reason="Forbidden: User does not belong to this couple")
+                return
+            other_user_id = str(couple.user2_id) if str(couple.user1_id) == user_id else str(couple.user1_id)
     except Exception as e:
         print(f"Error fetching couple for game session: {e}")
+        await websocket.close(code=4001, reason="Authentication error")
+        return
+
+    room = f"games_{couple_id}"
+    await manager.connect(websocket, room)
 
     # Initialize couple session if not present
     if couple_id not in game_sessions:
@@ -266,9 +272,28 @@ async def games_websocket(
         "uno": session["uno"]
     })
 
+    import json
+    import time
+    MAX_FRAME_SIZE = 65536
+    RATE_LIMIT_WINDOW = 1.0
+    MAX_MSGS_PER_SEC = 30
+    msg_timestamps = []
+
     try:
         while True:
-            data = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if len(raw_text.encode("utf-8")) > MAX_FRAME_SIZE:
+                await websocket.close(code=1009, reason="Message exceeds 64KB size limit")
+                break
+
+            now = time.time()
+            msg_timestamps = [t for t in msg_timestamps if now - t < RATE_LIMIT_WINDOW]
+            if len(msg_timestamps) >= MAX_MSGS_PER_SEC:
+                await websocket.close(code=1008, reason="Rate limit exceeded")
+                break
+            msg_timestamps.append(now)
+
+            data = json.loads(raw_text)
             game = data.get("game")
             action = data.get("action")
 

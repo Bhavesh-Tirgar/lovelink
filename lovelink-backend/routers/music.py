@@ -1,3 +1,5 @@
+MAX_FRAME_SIZE = 65536  # 64 KB
+MAX_MSGS_PER_SEC = 30
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, desc
@@ -213,7 +215,20 @@ async def music_sync_websocket(websocket: WebSocket, couple_id: str, token: str 
     from routers.auth import decode_token
     user_id = decode_token(token)
     if not user_id:
-        await websocket.close(code=4001)
+        await websocket.close(code=4001, reason="Authentication failed")
+        return
+
+    # Verify user belongs to this couple
+    from database import AsyncSessionLocal
+    try:
+        async with AsyncSessionLocal() as db:
+            c_res = await db.execute(select(Couple).where(Couple.id == couple_id))
+            couple = c_res.scalars().first()
+            if not couple or (str(couple.user1_id) != user_id and str(couple.user2_id) != user_id):
+                await websocket.close(code=4003, reason="Forbidden: User does not belong to this couple")
+                return
+    except Exception as e:
+        await websocket.close(code=4001, reason="Authentication error")
         return
 
     room = f"music_{couple_id}"
@@ -226,9 +241,28 @@ async def music_sync_websocket(websocket: WebSocket, couple_id: str, token: str 
     else:
         await manager.send_personal(websocket, {"type": "connected", "couple_id": couple_id})
 
+    import json
+    import time
+    MAX_FRAME_SIZE = 65536
+    RATE_LIMIT_WINDOW = 1.0
+    MAX_MSGS_PER_SEC = 30
+    msg_timestamps = []
+
     try:
         while True:
-            data = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if len(raw_text.encode("utf-8")) > MAX_FRAME_SIZE:
+                await websocket.close(code=1009, reason="Message exceeds 64KB size limit")
+                break
+
+            now = time.time()
+            msg_timestamps = [t for t in msg_timestamps if now - t < RATE_LIMIT_WINDOW]
+            if len(msg_timestamps) >= MAX_MSGS_PER_SEC:
+                await websocket.close(code=1008, reason="Rate limit exceeded")
+                break
+            msg_timestamps.append(now)
+
+            data = json.loads(raw_text)
             msg_type = data.get("type")
             track = data.get("track")
             position = data.get("position", 0.0)

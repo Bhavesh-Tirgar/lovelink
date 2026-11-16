@@ -78,67 +78,79 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LoveLink API", lifespan=lifespan)
 
-origins = [
+import re
+
+ALLOWED_ORIGIN_REGEX = re.compile(r"^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$")
+ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://localhost",
+    "https://localhost",
+    "capacitor://localhost",
     "https://lovelink-pearl.vercel.app",
+    "https://lovelink.vercel.app",
 ]
+
+def get_cors_origin(request: Request) -> str:
+    origin = request.headers.get("origin")
+    if not origin:
+        return ""
+    if origin in ALLOWED_ORIGINS or ALLOWED_ORIGIN_REGEX.match(origin):
+        return origin
+    return ""
+
+def get_cors_headers(request: Request) -> dict:
+    origin = get_cors_origin(request)
+    if not origin:
+        return {}
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, X-Requested-With",
+    }
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALLOWED_ORIGINS,
     allow_origin_regex=r"^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Authorization"],
     max_age=600,
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
-    origin = request.headers.get("origin", "http://localhost:3000")
+    headers = get_cors_headers(request)
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
+        headers=headers,
     )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    origin = request.headers.get("origin", "http://localhost:3000")
+    headers = get_cors_headers(request)
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors()},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
+        headers=headers,
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
-    error_msg = f"Unhandled Exception: {str(exc)}\n{traceback.format_exc()}"
+    error_msg = f"Unhandled Exception: {str(exc)} - {traceback.format_exc()}"
     print(error_msg)
-    origin = request.headers.get("origin", "http://localhost:3000")
+    headers = get_cors_headers(request)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
+        content={"detail": "Internal Server Error"},
+        headers=headers,
     )
 
 

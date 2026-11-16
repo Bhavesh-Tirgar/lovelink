@@ -1,3 +1,5 @@
+MAX_FRAME_SIZE = 65536  # 64 KB
+MAX_MSGS_PER_SEC = 30
 import os
 import io
 import uuid
@@ -197,8 +199,9 @@ async def get_single_movie(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
     movie = await get_movie(db, movie_id)
-    if not movie:
+    if not movie or str(movie.couple_id) != str(couple.id):
         raise HTTPException(status_code=404, detail="Movie not found")
     return _movie_to_response(movie)
 
@@ -210,6 +213,10 @@ async def remove_movie(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
+    movie = await get_movie(db, movie_id)
+    if not movie or str(movie.couple_id) != str(couple.id):
+        raise HTTPException(status_code=404, detail="Movie not found")
     movie = await delete_movie(db, movie_id, str(current_user.id))
     # Delete from R2 or local storage if uploaded
     if movie.source_type == SourceType.upload and movie.file_url:
@@ -238,6 +245,10 @@ async def set_watched(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
+    movie = await get_movie(db, movie_id)
+    if not movie or str(movie.couple_id) != str(couple.id):
+        raise HTTPException(status_code=404, detail="Movie not found")
     movie = await mark_watched(db, movie_id, rating=body.get("rating"))
     return _movie_to_response(movie)
 
@@ -255,8 +266,21 @@ async def stream_movie(
     Supports both Authorization header and ?token=... query parameter for HTML5 <video> tags.
     Supports HTTP 206 Partial Content Range requests natively.
     """
+    raw_token = token
+    if not raw_token and authorization and authorization.startswith("Bearer "):
+        raw_token = authorization.split("Bearer ", 1)[1].strip()
+
+    if not raw_token:
+        raise HTTPException(status_code=401, detail="Authentication required to stream")
+
+    from routers.auth import decode_token
+    user_id = decode_token(raw_token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    couple = await _get_couple(db, user_id)
     movie = await get_movie(db, movie_id)
-    if not movie:
+    if not movie or str(movie.couple_id) != str(couple.id):
         raise HTTPException(status_code=404, detail="Movie not found")
         
     if movie.source_type != SourceType.upload or not movie.file_url:
@@ -334,6 +358,12 @@ async def watch_ws(
         await websocket.close(code=4003, reason="Unauthorized")
         return
 
+    c_res = await db.execute(select(Couple).where(Couple.id == couple_id))
+    couple = c_res.scalar_one_or_none()
+    if not couple or (str(couple.user1_id) != str(user.id) and str(couple.user2_id) != str(user.id)):
+        await websocket.close(code=4003, reason="Forbidden: User does not belong to this couple")
+        return
+
     await websocket.accept()
     await manager.connect(websocket, f"watch_{couple_id}")
 
@@ -357,9 +387,28 @@ async def watch_ws(
     else:
         await manager.send_personal(websocket, {"type": "connected", "couple_id": couple_id})
 
+    import json
+    import time
+    MAX_FRAME_SIZE = 65536
+    RATE_LIMIT_WINDOW = 1.0
+    MAX_MSGS_PER_SEC = 30
+    msg_timestamps = []
+
     try:
         while True:
-            data = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if len(raw_text.encode("utf-8")) > MAX_FRAME_SIZE:
+                await websocket.close(code=1009, reason="Message exceeds 64KB size limit")
+                break
+
+            now = time.time()
+            msg_timestamps = [t for t in msg_timestamps if now - t < RATE_LIMIT_WINDOW]
+            if len(msg_timestamps) >= MAX_MSGS_PER_SEC:
+                await websocket.close(code=1008, reason="Rate limit exceeded")
+                break
+            msg_timestamps.append(now)
+
+            data = json.loads(raw_text)
             msg_type = data.get("type")
             position = data.get("position", 0.0)
             movie_id = data.get("movie_id")

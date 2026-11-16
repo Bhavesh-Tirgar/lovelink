@@ -1,3 +1,5 @@
+MAX_FRAME_SIZE = 65536  # 64 KB
+MAX_MSGS_PER_SEC = 30
 import os
 import boto3
 import uuid
@@ -222,8 +224,7 @@ async def websocket_chat(
         couple = result.scalar_one_or_none()
         
         if not couple or (str(couple.user1_id) != str(user_id) and str(couple.user2_id) != str(user_id)):
-            dbg = f"U:{user_id} C1:{couple.user1_id if couple else 'N'} C2:{couple.user2_id if couple else 'N'}"
-            await websocket.close(code=4003, reason=dbg[:120])
+            await websocket.close(code=4003, reason="Forbidden: User does not belong to this couple")
             return
             
     except Exception as e:
@@ -233,9 +234,28 @@ async def websocket_chat(
     await manager.connect(websocket, couple_id)
     await manager.send_personal(websocket, {"type": "connected", "couple_id": couple_id})
     
+    import json
+    import time
+    MAX_FRAME_SIZE = 65536
+    RATE_LIMIT_WINDOW = 1.0
+    MAX_MSGS_PER_SEC = 30
+    msg_timestamps = []
+
     try:
         while True:
-            data = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if len(raw_text.encode("utf-8")) > MAX_FRAME_SIZE:
+                await websocket.close(code=1009, reason="Message exceeds 64KB size limit")
+                break
+
+            now = time.time()
+            msg_timestamps = [t for t in msg_timestamps if now - t < RATE_LIMIT_WINDOW]
+            if len(msg_timestamps) >= MAX_MSGS_PER_SEC:
+                await websocket.close(code=1008, reason="Rate limit exceeded")
+                break
+            msg_timestamps.append(now)
+
+            data = json.loads(raw_text)
             msg_type = data.get("type")
             
             if msg_type == "message":

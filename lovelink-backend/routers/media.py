@@ -235,6 +235,11 @@ async def remove_album(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
+    from models.media import Album
+    res_a = await db.execute(select(Album).where(Album.id == album_id, Album.couple_id == str(couple.id)))
+    if not res_a.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Album not found")
     await delete_album(db, album_id, str(current_user.id))
     return {"deleted": True}
 
@@ -247,7 +252,18 @@ async def set_album(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
+    from models.media import Media, Album
+    res_m = await db.execute(select(Media).where(Media.id == media_id, Media.couple_id == str(couple.id)))
+    if not res_m.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Media not found")
+
     album_id = body.get("album_id")
+    if album_id:
+        res_a = await db.execute(select(Album).where(Album.id == album_id, Album.couple_id == str(couple.id)))
+        if not res_a.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Album not found")
+
     item = await assign_to_album(db, media_id, album_id, str(current_user.id))
     return MediaResponse.model_validate(item)
 
@@ -260,7 +276,18 @@ async def set_cover(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    couple = await _get_couple(db, str(current_user.id))
+    from models.media import Media, Album
+    res_a = await db.execute(select(Album).where(Album.id == album_id, Album.couple_id == str(couple.id)))
+    if not res_a.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Album not found")
+
     cover_photo_id = body.get("cover_photo_id")
+    if cover_photo_id:
+        res_m = await db.execute(select(Media).where(Media.id == cover_photo_id, Media.couple_id == str(couple.id)))
+        if not res_m.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Cover photo not found")
+
     album = await update_album_cover(db, album_id, cover_photo_id)
     albums = await get_albums(db, album.couple_id)
     for a in albums:

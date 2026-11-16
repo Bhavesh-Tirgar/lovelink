@@ -107,11 +107,12 @@ async def answer_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    call = await answer_call_db(db, call_id)
-    if not call:
+    couple = await _get_couple(db, str(current_user.id))
+    call = await get_call(db, call_id)
+    if not call or str(call.couple_id) != str(couple.id):
         raise HTTPException(status_code=404, detail="Call not found")
 
-    couple = await _get_couple(db, str(current_user.id))
+    call = await answer_call_db(db, call_id)
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
     partner_res = await db.execute(select(User).where(User.id == partner_id))
     partner_user = partner_res.scalar_one_or_none()
@@ -143,11 +144,10 @@ async def get_call_token(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    call = await get_call(db, call_id)
-    if not call:
-        raise HTTPException(status_code=404, detail="Call not found")
-
     couple = await _get_couple(db, str(current_user.id))
+    call = await get_call(db, call_id)
+    if not call or str(call.couple_id) != str(couple.id):
+        raise HTTPException(status_code=404, detail="Call not found")
     partner_id = str(couple.user2_id if str(couple.user1_id) == str(current_user.id) else couple.user1_id)
     partner_res = await db.execute(select(User).where(User.id == partner_id))
     partner_user = partner_res.scalar_one_or_none()
@@ -171,9 +171,11 @@ async def decline_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    call = await end_call(db, call_id, status=CallStatus.declined)
-    if not call:
+    couple = await _get_couple(db, str(current_user.id))
+    call = await get_call(db, call_id)
+    if not call or str(call.couple_id) != str(couple.id):
         raise HTTPException(status_code=404, detail="Call not found")
+    call = await end_call(db, call_id, status=CallStatus.declined)
 
     await manager.broadcast(
         str(call.couple_id),
@@ -188,9 +190,11 @@ async def terminate_call(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    call = await end_call(db, call_id, status=CallStatus.ended)
-    if not call:
+    couple = await _get_couple(db, str(current_user.id))
+    call = await get_call(db, call_id)
+    if not call or str(call.couple_id) != str(couple.id):
         raise HTTPException(status_code=404, detail="Call not found")
+    call = await end_call(db, call_id, status=CallStatus.ended)
 
     await manager.broadcast(
         str(call.couple_id),

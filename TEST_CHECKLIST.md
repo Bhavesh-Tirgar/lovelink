@@ -147,3 +147,31 @@ Follow these step-by-step instructions to manually verify the security fixes and
 - [ ] **Generic Error Anti-Enumeration**:
   - Submit login with a non-existent email address.
   - Verify response returns `401 Invalid email or password` (no revelation that the email does not exist).
+
+---
+
+## 8. Phase 4: API, WebSocket & IDOR Security Verification
+
+- [ ] **CORS Origin Restriction**:
+  - Send an `OPTIONS` preflight request with an untrusted origin:
+    `curl -I -X OPTIONS http://localhost:8000/auth/me -H "Origin: https://evil-site.com"`
+  - Verify that `Access-Control-Allow-Origin` is **NOT** present or does not permit `https://evil-site.com`.
+  - Send request with `Origin: https://lovelink-pearl.vercel.app`:
+    Verify `Access-Control-Allow-Origin: https://lovelink-pearl.vercel.app` is returned.
+- [ ] **WebSocket Unauthorized Couple Access**:
+  - Connect to WebSocket for another couple (e.g. `/ws/foreign-couple-uuid?token=<my_token>`).
+  - Verify the WebSocket handshake is immediately rejected with close code `4003 Forbidden`.
+- [ ] **WebSocket 64KB Frame Limit**:
+  - Send a payload larger than 64KB over the WebSocket connection.
+  - Verify the server terminates the connection with code `1009 Message exceeds 64KB size limit`.
+- [ ] **IDOR Protection Across Routes**:
+  - Attempt to fetch or answer another couple's call: `GET /calls/{foreign_call_id}/token`.
+  - Verify server returns `404 Not Found` (never leaks data).
+  - Attempt to stream another couple's movie: `GET /movies/{foreign_movie_id}/stream`.
+  - Verify server rejects with `404 Not Found`.
+- [ ] **Frontend Security Headers**:
+  - Inspect response headers for `lovelink-pearl.vercel.app`:
+    - `X-Content-Type-Options: nosniff`
+    - `X-Frame-Options: SAMEORIGIN`
+    - `Referrer-Policy: strict-origin-when-cross-origin`
+    - `Content-Security-Policy`
