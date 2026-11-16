@@ -49,7 +49,30 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 2. Authentication & Credential Security
+## 2. Sensitive Data Protection (Phase 2)
+
+### 🌸 Menstrual & Cycle Logs
+- Symptom logs (flow, cramps, cravings, energy levels, personal diary notes) are serialized into a JSON payload on the client, encrypted via `encryptText` into ciphertext, and saved in `cycle_logs.encrypted_payload`.
+- When encrypted payload is supplied, all plaintext database columns are set to `NULL` so the server stores zero sensitive medical data.
+- The client decrypts the payload on-the-fly via `decryptText`.
+
+### 📍 Live Location Radar & Battery
+- GPS coordinates are encrypted client-side (`encryptText(JSON.stringify({ lat, lng, speed, heading }))`) before transmission via WebSocket and HTTP.
+- **No Location History**: The server maintains only the most recent status point in memory (`couple_status_store`). No historical breadcrumbs or tracks are written to disk.
+- **15-Minute TTL Expiration**: In-memory location coordinates expire and are automatically cleared after 15 minutes of inactivity.
+
+### 😊 Mood Check-in Notes
+- Mood notes and feelings are encrypted using the client-side E2EE key (`e2ee2:` format) before being submitted to `/mood/checkin`.
+- Decrypted locally upon rendering.
+
+### ⏳ Data Retention & Automated Pruning
+- An hourly background maintenance task (`prune_stale_sensitive_data`) enforces strict retention policies:
+  - **Call Logs**: Raw signaling and call logs older than 30 days are automatically deleted from the `calls` table.
+  - **Location Points**: Stale location entries older than 15 minutes are purged.
+
+---
+
+## 3. Authentication & Credential Security
 
 - **Passwords**: One-way hashed using **Bcrypt (12 salt rounds)**.
 - **One-Time Passwords (OTP)**: 6-digit numeric codes with a 5-minute time-to-live (TTL) delivered via Gmail Secure SMTP over SSL (Port 465).
@@ -57,7 +80,7 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 3. Known Limitations & Threat Model
+## 4. Known Limitations & Threat Model
 
 1. **Carrier SMS**: SMS OTP is not connected to a carrier gateway. Email OTP is currently the active, verified channel.
 2. **Device Compromise**: If an attacker gains full physical control or root/malware access to an unlocked phone, they may inspect active DOM state or memory.
@@ -65,17 +88,17 @@ LoveLink employs a zero-trust, client-side cryptographic architecture designed t
 
 ---
 
-## 4. Security Roadmap
+## 5. Security Roadmap
 
 - [x] **Phase 0**: Secure `.gitignore`, untrack `.env.production`, add `.env.example` templates, audit git history.
 - [x] **Phase 1**: Real E2EE with ECDH P-256, IndexedDB non-extractable storage, `e2ee2:` format, 310k iteration PBKDF2 PIN recovery, Safety Code screen, and Secret Notes random salt vault.
-- [ ] **Phase 2**: Client-side encryption for cycle logs and live location with automatic location point TTL cleanup.
+- [x] **Phase 2**: Client-side encryption for cycle logs, live location radar (15-min TTL), and mood notes with automated 30-day call log retention pruning.
 - [ ] **Phase 3**: Rotating refresh tokens, token revocation, rate limiting on auth endpoints, and lockout protection.
 - [ ] **Phase 4**: Restricted CORS origins, WebSocket token authentication and per-connection message rate limits, IDOR authorization checks on all REST routes.
 - [ ] **Phase 5**: Lightweight `/health` endpoint and documented external uptime pinger.
 
 ---
 
-## 5. Reporting a Vulnerability
+## 6. Reporting a Vulnerability
 
 If you discover a security issue or vulnerability in LoveLink, please open an issue or contact the repository maintainers directly.

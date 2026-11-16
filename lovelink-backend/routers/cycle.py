@@ -24,6 +24,7 @@ class CycleLogRequest(BaseModel):
     cravings: Optional[str] = None
     energy: Optional[str] = None
     notes: Optional[str] = None
+    encrypted_payload: Optional[str] = None
 
 def calculate_cycle_data(last_date: date, cycle_len: int, period_len: int):
     today = date.today()
@@ -131,7 +132,8 @@ async def get_cycle(
             "mood": today_log.mood,
             "cravings": today_log.cravings,
             "energy": today_log.energy,
-            "notes": today_log.notes
+            "notes": today_log.notes,
+            "encrypted_payload": today_log.encrypted_payload
         } if today_log else None
     }
 
@@ -204,24 +206,32 @@ async def log_symptoms(
     )
     existing_log = res_log.scalar_one_or_none()
 
+    # If client-side encrypted payload is provided, zero-out plaintext fields for maximum privacy
+    if request.encrypted_payload:
+        f_val, c_val, m_val, cr_val, e_val, n_val = None, None, None, None, None, None
+    else:
+        f_val, c_val, m_val, cr_val, e_val, n_val = request.flow, request.cramps, request.mood, request.cravings, request.energy, request.notes
+
     if existing_log:
-        existing_log.flow = request.flow
-        existing_log.cramps = request.cramps
-        existing_log.mood = request.mood
-        existing_log.cravings = request.cravings
-        existing_log.energy = request.energy
-        existing_log.notes = request.notes
+        existing_log.flow = f_val
+        existing_log.cramps = c_val
+        existing_log.mood = m_val
+        existing_log.cravings = cr_val
+        existing_log.energy = e_val
+        existing_log.notes = n_val
+        existing_log.encrypted_payload = request.encrypted_payload
     else:
         new_log = CycleLog(
             couple_id=couple.id,
             user_id=current_user.id,
             log_date=today,
-            flow=request.flow,
-            cramps=request.cramps,
-            mood=request.mood,
-            cravings=request.cravings,
-            energy=request.energy,
-            notes=request.notes
+            flow=f_val,
+            cramps=c_val,
+            mood=m_val,
+            cravings=cr_val,
+            energy=e_val,
+            notes=n_val,
+            encrypted_payload=request.encrypted_payload
         )
         db.add(new_log)
 

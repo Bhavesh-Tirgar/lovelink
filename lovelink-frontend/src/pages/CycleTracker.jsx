@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { encryptText, decryptText } from '../utils/crypto';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { 
@@ -12,6 +13,7 @@ import {
 export default function CycleTracker() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const coupleId = typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null;
   const [cycleData, setCycleData] = useState(null);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [savingSetup, setSavingSetup] = useState(false);
@@ -44,12 +46,24 @@ export default function CycleTracker() {
         setPeriodLength(res.data.period_length || 5);
 
         if (res.data.today_log) {
-          setFlow(res.data.today_log.flow || 'none');
-          setCramps(res.data.today_log.cramps || 'none');
-          setMood(res.data.today_log.mood || 'peaceful');
-          setCravings(res.data.today_log.cravings || '');
-          setEnergy(res.data.today_log.energy || 'normal');
-          setNotes(res.data.today_log.notes || '');
+          let logData = res.data.today_log;
+          if (logData.encrypted_payload && coupleId) {
+            try {
+              const decStr = await decryptText(logData.encrypted_payload, coupleId);
+              if (decStr && decStr.startsWith('{')) {
+                const parsed = JSON.parse(decStr);
+                logData = { ...logData, ...parsed };
+              }
+            } catch (decErr) {
+              console.warn('[E2EE] Could not decrypt cycle payload:', decErr);
+            }
+          }
+          setFlow(logData.flow || 'none');
+          setCramps(logData.cramps || 'none');
+          setMood(logData.mood || 'peaceful');
+          setCravings(logData.cravings || '');
+          setEnergy(logData.energy || 'normal');
+          setNotes(logData.notes || '');
         }
       } else {
         setCycleData(null);
@@ -61,7 +75,7 @@ export default function CycleTracker() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [coupleId]);
 
   useEffect(() => {
     fetchCycleData();
@@ -95,7 +109,18 @@ export default function CycleTracker() {
   const handleSaveLog = async () => {
     setSavingLog(true);
     try {
+      let encrypted_payload = null;
+      if (coupleId) {
+        try {
+          const raw = JSON.stringify({ flow, cramps, mood, cravings, energy, notes });
+          encrypted_payload = await encryptText(raw, coupleId);
+        } catch (encErr) {
+          console.warn('[E2EE] Cycle encryption notice:', encErr);
+        }
+      }
+
       await api.post('/cycle/log', {
+        encrypted_payload,
         flow,
         cramps,
         mood,

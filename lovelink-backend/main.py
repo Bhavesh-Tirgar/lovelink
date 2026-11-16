@@ -29,7 +29,7 @@ from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
 from routers.coupons import router as coupons_router
 from routers.music import router as music_router
-from scheduler.jobs import deliver_scheduled_notes, check_milestones, ping_keep_alive, prune_stale_sessions
+from scheduler.jobs import deliver_scheduled_notes, check_milestones, ping_keep_alive, prune_stale_sessions, prune_stale_sensitive_data
 from starlette.middleware.gzip import GZipMiddleware
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(check_milestones, "cron", hour=9, minute=0, timezone="Asia/Kolkata")
     scheduler.add_job(ping_keep_alive, "interval", minutes=12, id="keep_alive")
     scheduler.add_job(prune_stale_sessions, "interval", minutes=30, id="prune_sessions")
+    scheduler.add_job(prune_stale_sensitive_data, "interval", hours=1, id="prune_sensitive_data")
     scheduler.start()
     try:
         from database import engine, Base
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text("ALTER TABLE memory_stars ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS encrypted_private_key TEXT"))
+                await conn.execute(text("ALTER TABLE cycle_logs ADD COLUMN IF NOT EXISTS encrypted_payload TEXT"))
             except Exception as me:
                 print(f"Column migration notice: {me}")
     except Exception as e:

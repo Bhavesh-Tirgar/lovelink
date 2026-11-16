@@ -138,6 +138,24 @@ class LiveStatusUpdate(BaseModel):
     battery_level: Optional[int] = None
     is_charging: Optional[bool] = None
     device_label: Optional[str] = None
+    encrypted_location: Optional[str] = None
+
+LOCATION_TTL_MINUTES = 15
+
+def sanitize_and_expire_status(status_dict: dict) -> dict:
+    if not status_dict or "updated_at" not in status_dict:
+        return status_dict
+    try:
+        updated_dt = datetime.fromisoformat(status_dict["updated_at"])
+        if (datetime.utcnow() - updated_dt).total_seconds() > (LOCATION_TTL_MINUTES * 60):
+            # Location point has expired past TTL — wipe GPS coordinates from memory
+            status_dict["latitude"] = None
+            status_dict["longitude"] = None
+            status_dict["encrypted_location"] = None
+            status_dict["is_stale"] = True
+    except Exception:
+        pass
+    return status_dict
 
 # In-memory status store: couple_id -> { user_id: status_dict }
 couple_status_store = {}
@@ -184,13 +202,16 @@ async def update_status(
     if couple_id not in couple_status_store:
         couple_status_store[couple_id] = {}
 
+    # If encrypted_location is provided, zero-out plaintext latitude/longitude on the server
+    has_encrypted_loc = bool(payload.encrypted_location)
     status_data = {
         "user_id": user_id,
         "name": current_user.name,
         "battery_level": payload.battery_level,
         "is_charging": payload.is_charging,
-        "latitude": payload.latitude,
-        "longitude": payload.longitude,
+        "latitude": None if has_encrypted_loc else payload.latitude,
+        "longitude": None if has_encrypted_loc else payload.longitude,
+        "encrypted_location": payload.encrypted_location,
         "device_label": payload.device_label or "Mobile",
         "updated_at": datetime.utcnow().isoformat()
     }
@@ -243,8 +264,8 @@ async def get_status(
     partner_id = str(couple.user2_id if couple.user1_id == current_user.id else couple.user1_id)
 
     store = couple_status_store.get(couple_id, {})
-    my_status = store.get(user_id)
-    partner_status = store.get(partner_id)
+    my_status = sanitize_and_expire_status(store.get(user_id)) if store.get(user_id) else None
+    partner_status = sanitize_and_expire_status(store.get(partner_id)) if store.get(partner_id) else None
 
     distance_km = None
     if my_status and partner_status and my_status.get("latitude") and partner_status.get("latitude"):

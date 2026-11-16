@@ -81,3 +81,31 @@ Follow these step-by-step instructions to manually verify the security fixes and
   - Enter the PIN to unlock.
   - Verify the note decrypts cleanly.
   - Inspect the network payload: verify `secret_ciphertext` starts with `v2:` followed by the unique 16-byte random salt.
+
+
+---
+
+## 6. Phase 2: Sensitive Data Protection Verification
+
+- [ ] **Cycle Logs Encryption**:
+  - Open `/cycle`.
+  - Log daily symptoms (e.g., flow: medium, cramps: mild, note: *"feeling tender"*).
+  - Open DevTools -> **Network** tab -> Inspect request to `/cycle/log`.
+  - Verify `encrypted_payload` is present and contains `e2ee2:...` (or `e2ee:...`).
+  - Verify that the server database row in `cycle_logs` stores `encrypted_payload` while plaintext columns are `NULL`.
+  - Refresh the page and verify symptoms are decrypted and rendered accurately.
+- [ ] **Live Location Encryption & TTL Expiration**:
+  - Open `/map`.
+  - In DevTools -> **Network** tab -> Inspect WebSocket frames or POST `/dashboard/status`.
+  - Verify `encrypted_location` contains ciphertext.
+  - Verify partner marker updates accurately on partner's map.
+  - Wait 15 minutes (or simulate TTL): verify that the server clears stale GPS coordinates from memory (`latitude: null, longitude: null, is_stale: true`).
+- [ ] **Mood Note Encryption**:
+  - On `/dashboard`, choose an emoji and type a private mood note.
+  - Submit check-in.
+  - In DevTools -> **Network** tab -> Inspect POST `/mood/checkin`:
+    - Verify `note` field transmits ciphertext (`e2ee2:...` or `e2ee:...`).
+  - Verify partner's dashboard decrypts and displays the mood note.
+- [ ] **Call Log Retention Pruning**:
+  - Verify backend scheduler job `prune_stale_sensitive_data` is registered.
+  - Query `calls` table: verify call records older than 30 days are automatically deleted.

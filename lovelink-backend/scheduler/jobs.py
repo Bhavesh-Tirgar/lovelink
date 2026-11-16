@@ -140,3 +140,44 @@ async def prune_stale_sessions():
             logger.info("Evicted stale game sessions from memory")
     except Exception as e:
         logger.warning(f"Session prune notice: {e}")
+
+
+async def prune_stale_sensitive_data():
+    """Periodically purges call logs older than 30 days and clears stale GPS coordinates."""
+    from datetime import datetime, timedelta
+    from sqlalchemy import text
+    from database import AsyncSessionLocal
+
+    # 1. Purge call logs older than 30 days to limit raw signaling metadata storage
+    async with AsyncSessionLocal() as db:
+        try:
+            cutoff = datetime.utcnow() - timedelta(days=30)
+            res = await db.execute(
+                text("DELETE FROM calls WHERE started_at < :cutoff"),
+                {"cutoff": cutoff}
+            )
+            deleted_count = res.rowcount
+            if deleted_count and deleted_count > 0:
+                logger.info(f"Purged {deleted_count} call logs older than 30 days for data privacy")
+            await db.commit()
+        except Exception as e:
+            logger.warning(f"Call log retention prune notice: {e}")
+
+    # 2. Clear expired location points (> 15 minutes) from in-memory couple_status_store
+    try:
+        from routers.dashboard import couple_status_store, LOCATION_TTL_MINUTES
+        now = datetime.utcnow()
+        for couple_id, statuses in list(couple_status_store.items()):
+            for user_id, status in list(statuses.items()):
+                if "updated_at" in status:
+                    try:
+                        up_dt = datetime.fromisoformat(status["updated_at"])
+                        if (now - up_dt).total_seconds() > (LOCATION_TTL_MINUTES * 60):
+                            status["latitude"] = None
+                            status["longitude"] = None
+                            status["encrypted_location"] = None
+                            status["is_stale"] = True
+                    except Exception:
+                        pass
+    except Exception as le:
+        logger.warning(f"Location TTL prune notice: {le}")

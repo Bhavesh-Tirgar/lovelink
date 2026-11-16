@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Crosshair, Users, MapPin, Layers } from 'lucide-react';
 import api from '../api';
+import { encryptText, decryptText } from '../utils/crypto';
 import { getWsBaseUrl } from '../utils/wsUrl';
 
 export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
@@ -200,7 +201,18 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                 try {
                     const data = JSON.parse(e.data);
                     if (data.type === 'location_update') {
-                        if (data.latitude && data.longitude) {
+                        if (data.encrypted_location && coupleId) {
+                            decryptText(data.encrypted_location, coupleId).then(decStr => {
+                                if (decStr && decStr.startsWith('{')) {
+                                    const loc = JSON.parse(decStr);
+                                    if (loc.lat && loc.lng) {
+                                        const newLoc = { lat: Number(loc.lat), lng: Number(loc.lng) };
+                                        setPartnerLocation(newLoc);
+                                        reverseGeocode(newLoc.lat, newLoc.lng, true);
+                                    }
+                                }
+                            }).catch(() => {});
+                        } else if (data.latitude && data.longitude) {
                             const newLoc = { lat: Number(data.latitude), lng: Number(data.longitude) };
                             setPartnerLocation(newLoc);
                             reverseGeocode(newLoc.lat, newLoc.lng, true);
@@ -231,10 +243,22 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
     // 7. Initial Fetch from backend
     useEffect(() => {
         api.get('/dashboard/status').then(res => {
-            if (res.data?.partner_status?.latitude && res.data?.partner_status?.longitude) {
+            const pStatus = res.data?.partner_status;
+            if (pStatus?.encrypted_location && coupleId) {
+                decryptText(pStatus.encrypted_location, coupleId).then(decStr => {
+                    if (decStr && decStr.startsWith('{')) {
+                        const loc = JSON.parse(decStr);
+                        if (loc.lat && loc.lng) {
+                            const pLoc = { lat: Number(loc.lat), lng: Number(loc.lng) };
+                            setPartnerLocation(pLoc);
+                            reverseGeocode(pLoc.lat, pLoc.lng, true);
+                        }
+                    }
+                }).catch(() => {});
+            } else if (pStatus?.latitude && pStatus?.longitude) {
                 const pLoc = {
-                    lat: Number(res.data.partner_status.latitude),
-                    lng: Number(res.data.partner_status.longitude)
+                    lat: Number(pStatus.latitude),
+                    lng: Number(pStatus.longitude)
                 };
                 setPartnerLocation(pLoc);
                 reverseGeocode(pLoc.lat, pLoc.lng, true);
@@ -246,7 +270,7 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                 });
             }
         }).catch(() => {});
-    }, []);
+    }, [coupleId]);
 
     // 8. Live GPS Tracking (Updates every few seconds)
     useEffect(() => {
@@ -258,26 +282,38 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
             setMyLocation(newLoc);
             reverseGeocode(latitude, longitude, false);
 
-            // Send to partner over WebSocket in real time!
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({
-                    type: 'location_update',
+            // Client-side E2EE encrypt location coordinates
+            const locPayload = JSON.stringify({ lat: latitude, lng: longitude, speed, heading });
+            const doSend = async () => {
+                let encLoc = null;
+                if (coupleId) {
+                    try {
+                        encLoc = await encryptText(locPayload, coupleId);
+                    } catch (e) {}
+                }
+
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({
+                        type: 'location_update',
+                        encrypted_location: encLoc,
+                        latitude,
+                        longitude,
+                        battery_level: myBattery.level,
+                        is_charging: myBattery.charging,
+                        speed,
+                        heading
+                    }));
+                }
+
+                api.post('/dashboard/status', {
+                    encrypted_location: encLoc,
                     latitude,
                     longitude,
                     battery_level: myBattery.level,
-                    is_charging: myBattery.charging,
-                    speed,
-                    heading
-                }));
-            }
-
-            // Also persist to backend status store
-            api.post('/dashboard/status', {
-                latitude,
-                longitude,
-                battery_level: myBattery.level,
-                is_charging: myBattery.charging
-            }).catch(() => {});
+                    is_charging: myBattery.charging
+                }).catch(() => {});
+            };
+            doSend();
         };
 
         const handleError = (err) => {
@@ -295,7 +331,7 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
             }
         };
-    }, [myBattery]);
+    }, [myBattery, coupleId]);
 
     // 9. Update Leaflet Map Markers & Connecting Love Line
     useEffect(() => {

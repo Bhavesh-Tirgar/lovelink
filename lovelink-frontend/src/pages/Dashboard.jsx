@@ -5,6 +5,7 @@ import DailyQuestion from '../components/DailyQuestion';
 import NotificationBell from '../components/NotificationBell';
 import TimeWidget from '../components/TimeWidget';
 import SnapMap from '../components/SnapMap';
+import { encryptText, decryptText, isE2EEMessage } from '../utils/crypto';
 
 const MOODS = ['😊', '😢', '😍', '😤', '😴', '🥰', '😰', '🎉'];
 const MOOD_LABELS = ['Happy', 'Sad', 'In Love', 'Frustrated', 'Tired', 'Grateful', 'Anxious', 'Excited'];
@@ -50,14 +51,27 @@ function Dashboard() {
 
   const fetchMoods = async () => {
     try {
+      const cid = typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null;
       const res = await api.get('/mood/today');
       if (res.data.my_mood) {
+        let noteText = res.data.my_mood.note || '';
+        if (isE2EEMessage(noteText) && cid) {
+          try {
+            noteText = await decryptText(noteText, cid);
+          } catch (e) {}
+        }
         setSelectedEmoji(res.data.my_mood.emoji);
-        setMoodNote(res.data.my_mood.note || '');
-        setMyMood(res.data.my_mood);
+        setMoodNote(noteText);
+        setMyMood({ ...res.data.my_mood, note: noteText });
       }
       if (res.data.partner_mood) {
-        setPartnerMood(res.data.partner_mood);
+        let pNote = res.data.partner_mood.note || '';
+        if (isE2EEMessage(pNote) && cid) {
+          try {
+            pNote = await decryptText(pNote, cid);
+          } catch (e) {}
+        }
+        setPartnerMood({ ...res.data.partner_mood, note: pNote });
       }
     } catch (err) {
       console.error('Failed to fetch moods', err);
@@ -68,7 +82,14 @@ function Dashboard() {
     if (!selectedEmoji) return;
     setSavingMood(true);
     try {
-      await api.post('/mood/checkin', { emoji: selectedEmoji, note: moodNote });
+      const cid = typeof window !== 'undefined' ? localStorage.getItem('couple_id') : null;
+      let encNote = moodNote;
+      if (moodNote && cid) {
+        try {
+          encNote = await encryptText(moodNote, cid);
+        } catch (e) {}
+      }
+      await api.post('/mood/checkin', { emoji: selectedEmoji, note: encNote });
       setMoodSuccess(true);
       setTimeout(() => setMoodSuccess(false), 3000);
       setMoodNote('');
