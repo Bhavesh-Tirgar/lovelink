@@ -225,10 +225,11 @@ export default function CozyRoom() {
           {/* 2. REAL THREE.JS 3D AVATAR STAGE (NO 2D IMAGES, NO ROOM CLUTTER) */}
           <div className="w-full flex justify-center animate-fadeIn">
             <Real3DAvatarStage
-              myGlbUrl={myAvatar?.glb_url}
-              partnerGlbUrl={partnerAvatar?.glb_url}
+              myGlbUrl={myAvatar?.glb_url || '/models/male_avatar.glb'}
+              partnerGlbUrl={partnerAvatar?.glb_url || '/models/female_avatar.glb'}
               myName={room?.my_name}
-              partnerName={room?.partner_name}
+              partnerName={room?.partner_name || 'Neha'}
+              partnerHandle={room?.partner_handle || '@ neha_xmusic'}
               onOpenCreator={() => setShow3DCreatorModal(true)}
             />
           </div>
@@ -423,7 +424,8 @@ export default function CozyRoom() {
       <CoupleInteractionsModal
         isOpen={showInteractionsModal}
         onClose={() => setShowInteractionsModal(false)}
-        partnerName={room?.partner_name}
+              partnerName={room?.partner_name || 'Neha'}
+              partnerHandle={room?.partner_handle || '@ neha_xmusic'}
         onTriggerAction={(action) => {
           confetti({
             particleCount: 50,
