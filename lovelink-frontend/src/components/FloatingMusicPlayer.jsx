@@ -317,9 +317,13 @@ export default function FloatingMusicPlayer() {
                 </div>
             )}
 
-            {/* ── MINIMIZED FLOATING PILL (Docked right above bottom navigation) ── */}
+            {/* ── MINIMIZED FLOATING PILL (Docked right above bottom navigation, or top-right on /room to avoid wardrobe collision) ── */}
             {!isPlayerOpen && (
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 w-auto min-w-[280px] max-w-md animate-slide-up">
+                <div className={`fixed z-40 w-auto min-w-[260px] transition-all duration-300 animate-slide-up ${
+                    location.pathname === '/room'
+                        ? 'top-20 right-4 md:right-8 max-w-xs scale-90 md:scale-100 shadow-[0_4px_25px_rgba(168,85,247,0.35)]'
+                        : 'bottom-24 left-1/2 -translate-x-1/2 max-w-md'
+                }`}>
                     <div className="flex items-center justify-between gap-3 px-4 py-2 bg-black/70 hover:bg-black/85 backdrop-blur-2xl border border-purple-500/30 hover:border-pink-500/40 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.7)] transition-all group">
                         
                         {/* Mini Spinning Album Art */}

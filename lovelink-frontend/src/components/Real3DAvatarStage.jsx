@@ -724,13 +724,13 @@ export default function Real3DAvatarStage({
         mapBones(model, leftBonesRef);
 
         if (leftBonesRef.current.leftArm) {
-          leftBonesRef.current.leftArm.rotation.z = -1.25;
-          leftBonesRef.current.leftArm.rotation.x = 0.15;
+          leftBonesRef.current.leftArm.rotation.set(0.958, -1.592, 2.408);
         }
         if (leftBonesRef.current.rightArm) {
-          leftBonesRef.current.rightArm.rotation.z = 1.25;
-          leftBonesRef.current.rightArm.rotation.x = 0.15;
+          leftBonesRef.current.rightArm.rotation.set(-2.192, -1.592, -0.742);
         }
+        if (leftBonesRef.current.leftForeArm) leftBonesRef.current.leftForeArm.rotation.set(0, 0, 0);
+        if (leftBonesRef.current.rightForeArm) leftBonesRef.current.rightForeArm.rotation.set(0, 0, 0);
         if (leftBonesRef.current.leftHand) {
           leftBonesRef.current.leftHand.rotation.y = 0.20;
           leftBonesRef.current.leftHand.rotation.z = -0.10;
@@ -830,6 +830,14 @@ export default function Real3DAvatarStage({
         });
 
         mapBones(model, rightBonesRef);
+        if (rightBonesRef.current.leftArm) {
+          rightBonesRef.current.leftArm.rotation.set(1.350, -0.600, -0.100);
+        }
+        if (rightBonesRef.current.rightArm) {
+          rightBonesRef.current.rightArm.rotation.set(1.350, 0.600, 0.100);
+        }
+        if (rightBonesRef.current.leftForeArm) rightBonesRef.current.leftForeArm.rotation.set(0, 0, 0);
+        if (rightBonesRef.current.rightForeArm) rightBonesRef.current.rightForeArm.rotation.set(0, 0, 0);
         scene.add(model);
         rightModelRef.current = model;
         checkAllLoaded();
@@ -895,9 +903,9 @@ export default function Real3DAvatarStage({
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
 
           if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.1, env);
-            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.55, env);
-            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(0, -0.25, env);
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(-2.192, -1.1, env);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.25, env);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(-0.742, 0.55, env);
           }
           if (leftBones.rightForeArm) {
             leftBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.75, env);
@@ -908,9 +916,9 @@ export default function Real3DAvatarStage({
           }
 
           if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -1.1, env);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.55, env);
-            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(1.350, -1.1, env);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(-0.600, 0.25, env);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(-0.100, -0.55, env);
           }
           if (rightBones.leftForeArm) {
             rightBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(0, -0.75, env);
@@ -929,8 +937,9 @@ export default function Real3DAvatarStage({
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.35, env);
 
           if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.35, env);
-            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.35, env);
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(-2.192, -1.35, env);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(-1.592, 0.0, env);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(-0.742, 0.35, env);
           }
           if (leftBones.rightForeArm) {
             leftBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.9, env);
@@ -942,8 +951,9 @@ export default function Real3DAvatarStage({
           }
 
           if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -0.95, env);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.35, env);
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(1.350, -0.95, env);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(-0.600, 0.0, env);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(-0.100, -0.35, env);
           }
           if (rightBones.leftForeArm) {
             rightBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.9, env);
@@ -997,8 +1007,9 @@ export default function Real3DAvatarStage({
           const waveCycle = Math.sin(elapsedTime * 14);
 
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0, -2.35, env);
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(0, -0.25, env);
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, -0.25, env);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.0, env);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -2.35, env);
           }
           if (rightBones.rightForeArm) {
             rightBones.rightForeArm.rotation.z = (waveCycle * 0.45) * env;
@@ -1008,8 +1019,9 @@ export default function Real3DAvatarStage({
           }
 
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(-1.25, 2.3, env);
-            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.15, -0.25, env);
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, -0.25, env);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, 0.0, env);
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 2.3, env);
           }
           if (leftBones.leftForeArm) {
             leftBones.leftForeArm.rotation.z = (-Math.sin(elapsedTime * 14 + 0.4) * 0.4) * env;
@@ -1031,38 +1043,36 @@ export default function Real3DAvatarStage({
           rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
 
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(leftBones.leftArm.rotation.z, -1.25 + idleSway, 0.1);
-            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(leftBones.leftArm.rotation.x, 0.15, 0.1);
-            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(leftBones.leftArm.rotation.y, 0, 0.1);
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(leftBones.leftArm.rotation.x, 0.958, 0.1);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(leftBones.leftArm.rotation.y, -1.592, 0.1);
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(leftBones.leftArm.rotation.z, 2.408 + idleSway * 0.1, 0.1);
           }
           if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(leftBones.rightArm.rotation.z, 1.25 - idleSway, 0.1);
-            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(leftBones.rightArm.rotation.x, 0.15, 0.1);
-            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(leftBones.rightArm.rotation.y, 0, 0.1);
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(leftBones.rightArm.rotation.x, -2.192, 0.1);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(leftBones.rightArm.rotation.y, -1.592, 0.1);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(leftBones.rightArm.rotation.z, -0.742 - idleSway * 0.1, 0.1);
           }
           if (leftBones.leftHand) {
-            leftBones.leftHand.rotation.y = THREE.MathUtils.lerp(leftBones.leftHand.rotation.y, 0.20, 0.1);
-            leftBones.leftHand.rotation.z = THREE.MathUtils.lerp(leftBones.leftHand.rotation.z, -0.10, 0.1);
+            leftBones.leftHand.rotation.y = THREE.MathUtils.lerp(leftBones.leftHand.rotation.y, 0, 0.1);
+            leftBones.leftHand.rotation.z = THREE.MathUtils.lerp(leftBones.leftHand.rotation.z, 0, 0.1);
           }
           if (leftBones.rightHand) {
-            leftBones.rightHand.rotation.y = THREE.MathUtils.lerp(leftBones.rightHand.rotation.y, -0.20, 0.1);
-            leftBones.rightHand.rotation.z = THREE.MathUtils.lerp(leftBones.rightHand.rotation.z, 0.10, 0.1);
+            leftBones.rightHand.rotation.y = THREE.MathUtils.lerp(leftBones.rightHand.rotation.y, 0, 0.1);
+            leftBones.rightHand.rotation.z = THREE.MathUtils.lerp(leftBones.rightHand.rotation.z, 0, 0.1);
           }
           if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, 0, 0);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0, 0);
           if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
 
           if (rightBones.leftArm) {
-            const init = rightBones.leftArm.userData.initialRotation || { x: 0.992, y: 0.131, z: -0.063 };
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, init.x, 0.1);
-            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, init.y, 0.1);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(rightBones.leftArm.rotation.z, init.z + idleSway * 0.5, 0.1);
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, 1.350, 0.1);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, -0.600, 0.1);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(rightBones.leftArm.rotation.z, -0.100 + idleSway * 0.1, 0.1);
           }
           if (rightBones.rightArm) {
-            const init = rightBones.rightArm.userData.initialRotation || { x: 0.992, y: -0.131, z: -0.063 };
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(rightBones.rightArm.rotation.x, init.x, 0.1);
-            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(rightBones.rightArm.rotation.y, init.y, 0.1);
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(rightBones.rightArm.rotation.z, init.z - idleSway * 0.5, 0.1);
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(rightBones.rightArm.rotation.x, 1.350, 0.1);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(rightBones.rightArm.rotation.y, 0.600, 0.1);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(rightBones.rightArm.rotation.z, 0.100 - idleSway * 0.1, 0.1);
           }
           if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
           if (rightBones.rightForeArm) rightBones.rightForeArm.rotation.set(0, 0, 0);
