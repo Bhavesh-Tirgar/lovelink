@@ -98,12 +98,12 @@ export const GIRL_SHOES = [
 // 3. AUTHENTIC HUMAN SKIN TONES (NATURAL MELANIN & WARMTH)
 // -------------------------------------------------------------
 export const SKIN_TONES = [
-  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xf8d7c4, swatch: '#f8d7c4', emoji: '🌸' },
-  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xfff2e2, girlHex: 0xf4ccb0, swatch: '#f4ccb0', emoji: '🍯' },
-  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xf4e0cd, girlHex: 0xebbfa0, swatch: '#ebbfa0', emoji: '☀️' },
-  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xdfc0a3, girlHex: 0xd8a984, swatch: '#d8a984', emoji: '🌴' },
-  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0xa87854, girlHex: 0xa47048, swatch: '#a47048', emoji: '🌰' },
-  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x6e442c, girlHex: 0x683e24, swatch: '#683e24', emoji: '☕' },
+  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xf4c2a5, swatch: '#f4c2a5', emoji: '🌸' },
+  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xfff2e2, girlHex: 0xebb89b, swatch: '#ebb89b', emoji: '🍯' },
+  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xf4e0cd, girlHex: 0xdfa688, swatch: '#dfa688', emoji: '☀️' },
+  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xdfc0a3, girlHex: 0xce916f, swatch: '#ce916f', emoji: '🌴' },
+  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0xa87854, girlHex: 0x9c6543, swatch: '#9c6543', emoji: '🌰' },
+  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x6e442c, girlHex: 0x5e3720, swatch: '#5e3720', emoji: '☕' },
 ];
 
 // -------------------------------------------------------------
@@ -633,6 +633,7 @@ export default function Real3DAvatarStage({
     const mapBones = (model, bonesRef) => {
       model.traverse((child) => {
         if (child.isBone) {
+          child.userData.initialRotation = child.rotation.clone();
           const name = child.name.toLowerCase();
           if (name === 'head') bonesRef.current.head = child;
           if (name === 'neck') bonesRef.current.neck = child;
@@ -640,10 +641,18 @@ export default function Real3DAvatarStage({
           if (name === 'rightarm') bonesRef.current.rightArm = child;
           if (name === 'leftforearm') bonesRef.current.leftForeArm = child;
           if (name === 'rightforearm') bonesRef.current.rightForeArm = child;
+          if (name === 'lefthand') bonesRef.current.leftHand = child;
+          if (name === 'righthand') bonesRef.current.rightHand = child;
           if (name === 'spine' || name === 'spine1' || name === 'spine2') {
             if (!bonesRef.current.spine) bonesRef.current.spine = child;
           }
           if (name === 'hips') bonesRef.current.hips = child;
+
+          // Finger bones mapping
+          const cleanName = child.name;
+          bonesRef.current[cleanName] = child;
+          const camel = cleanName.charAt(0).toLowerCase() + cleanName.slice(1);
+          bonesRef.current[camel] = child;
         }
       });
     };
@@ -695,7 +704,7 @@ export default function Real3DAvatarStage({
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xf8d7c4); // Warm natural human skin
+              sm.color.setHex(0xf4c2a5); // Warm natural human skin
               sm.roughness = 0.72;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
@@ -722,6 +731,34 @@ export default function Real3DAvatarStage({
           leftBonesRef.current.rightArm.rotation.z = 1.25;
           leftBonesRef.current.rightArm.rotation.x = 0.15;
         }
+        if (leftBonesRef.current.leftHand) {
+          leftBonesRef.current.leftHand.rotation.y = 0.20;
+          leftBonesRef.current.leftHand.rotation.z = -0.10;
+        }
+        if (leftBonesRef.current.rightHand) {
+          leftBonesRef.current.rightHand.rotation.y = -0.20;
+          leftBonesRef.current.rightHand.rotation.z = 0.10;
+        }
+
+        // Natural graceful human resting finger curve
+        const curlFingers = (side) => {
+          const prefix = side === 'left' ? 'leftHand' : 'rightHand';
+          ['Index', 'Middle', 'Ring', 'Pinky'].forEach((f, idx) => {
+            const curlAmt = 0.35 + idx * 0.04;
+            for (let j = 1; j <= 3; j++) {
+              const b = leftBonesRef.current[`${prefix}${f}${j}`];
+              if (b) {
+                b.rotation.x = curlAmt * (j === 1 ? 1.0 : j === 2 ? 1.15 : 0.85);
+              }
+            }
+          });
+          const t1 = leftBonesRef.current[`${prefix}Thumb1`];
+          const t2 = leftBonesRef.current[`${prefix}Thumb2`];
+          if (t1) t1.rotation.x = 0.22;
+          if (t2) t2.rotation.x = 0.25;
+        };
+        curlFingers('left');
+        curlFingers('right');
 
         scene.add(model);
         leftModelRef.current = model;
@@ -1003,19 +1040,29 @@ export default function Real3DAvatarStage({
             leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(leftBones.rightArm.rotation.x, 0.15, 0.1);
             leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(leftBones.rightArm.rotation.y, 0, 0.1);
           }
+          if (leftBones.leftHand) {
+            leftBones.leftHand.rotation.y = THREE.MathUtils.lerp(leftBones.leftHand.rotation.y, 0.20, 0.1);
+            leftBones.leftHand.rotation.z = THREE.MathUtils.lerp(leftBones.leftHand.rotation.z, -0.10, 0.1);
+          }
+          if (leftBones.rightHand) {
+            leftBones.rightHand.rotation.y = THREE.MathUtils.lerp(leftBones.rightHand.rotation.y, -0.20, 0.1);
+            leftBones.rightHand.rotation.z = THREE.MathUtils.lerp(leftBones.rightHand.rotation.z, 0.10, 0.1);
+          }
           if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, 0, 0);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0, 0);
           if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
 
           if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, 0, 0.1);
-            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, 0, 0.1);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(rightBones.leftArm.rotation.z, 0, 0.1);
+            const init = rightBones.leftArm.userData.initialRotation || { x: 0.992, y: 0.131, z: -0.063 };
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, init.x, 0.1);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, init.y, 0.1);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(rightBones.leftArm.rotation.z, init.z + idleSway * 0.5, 0.1);
           }
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(rightBones.rightArm.rotation.x, 0, 0.1);
-            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(rightBones.rightArm.rotation.y, 0, 0.1);
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(rightBones.rightArm.rotation.z, 0, 0.1);
+            const init = rightBones.rightArm.userData.initialRotation || { x: 0.992, y: -0.131, z: -0.063 };
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(rightBones.rightArm.rotation.x, init.x, 0.1);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(rightBones.rightArm.rotation.y, init.y, 0.1);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(rightBones.rightArm.rotation.z, init.z - idleSway * 0.5, 0.1);
           }
           if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
           if (rightBones.rightForeArm) rightBones.rightForeArm.rotation.set(0, 0, 0);
