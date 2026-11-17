@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { 
   RotateCw, Sparkles, Heart, Coffee, 
-  Music, Upload, RefreshCw, Camera, Box, Copy, Check
+  Music, Upload, RefreshCw, Camera, Box
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
@@ -25,7 +25,6 @@ export default function Real3DAvatarStage({
   const [activeEmote, setActiveEmote] = useState(null);
   const [isRotating, setIsRotating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [copiedHandle, setCopiedHandle] = useState(false);
 
   // Custom Local Overrides (if user uploads a custom .glb file)
   const [localMyGlb, setLocalMyGlb] = useState(null);
@@ -160,13 +159,6 @@ export default function Real3DAvatarStage({
     toast.success(`Loaded 3D Model: ${file.name} ✨`);
   };
 
-  // Handle Copy Handle
-  const handleCopyHandle = () => {
-    navigator.clipboard?.writeText(partnerHandle);
-    setCopiedHandle(true);
-    toast.success('Handle copied! 📋');
-    setTimeout(() => setCopiedHandle(false), 2000);
-  };
 
   // Screenshot / Snapshot Canvas
   const handleCaptureSnapshot = () => {
@@ -825,23 +817,10 @@ export default function Real3DAvatarStage({
           </div>
         </div>
 
-        {/* BOTTOM PILL BADGE (@ neha_xmusic - Click to Copy) */}
-        <div className="absolute bottom-5 inset-x-0 flex flex-col items-center pointer-events-none z-20">
-          <button
-            onClick={handleCopyHandle}
-            className="pointer-events-auto group flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-black text-xs px-4 py-2 rounded-full border border-white/20 shadow-2xl active:scale-95 transition-all"
-            title="Click to copy handle"
-          >
-            <span className="text-amber-400">💛</span>
-            <span>{partnerHandle}</span>
-            {copiedHandle ? (
-              <Check size={12} className="text-emerald-400" />
-            ) : (
-              <Copy size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" />
-            )}
-          </button>
-          <p className="text-[10px] text-slate-400 font-bold mt-1">
-            Drag to rotate 360° • Pinch to zoom • Tap to animate
+        {/* Bottom Interaction Hint */}
+        <div className="absolute bottom-4 inset-x-0 flex flex-col items-center pointer-events-none z-20">
+          <p className="text-[10px] text-slate-400/80 font-medium px-3.5 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">
+            Drag to rotate 360° • Pinch to zoom
           </p>
         </div>
       </div>
