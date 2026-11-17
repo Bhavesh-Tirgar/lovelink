@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { 
   RotateCw, Sparkles, Heart, Coffee, 
-  Music, Upload, RefreshCw, Camera, Box
+  Music, Upload, RefreshCw, Camera, Box, Copy, Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
@@ -25,6 +25,7 @@ export default function Real3DAvatarStage({
   const [activeEmote, setActiveEmote] = useState(null);
   const [isRotating, setIsRotating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedHandle, setCopiedHandle] = useState(false);
 
   // Custom Local Overrides (if user uploads a .glb file)
   const [localMyGlb, setLocalMyGlb] = useState(null);
@@ -104,7 +105,7 @@ export default function Real3DAvatarStage({
         particleCount: 50,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#FFFC00', '#FBBF24', '#F59E0B', '#FFFFFF'],
+        colors: ['#F59E0B', '#FBBF24', '#FCD34D', '#FFFFFF'],
       });
       toast.success('Cheers! Coffee toasted in 3D! ☕');
     } else if (type === 'kiss') {
@@ -122,7 +123,7 @@ export default function Real3DAvatarStage({
         particleCount: 60,
         spread: 90,
         origin: { y: 0.6 },
-        colors: ['#8B5CF6', '#EC4899', '#3B82F6', '#FFFC00'],
+        colors: ['#8B5CF6', '#EC4899', '#3B82F6', '#F59E0B'],
       });
       toast.success('Dancing in 3D! 💃🎶');
     } else if (type === 'wave') {
@@ -153,6 +154,14 @@ export default function Real3DAvatarStage({
     toast.success(`Loaded 3D Model: ${file.name} ✨`);
   };
 
+  // Handle Copy Handle
+  const handleCopyHandle = () => {
+    navigator.clipboard?.writeText(partnerHandle);
+    setCopiedHandle(true);
+    toast.success('Handle copied! 📋');
+    setTimeout(() => setCopiedHandle(false), 2000);
+  };
+
   // Screenshot / Snapshot Canvas
   const handleCaptureSnapshot = () => {
     if (!rendererRef.current) return;
@@ -178,25 +187,22 @@ export default function Real3DAvatarStage({
 
     setIsLoading(true);
 
-    // 1. SCENE SETUP
+    // 1. SCENE SETUP - Sleek Luxury Dark Studio Atmosphere
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-
-    // Iconic vibrant yellow backdrop
-    scene.background = new THREE.Color(0xfffc00);
 
     const width = mount.clientWidth || 440;
     const height = mount.clientHeight || 640;
 
     // 2. PERSPECTIVE CAMERA (Framed to show both characters head-to-toe)
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
     camera.position.set(0, 1.05, 3.8);
     cameraRef.current = camera;
 
-    // 3. WEBGL RENDERER
+    // 3. WEBGL RENDERER (Alpha enabled so sleek CSS radial backdrop shines through)
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: false,
+      alpha: true,
       powerPreference: 'high-performance',
       preserveDrawingBuffer: true,
     });
@@ -204,45 +210,38 @@ export default function Real3DAvatarStage({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.15;
     rendererRef.current = renderer;
 
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
-    // 4. STUDIO LIGHTING
-    const ambientLight = new THREE.AmbientLight(0xfffee8, 1.6);
+    // 4. STUDIO LIGHTING (Warm Key + Cool Fill + Silhouetting Rim)
+    const ambientLight = new THREE.AmbientLight(0xfff8ee, 1.6);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.4);
-    keyLight.position.set(2.0, 4.0, 3.0);
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+    keyLight.position.set(2.5, 4.0, 3.0);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xfff5cc, 0.9);
-    fillLight.position.set(-2.0, 3.0, 2.0);
+    const fillLight = new THREE.DirectionalLight(0xdbeafe, 1.1);
+    fillLight.position.set(-2.5, 3.0, 2.5);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffeedd, 1.1);
-    rimLight.position.set(0, 3.0, -2.5);
+    const rimLight = new THREE.DirectionalLight(0xfdf4ff, 1.4);
+    rimLight.position.set(0, 3.2, -2.5);
     scene.add(rimLight);
 
-    // 5. STUDIO HORIZON FLOOR & CIRCULAR PODIUM
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(12, 12),
-      new THREE.MeshBasicMaterial({ color: 0xf5e228 })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-
+    // 5. LUXURY STUDIO CIRCULAR PODIUM & NEON ACCENT RING
     const podium = new THREE.Mesh(
       new THREE.CylinderGeometry(1.5, 1.6, 0.08, 64),
-      new THREE.MeshStandardMaterial({ color: 0x141824, roughness: 0.35, metalness: 0.25 })
+      new THREE.MeshStandardMaterial({ color: 0x121722, roughness: 0.3, metalness: 0.35 })
     );
     podium.position.set(0, 0.04, 0);
     scene.add(podium);
 
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(1.52, 0.02, 16, 64),
+      new THREE.TorusGeometry(1.52, 0.022, 16, 64),
       new THREE.MeshBasicMaterial({ color: 0x6366f1 })
     );
     ring.rotation.x = Math.PI / 2;
@@ -292,12 +291,25 @@ export default function Real3DAvatarStage({
     const maleGlb = localMyGlb || myGlbUrl || '/models/male_avatar.glb';
 
     // Load Left Model (Female Avatar / Neha)
+    // Scale: 1.22 to make equal height with male avatar
+    // All meshes visible so arms, jacket, hands, and hair are intact
     loader.load(
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(-0.42, 0.08, 0);
-        model.scale.set(1.0, 1.0, 1.0);
+        model.position.set(-0.44, 0.08, 0);
+        model.scale.set(1.22, 1.22, 1.22);
+        
+        // Ensure hands, arms, and clothes are 100% visible
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.visible = true;
+            if (child.material) {
+              child.material.roughness = Math.max(child.material.roughness || 0.5, 0.35);
+            }
+          }
+        });
+
         mapBones(model, leftBonesRef);
         scene.add(model);
         leftModelRef.current = model;
@@ -311,12 +323,20 @@ export default function Real3DAvatarStage({
     );
 
     // Load Right Model (Male Avatar / User)
+    // Scale: 0.93 to match 1.75m equal height
     loader.load(
       maleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(0.42, 0.08, 0);
-        model.scale.set(0.95, 0.95, 0.95);
+        model.position.set(0.44, 0.08, 0);
+        model.scale.set(0.93, 0.93, 0.93);
+
+        model.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.roughness = Math.max(child.material.roughness || 0.5, 0.35);
+          }
+        });
+
         mapBones(model, rightBonesRef);
         scene.add(model);
         rightModelRef.current = model;
@@ -370,9 +390,9 @@ export default function Real3DAvatarStage({
 
       if (leftModel && rightModel) {
         // Natural idle breathing physics
-        const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.008;
+        const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.006;
         leftModel.position.y = 0.08 + idleBreathing;
-        rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.008;
+        rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.006;
 
         // Head tracking toward cursor
         if (leftBonesRef.current.head) {
@@ -404,14 +424,14 @@ export default function Real3DAvatarStage({
         // EMOTE OVERRIDES
         if (currentEmote === 'clink' && emoteProgress < 1.0) {
           const envelope = Math.sin(emoteProgress * Math.PI);
-          leftModel.position.x = THREE.MathUtils.lerp(-0.42, -0.28, envelope);
-          rightModel.position.x = THREE.MathUtils.lerp(0.42, 0.28, envelope);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.28, envelope);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.28, envelope);
           leftModel.rotation.z = envelope * 0.08;
           rightModel.rotation.z = -envelope * 0.08;
         } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
           const envelope = Math.sin(emoteProgress * Math.PI);
-          leftModel.position.x = THREE.MathUtils.lerp(-0.42, -0.30, envelope);
-          rightModel.position.x = THREE.MathUtils.lerp(0.42, 0.30, envelope);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.30, envelope);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.30, envelope);
           leftModel.rotation.z = envelope * 0.06;
           rightModel.rotation.z = -envelope * 0.06;
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
@@ -427,8 +447,8 @@ export default function Real3DAvatarStage({
           }
         } else {
           // Reset transforms smoothly
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.42, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.42, 0.1);
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
           leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, 0, 0.1);
           rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
         }
@@ -486,8 +506,8 @@ export default function Real3DAvatarStage({
         className="hidden"
       />
 
-      {/* 1. REAL 3D WEBGL STAGE VIEWPORT */}
-      <div className="relative w-full aspect-[9/14] sm:aspect-[9/13] min-h-[520px] sm:min-h-[580px] max-h-[660px] rounded-[38px] overflow-hidden bg-[#fffc00] border-4 border-yellow-300 shadow-[0_25px_80px_rgba(255,252,0,0.25)] flex flex-col justify-between">
+      {/* 1. REAL 3D WEBGL STAGE VIEWPORT (Sleek Dark Luxury Studio Atmosphere) */}
+      <div className="relative w-full aspect-[9/14] sm:aspect-[9/13] min-h-[520px] sm:min-h-[580px] max-h-[660px] rounded-[38px] overflow-hidden bg-gradient-to-b from-[#141a29] via-[#0d121f] to-[#07090e] border-2 border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col justify-between">
         
         {/* Three.js WebGL Canvas Mount */}
         <div
@@ -499,9 +519,9 @@ export default function Real3DAvatarStage({
 
         {/* Loading Spinner */}
         {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#fffc00]/85 backdrop-blur-sm z-30 pointer-events-none">
-            <RefreshCw className="animate-spin text-stone-900" size={36} />
-            <span className="text-xs font-black text-stone-900 bg-white/90 px-4 py-1.5 rounded-full shadow-md">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 backdrop-blur-md z-30 pointer-events-none">
+            <RefreshCw className="animate-spin text-amber-400" size={36} />
+            <span className="text-xs font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/15 shadow-md">
               Loading Real 3D GLB Characters... ✨
             </span>
           </div>
@@ -512,8 +532,8 @@ export default function Real3DAvatarStage({
           
           {/* Badge */}
           <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white shadow-xl pointer-events-auto">
-            <Box size={14} className="text-yellow-400" />
-            <span className="text-xs font-black tracking-tight">Real 3D Humanoids</span>
+            <Box size={14} className="text-amber-400" />
+            <span className="text-xs font-black tracking-tight">Real 3D WebGL</span>
           </div>
 
           {/* Action Buttons */}
@@ -525,14 +545,14 @@ export default function Real3DAvatarStage({
               className="p-2 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 shadow-xl transition-all active:scale-95"
               title="Upload your custom 3D model (.glb)"
             >
-              <Upload size={14} className="text-yellow-400" />
+              <Upload size={14} className="text-amber-400" />
             </button>
 
             {/* 360° Auto-Rotate Toggle */}
             <button
               onClick={() => setIsRotating(!isRotating)}
               className={`p-2 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 ${
-                isRotating ? 'bg-yellow-400 text-stone-950 font-bold' : 'bg-black/60 text-white'
+                isRotating ? 'bg-amber-400 text-stone-950 font-bold' : 'bg-black/60 text-white'
               }`}
               title={isRotating ? 'Pause Auto-Spin' : 'Auto-Spin 360°'}
             >
@@ -560,12 +580,22 @@ export default function Real3DAvatarStage({
           </div>
         </div>
 
-        {/* BOTTOM PILL BADGE */}
+        {/* BOTTOM PILL BADGE (@ neha_xmusic - Click to Copy) */}
         <div className="absolute bottom-5 inset-x-0 flex flex-col items-center pointer-events-none z-20">
-          <div className="pointer-events-auto flex items-center gap-2 bg-[#a3a637] text-stone-950 font-black text-xs px-4 py-2 rounded-full border border-stone-800/10 shadow-lg">
+          <button
+            onClick={handleCopyHandle}
+            className="pointer-events-auto group flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white font-black text-xs px-4 py-2 rounded-full border border-white/20 shadow-2xl active:scale-95 transition-all"
+            title="Click to copy handle"
+          >
+            <span className="text-amber-400">💛</span>
             <span>{partnerHandle}</span>
-          </div>
-          <p className="text-[10px] text-stone-800/60 font-bold mt-1">
+            {copiedHandle ? (
+              <Check size={12} className="text-emerald-400" />
+            ) : (
+              <Copy size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300" />
+            )}
+          </button>
+          <p className="text-[10px] text-slate-400 font-bold mt-1">
             Drag to rotate 360° • Pinch to zoom • Tap to animate
           </p>
         </div>
