@@ -27,7 +27,7 @@ export default function Real3DAvatarStage({
   const [isLoading, setIsLoading] = useState(true);
   const [copiedHandle, setCopiedHandle] = useState(false);
 
-  // Custom Local Overrides (if user uploads a .glb file)
+  // Custom Local Overrides (if user uploads a custom .glb file)
   const [localMyGlb, setLocalMyGlb] = useState(null);
   const [localPartnerGlb] = useState(null);
 
@@ -38,18 +38,24 @@ export default function Real3DAvatarStage({
   const cameraRef = useRef(null);
   const animFrameIdRef = useRef(null);
 
-  // Character Models and Bones
+  // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
   const rightModelRef = useRef(null);
-  const leftBonesRef = useRef({ head: null, neck: null, leftArm: null, rightArm: null, spine: null });
-  const rightBonesRef = useRef({ head: null, neck: null, leftArm: null, rightArm: null, spine: null });
+  const leftBonesRef = useRef({ 
+    head: null, neck: null, leftArm: null, rightArm: null, 
+    leftForeArm: null, rightForeArm: null, spine: null, hips: null 
+  });
+  const rightBonesRef = useRef({ 
+    head: null, neck: null, leftArm: null, rightArm: null, 
+    leftForeArm: null, rightForeArm: null, spine: null, hips: null 
+  });
 
   // Mouse & Animation Timing
   const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
   const emoteStateRef = useRef({
     current: null,
     startTime: 0,
-    duration: 3000,
+    duration: 3200,
   });
 
   // Sound Effects
@@ -86,7 +92,7 @@ export default function Real3DAvatarStage({
         });
       }
     } catch {
-      // Audio muted
+      // Audio muted or not allowed without user interaction
     }
   }, []);
 
@@ -199,7 +205,7 @@ export default function Real3DAvatarStage({
     camera.position.set(0, 1.05, 3.8);
     cameraRef.current = camera;
 
-    // 3. WEBGL RENDERER (Alpha enabled so sleek CSS radial backdrop shines through)
+    // 3. WEBGL RENDERER
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -272,7 +278,12 @@ export default function Real3DAvatarStage({
           if (name === 'neck') bonesRef.current.neck = child;
           if (name === 'leftarm') bonesRef.current.leftArm = child;
           if (name === 'rightarm') bonesRef.current.rightArm = child;
-          if (name === 'spine' || name === 'spine1' || name === 'spine2') bonesRef.current.spine = child;
+          if (name === 'leftforearm') bonesRef.current.leftForeArm = child;
+          if (name === 'rightforearm') bonesRef.current.rightForeArm = child;
+          if (name === 'spine' || name === 'spine1' || name === 'spine2') {
+            if (!bonesRef.current.spine) bonesRef.current.spine = child;
+          }
+          if (name === 'hips') bonesRef.current.hips = child;
         }
       });
     };
@@ -291,26 +302,74 @@ export default function Real3DAvatarStage({
     const maleGlb = localMyGlb || myGlbUrl || '/models/male_avatar.glb';
 
     // Load Left Model (Female Avatar / Neha)
-    // Scale: 1.22 to make equal height with male avatar
-    // All meshes visible so arms, jacket, hands, and hair are intact
+    // Scale: 1.135 -> Height 1.685m (Natural couple proportions: female is ~1.69m, male is ~1.83m)
+    // Suit jacket kept 100% visible so arms & hands are fully attached!
     loader.load(
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
         model.position.set(-0.44, 0.08, 0);
-        model.scale.set(1.22, 1.22, 1.22);
+        model.scale.set(1.135, 1.135, 1.135);
         
-        // Ensure hands, arms, and clothes are 100% visible
         model.traverse((child) => {
           if (child.isMesh) {
-            child.visible = true;
+            const name = child.name.toLowerCase();
+            // Hide corporate tie, glasses, and button accessories
+            if (name.includes('tie') || name.includes('eyeglass') || name.includes('button')) {
+              child.visible = false;
+            } else {
+              // Keep body, hair, suit jacket, shirt, pants, shoes, earrings VISIBLE!
+              child.visible = true;
+            }
+
+            // Safe material handling (child.material can be an array for multi-primitive meshes like body)
             if (child.material) {
-              child.material.roughness = Math.max(child.material.roughness || 0.5, 0.35);
+              if (Array.isArray(child.material)) {
+                child.material = child.material.map(m => m.clone());
+              } else {
+                child.material = child.material.clone();
+              }
+
+              // Style suit jacket into chic navy/charcoal blazer
+              if (name.includes('suit')) {
+                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                mat.color.setHex(0x232733);
+                mat.roughness = 0.5;
+              }
+              // Style inner top into sleek dark top
+              if (name.includes('shirt')) {
+                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                mat.color.setHex(0x1a1a20);
+                mat.roughness = 0.6;
+              }
+              // Style pants into sleek dark streetwear trousers
+              if (name.includes('pants')) {
+                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                mat.color.setHex(0x1e2029);
+                mat.roughness = 0.55;
+              }
+              // Style shoes into sleek black boots
+              if (name.includes('shoes')) {
+                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                mat.color.setHex(0x121215);
+                mat.roughness = 0.35;
+              }
             }
           }
         });
 
         mapBones(model, leftBonesRef);
+
+        // Lower arms naturally down from raw T-pose into relaxed idle posture
+        if (leftBonesRef.current.leftArm) {
+          leftBonesRef.current.leftArm.rotation.z = -1.25;
+          leftBonesRef.current.leftArm.rotation.x = 0.15;
+        }
+        if (leftBonesRef.current.rightArm) {
+          leftBonesRef.current.rightArm.rotation.z = 1.25;
+          leftBonesRef.current.rightArm.rotation.x = 0.15;
+        }
+
         scene.add(model);
         leftModelRef.current = model;
         checkAllLoaded();
@@ -323,17 +382,41 @@ export default function Real3DAvatarStage({
     );
 
     // Load Right Model (Male Avatar / User)
-    // Scale: 0.93 to match 1.75m equal height
+    // Scale: 0.98 -> Height 1.825m (Naturally ~14cm taller than female avatar!)
     loader.load(
       maleGlb,
       (gltf) => {
         const model = gltf.scene;
         model.position.set(0.44, 0.08, 0);
-        model.scale.set(0.93, 0.93, 0.93);
+        model.scale.set(0.98, 0.98, 0.98);
 
         model.traverse((child) => {
           if (child.isMesh && child.material) {
-            child.material.roughness = Math.max(child.material.roughness || 0.5, 0.35);
+            if (Array.isArray(child.material)) {
+              child.material = child.material.map(m => m.clone());
+            } else {
+              child.material = child.material.clone();
+            }
+
+            const name = child.name.toLowerCase();
+            // Style top into dark charcoal streetwear shirt
+            if (name.includes('top')) {
+              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+              mat.color.setHex(0x181a24);
+              mat.roughness = 0.55;
+            }
+            // Style bottom into dark indigo denim
+            if (name.includes('bottom')) {
+              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+              mat.color.setHex(0x2d3e52);
+              mat.roughness = 0.65;
+            }
+            // Style shoes into black streetwear sneakers
+            if (name.includes('footwear')) {
+              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+              mat.color.setHex(0x141418);
+              mat.roughness = 0.4;
+            }
           }
         });
 
@@ -360,7 +443,7 @@ export default function Real3DAvatarStage({
 
     mount.addEventListener('pointermove', handlePointerMove);
 
-    // 10. ANIMATION & RENDER LOOP
+    // 10. ANIMATION & RENDER LOOP WITH SKELETAL EMOTE ANIMATIONS
     const clock = new THREE.Clock();
 
     const animate = () => {
@@ -377,80 +460,242 @@ export default function Real3DAvatarStage({
 
       const currentEmote = emoteStateRef.current.current;
       const emoteProgress = currentEmote
-        ? (performance.now() - emoteStateRef.current.startTime) / emoteStateRef.current.duration
+        ? Math.min((performance.now() - emoteStateRef.current.startTime) / emoteStateRef.current.duration, 1.0)
         : 0;
 
       // Update Controls
       controls.autoRotate = isRotating;
       controls.update();
 
-      // --- ANIMATE REAL 3D CHARACTERS ---
       const leftModel = leftModelRef.current;
       const rightModel = rightModelRef.current;
+      const leftBones = leftBonesRef.current;
+      const rightBones = rightBonesRef.current;
 
       if (leftModel && rightModel) {
         // Natural idle breathing physics
-        const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.006;
-        leftModel.position.y = 0.08 + idleBreathing;
-        rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.006;
+        const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.005;
+        const idleSway = Math.sin(elapsedTime * 1.5) * 0.03;
 
-        // Head tracking toward cursor
-        if (leftBonesRef.current.head) {
-          leftBonesRef.current.head.rotation.y = THREE.MathUtils.lerp(
-            leftBonesRef.current.head.rotation.y,
-            mouseX * 0.35,
-            0.08
-          );
-          leftBonesRef.current.head.rotation.x = THREE.MathUtils.lerp(
-            leftBonesRef.current.head.rotation.x,
-            -mouseY * 0.2,
-            0.08
-          );
-        }
-
-        if (rightBonesRef.current.head) {
-          rightBonesRef.current.head.rotation.y = THREE.MathUtils.lerp(
-            rightBonesRef.current.head.rotation.y,
-            mouseX * 0.35,
-            0.08
-          );
-          rightBonesRef.current.head.rotation.x = THREE.MathUtils.lerp(
-            rightBonesRef.current.head.rotation.x,
-            -mouseY * 0.2,
-            0.08
-          );
-        }
-
-        // EMOTE OVERRIDES
+        // -----------------------------------------------------------------
+        // SKELETAL EMOTE ANIMATIONS
+        // -----------------------------------------------------------------
         if (currentEmote === 'clink' && emoteProgress < 1.0) {
-          const envelope = Math.sin(emoteProgress * Math.PI);
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.28, envelope);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.28, envelope);
-          leftModel.rotation.z = envelope * 0.08;
-          rightModel.rotation.z = -envelope * 0.08;
-        } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
-          const envelope = Math.sin(emoteProgress * Math.PI);
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.30, envelope);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.30, envelope);
-          leftModel.rotation.z = envelope * 0.06;
-          rightModel.rotation.z = -envelope * 0.06;
-        } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
-          const bounce = Math.abs(Math.sin(elapsedTime * 9)) * 0.05;
-          const tilt = Math.sin(elapsedTime * 9) * 0.1;
-          leftModel.position.y += bounce;
-          rightModel.position.y += Math.abs(Math.sin(elapsedTime * 9 + 0.4)) * 0.05;
-          leftModel.rotation.z = tilt;
-          rightModel.rotation.z = -tilt;
-        } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
-          if (rightBonesRef.current.rightArm) {
-            rightBonesRef.current.rightArm.rotation.z = Math.sin(elapsedTime * 12) * 0.3 - 0.5;
+          // Toast Coffee ☕: Step toward center, raise inner arms, bring cups together
+          const env = Math.sin(emoteProgress * Math.PI);
+
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.32, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.32, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
+
+          // Female raises right arm to clink cup
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.1, env);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.55, env);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(0, -0.25, env);
           }
+          if (leftBones.rightForeArm) {
+            leftBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.75, env);
+          }
+          if (leftBones.head) {
+            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
+            leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.1, env);
+          }
+
+          // Male raises left arm to clink cup
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -1.1, env);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.55, env);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
+          }
+          if (rightBones.leftForeArm) {
+            rightBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(0, -0.75, env);
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.25, env);
+            rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.1, env);
+          }
+
+        } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
+          // Blow Kiss 💕: Female brings hand to lips and reaches; Male puts hand on heart
+          const env = Math.sin(emoteProgress * Math.PI);
+
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.34, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.34, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.35, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.35, env);
+
+          // Female hand to lips then extends kiss
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.35, env);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.35, env);
+          }
+          if (leftBones.rightForeArm) {
+            leftBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.9, env);
+            leftBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.7, env);
+          }
+          if (leftBones.head) {
+            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.18, env);
+            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
+          }
+
+          // Male hand over heart, touched by love
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -0.95, env);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.35, env);
+          }
+          if (rightBones.leftForeArm) {
+            rightBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.9, env);
+          }
+          if (rightBones.spine) {
+            rightBones.spine.rotation.x = THREE.MathUtils.lerp(0, -0.1, env);
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
+            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.1, env);
+          }
+
+        } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
+          // Dance Party 💃: Rhythmic beat bounce, spine swaying, dynamic arm pumps
+          const beat = Math.sin(elapsedTime * 10);
+          const beatCos = Math.cos(elapsedTime * 10);
+          const bounce = Math.abs(beat) * 0.04;
+
+          leftModel.position.y = 0.08 + bounce;
+          rightModel.position.y = 0.08 + Math.abs(Math.sin(elapsedTime * 10 + 0.5)) * 0.04;
+
+          if (leftBones.spine) leftBones.spine.rotation.z = beat * 0.14;
+          if (rightBones.spine) rightBones.spine.rotation.z = -beat * 0.12;
+
+          // Female dance arms
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.z = -1.2 + beat * 0.45;
+            leftBones.leftArm.rotation.x = 0.15 + beatCos * 0.35;
+          }
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.z = 1.2 - beat * 0.45;
+            leftBones.rightArm.rotation.x = 0.15 - beatCos * 0.35;
+          }
+          if (leftBones.head) {
+            leftBones.head.rotation.y = beat * 0.2;
+            leftBones.head.rotation.z = -beat * 0.1;
+          }
+
+          // Male dance arms
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.x = -0.6 + beatCos * 0.35;
+            rightBones.leftArm.rotation.z = -0.5 + beat * 0.3;
+          }
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.x = -0.6 - beatCos * 0.35;
+            rightBones.rightArm.rotation.z = 0.5 - beat * 0.3;
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.x = 0.1 + bounce * 2;
+          }
+
+        } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
+          // Wave Hello 👋: Male waves right arm, Female waves left arm
+          const env = Math.sin(emoteProgress * Math.PI);
+          const waveCycle = Math.sin(elapsedTime * 14);
+
+          // Male waves right arm
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0, -2.35, env);
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(0, -0.25, env);
+          }
+          if (rightBones.rightForeArm) {
+            rightBones.rightForeArm.rotation.z = (waveCycle * 0.45) * env;
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.1, env);
+          }
+
+          // Female waves left arm
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(-1.25, 2.3, env);
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.15, -0.25, env);
+          }
+          if (leftBones.leftForeArm) {
+            leftBones.leftForeArm.rotation.z = (-Math.sin(elapsedTime * 14 + 0.4) * 0.4) * env;
+          }
+          if (leftBones.head) {
+            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.12, env);
+          }
+
         } else {
-          // Reset transforms smoothly
+          // -----------------------------------------------------------------
+          // NATURAL RELAXED IDLE POSTURE & CURSOR TRACKING
+          // -----------------------------------------------------------------
           leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
           rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
+          leftModel.position.y = 0.08 + idleBreathing;
+          rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005;
+
+          leftModel.rotation.y = THREE.MathUtils.lerp(leftModel.rotation.y, 0, 0.1);
+          rightModel.rotation.y = THREE.MathUtils.lerp(rightModel.rotation.y, 0, 0.1);
           leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, 0, 0.1);
           rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
+
+          // Female arms relaxed at sides (lowered down from T-pose)
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(leftBones.leftArm.rotation.z, -1.25 + idleSway, 0.1);
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(leftBones.leftArm.rotation.x, 0.15, 0.1);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(leftBones.leftArm.rotation.y, 0, 0.1);
+          }
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(leftBones.rightArm.rotation.z, 1.25 - idleSway, 0.1);
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(leftBones.rightArm.rotation.x, 0.15, 0.1);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(leftBones.rightArm.rotation.y, 0, 0.1);
+          }
+          if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, 0, 0);
+          if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0, 0);
+          if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
+
+          // Male arms in natural rest pose
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, 0, 0.1);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, 0, 0.1);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(rightBones.leftArm.rotation.z, 0, 0.1);
+          }
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(rightBones.rightArm.rotation.x, 0, 0.1);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(rightBones.rightArm.rotation.y, 0, 0.1);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(rightBones.rightArm.rotation.z, 0, 0.1);
+          }
+          if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
+          if (rightBones.rightForeArm) rightBones.rightForeArm.rotation.set(0, 0, 0);
+          if (rightBones.spine) rightBones.spine.rotation.set(0, 0, 0);
+
+          // Dynamic 3D Head Tracking toward cursor in idle
+          if (leftBones.head) {
+            leftBones.head.rotation.y = THREE.MathUtils.lerp(
+              leftBones.head.rotation.y,
+              mouseX * 0.35 + 0.08,
+              0.08
+            );
+            leftBones.head.rotation.x = THREE.MathUtils.lerp(
+              leftBones.head.rotation.x,
+              -mouseY * 0.2,
+              0.08
+            );
+            leftBones.head.rotation.z = THREE.MathUtils.lerp(leftBones.head.rotation.z, 0, 0.1);
+          }
+
+          if (rightBones.head) {
+            rightBones.head.rotation.y = THREE.MathUtils.lerp(
+              rightBones.head.rotation.y,
+              mouseX * 0.35 - 0.08,
+              0.08
+            );
+            rightBones.head.rotation.x = THREE.MathUtils.lerp(
+              rightBones.head.rotation.x,
+              -mouseY * 0.2,
+              0.08
+            );
+            rightBones.head.rotation.z = THREE.MathUtils.lerp(rightBones.head.rotation.z, 0, 0.1);
+          }
         }
       }
 
