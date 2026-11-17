@@ -4,10 +4,183 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { 
   RotateCw, Sparkles, Heart, Coffee, 
-  Music, Upload, RefreshCw, Camera, Box
+  Music, Upload, RefreshCw, Camera, Box, Shirt, 
+  Palette, Check, X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
+
+// -------------------------------------------------------------
+// 7 CURATED COUPLE OUTFIT PRESETS
+// -------------------------------------------------------------
+export const OUTFIT_PRESETS = [
+  {
+    id: 'streetwear',
+    name: 'Streetwear Chic',
+    tag: 'Casual Street',
+    emoji: '⚡',
+    themeColor: '#6366f1',
+    female: {
+      jacket: 0x232733, // sleek navy/charcoal blazer
+      jacketRough: 0.5,
+      jacketMetal: 0.1,
+      shirt: 0x1a1a20,
+      pants: 0x1e2029,
+      shoes: 0x121215,
+    },
+    male: {
+      top: 0x181a24, // dark streetwear top
+      topRough: 0.55,
+      topMetal: 0.1,
+      bottom: 0x2d3e52, // dark indigo denim
+      shoes: 0x141418,
+    },
+  },
+  {
+    id: 'cozy_date',
+    name: 'Cozy Autumn Date',
+    tag: 'Warm & Sweet',
+    emoji: '☕',
+    themeColor: '#f59e0b',
+    female: {
+      jacket: 0x8a4b27, // warm hazelnut/caramel coat
+      jacketRough: 0.45,
+      jacketMetal: 0.15,
+      shirt: 0xdfd5c4, // cream vanilla inner
+      pants: 0x302018, // warm espresso slacks
+      shoes: 0x1e130c, // brown leather boots
+    },
+    male: {
+      top: 0x985e36, // warm camel sweater
+      topRough: 0.6,
+      topMetal: 0.05,
+      bottom: 0x33251c, // dark chocolate slacks
+      shoes: 0x221711, // suede boots
+    },
+  },
+  {
+    id: 'monochrome',
+    name: 'Noir Luxury',
+    tag: 'All Black',
+    emoji: '🖤',
+    themeColor: '#94a3b8',
+    female: {
+      jacket: 0x0f1014, // jet black tailored blazer
+      jacketRough: 0.35,
+      jacketMetal: 0.25,
+      shirt: 0x17181f, // silk charcoal top
+      pants: 0x0c0d11, // obsidian trousers
+      shoes: 0x08080a, // glossy heels
+    },
+    male: {
+      top: 0x101115, // matte black dress shirt
+      topRough: 0.4,
+      topMetal: 0.15,
+      bottom: 0x0d0e12, // dark black slim trousers
+      shoes: 0x090a0d, // polished black dress shoes
+    },
+  },
+  {
+    id: 'pastel_love',
+    name: 'Sakura Blush',
+    tag: 'Pastel Romance',
+    emoji: '🌸',
+    themeColor: '#f43f5e',
+    female: {
+      jacket: 0xc97a8e, // soft sakura pink jacket
+      jacketRough: 0.5,
+      jacketMetal: 0.1,
+      shirt: 0xf5e8ed, // soft ivory blush
+      pants: 0x422f3b, // dusty mauve slacks
+      shoes: 0x33222d, // rosewood boots
+    },
+    male: {
+      top: 0x8c7fa8, // lavender lilac top
+      topRough: 0.55,
+      topMetal: 0.05,
+      bottom: 0x4f6580, // soft slate denim
+      shoes: 0xd8dde8, // white/lilac sneakers
+    },
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyber Neon 2077',
+    tag: 'Night City',
+    emoji: '🔮',
+    themeColor: '#a855f7',
+    female: {
+      jacket: 0x4a1f80, // iridescent neon violet jacket
+      jacketRough: 0.25,
+      jacketMetal: 0.6,
+      shirt: 0x941662, // fuchsia neon top
+      pants: 0x141224, // glossy vinyl pants
+      shoes: 0x1b0f30, // purple neon combat boots
+    },
+    male: {
+      top: 0x27246b, // neon cobalt cyber jacket
+      topRough: 0.3,
+      topMetal: 0.5,
+      bottom: 0x184460, // neon cyan tactical pants
+      shoes: 0x161530, // high-tech kicks
+    },
+  },
+  {
+    id: 'clean_ivory',
+    name: 'Clean Minimalist',
+    tag: 'Pure & Modern',
+    emoji: '🤍',
+    themeColor: '#38bdf8',
+    female: {
+      jacket: 0xe6e9ee, // crisp ivory white blazer
+      jacketRough: 0.45,
+      jacketMetal: 0.1,
+      shirt: 0x222630, // contrast slate top
+      pants: 0x333b47, // slate grey slacks
+      shoes: 0xe0e4ea, // clean white boots
+    },
+    male: {
+      top: 0xf0f3f8, // crisp clean white tee
+      topRough: 0.5,
+      topMetal: 0.05,
+      bottom: 0x445060, // slate denim
+      shoes: 0xe5eaf2, // crisp white sneakers
+    },
+  },
+  {
+    id: 'royal_gala',
+    name: 'Royal Gala',
+    tag: 'Velvet & Gold',
+    emoji: '👑',
+    themeColor: '#10b981',
+    female: {
+      jacket: 0x5a1828, // rich velvet wine jacket
+      jacketRough: 0.35,
+      jacketMetal: 0.3,
+      shirt: 0xd0ab75, // champagne gold top
+      pants: 0x14151b, // midnight dress trousers
+      shoes: 0x160810, // velvet dress shoes
+    },
+    male: {
+      top: 0x194332, // regal emerald green velour
+      topRough: 0.4,
+      topMetal: 0.2,
+      bottom: 0x12171c, // formal midnight pants
+      shoes: 0x0c0f12, // polished oxford shoes
+    },
+  },
+];
+
+// -------------------------------------------------------------
+// 6 HAIR COLOR PRESETS
+// -------------------------------------------------------------
+export const HAIR_COLORS = [
+  { id: 'natural', name: 'Dark Brunette', hex: 0x221712, swatch: '#221712', emoji: '🌰' },
+  { id: 'blonde', name: 'Golden Honey', hex: 0xd6b77c, swatch: '#d6b77c', emoji: '🍯' },
+  { id: 'noir', name: 'Jet Noir', hex: 0x0d0d0f, swatch: '#0d0d0f', emoji: '🖤' },
+  { id: 'auburn', name: 'Auburn Chestnut', hex: 0x6e2c18, swatch: '#6e2c18', emoji: '🍂' },
+  { id: 'sakura', name: 'Pastel Rose', hex: 0xb56984, swatch: '#b56984', emoji: '🌸' },
+  { id: 'silver', name: 'Platinum Silver', hex: 0xc8d0dc, swatch: '#c8d0dc', emoji: '❄️' },
+];
 
 export default function Real3DAvatarStage({
   myGlbUrl,
@@ -21,10 +194,29 @@ export default function Real3DAvatarStage({
   const mountRef = useRef(null);
   const fileInputRef = useRef(null);
   
-  // State
+  // State: Emotes & Stage
   const [activeEmote, setActiveEmote] = useState(null);
   const [isRotating, setIsRotating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State: Wardrobe & Customization
+  const [showWardrobe, setShowWardrobe] = useState(false);
+  const [wardrobeTab, setWardrobeTab] = useState('outfits'); // 'outfits' | 'hair' | 'accessories'
+  const [selectedOutfit, setSelectedOutfit] = useState(() => {
+    return localStorage.getItem('lovelink_3d_outfit') || 'streetwear';
+  });
+  const [selectedHair, setSelectedHair] = useState(() => {
+    return localStorage.getItem('lovelink_3d_hair') || 'natural';
+  });
+  const [showGlasses, setShowGlasses] = useState(() => {
+    return localStorage.getItem('lovelink_3d_glasses') === 'true';
+  });
+  const [showTie, setShowTie] = useState(() => {
+    return localStorage.getItem('lovelink_3d_tie') === 'true';
+  });
+  const [showShades, setShowShades] = useState(() => {
+    return localStorage.getItem('lovelink_3d_shades') === 'true';
+  });
 
   // Custom Local Overrides (if user uploads a custom .glb file)
   const [localMyGlb, setLocalMyGlb] = useState(null);
@@ -36,6 +228,8 @@ export default function Real3DAvatarStage({
   const controlsRef = useRef(null);
   const cameraRef = useRef(null);
   const animFrameIdRef = useRef(null);
+  const ringMeshRef = useRef(null);
+  const sunglassesGroupRef = useRef(null);
 
   // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
@@ -91,9 +285,140 @@ export default function Real3DAvatarStage({
         });
       }
     } catch {
-      // Audio muted or not allowed without user interaction
+      // Audio muted
     }
   }, []);
+
+  // -------------------------------------------------------------
+  // DYNAMIC THREE.JS PBR MATERIAL APPLIER (WARDROBE CHANGER)
+  // -------------------------------------------------------------
+  const applyStyling = useCallback((outfitId, hairId, glassesVal, tieVal, shadesVal) => {
+    const outfit = OUTFIT_PRESETS.find(o => o.id === outfitId) || OUTFIT_PRESETS[0];
+    const hair = HAIR_COLORS.find(h => h.id === hairId) || HAIR_COLORS[0];
+
+    // 1. Female Styling
+    if (leftModelRef.current) {
+      leftModelRef.current.traverse((child) => {
+        if (child.isMesh) {
+          const name = child.name.toLowerCase();
+
+          // Toggles
+          if (name.includes('tie')) child.visible = !!tieVal;
+          else if (name.includes('eyeglass')) child.visible = !!glassesVal;
+          else if (name.includes('button')) child.visible = false;
+          else child.visible = true;
+
+          if (child.material) {
+            const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+            if (name.includes('suit')) {
+              mat.color.setHex(outfit.female.jacket);
+              mat.roughness = outfit.female.jacketRough;
+              mat.metalness = outfit.female.jacketMetal || 0.1;
+            } else if (name.includes('shirt')) {
+              mat.color.setHex(outfit.female.shirt);
+              mat.roughness = 0.6;
+            } else if (name.includes('pants')) {
+              mat.color.setHex(outfit.female.pants);
+              mat.roughness = 0.55;
+            } else if (name.includes('shoes')) {
+              mat.color.setHex(outfit.female.shoes);
+              mat.roughness = 0.35;
+            } else if (name.includes('hair') || name.includes('nurbspath')) {
+              mat.color.setHex(hair.hex);
+              mat.roughness = 0.5;
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Male Styling
+    if (rightModelRef.current) {
+      rightModelRef.current.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const name = child.name.toLowerCase();
+          const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+          if (name.includes('top')) {
+            mat.color.setHex(outfit.male.top);
+            mat.roughness = outfit.male.topRough;
+            mat.metalness = outfit.male.topMetal || 0.1;
+          } else if (name.includes('bottom')) {
+            mat.color.setHex(outfit.male.bottom);
+            mat.roughness = 0.65;
+          } else if (name.includes('footwear')) {
+            mat.color.setHex(outfit.male.shoes);
+            mat.roughness = 0.4;
+          } else if (name.includes('hair')) {
+            mat.color.setHex(hair.hex);
+            mat.roughness = 0.55;
+          }
+        }
+      });
+
+      // Male Designer Sunglasses
+      if (sunglassesGroupRef.current) {
+        sunglassesGroupRef.current.visible = !!shadesVal;
+      }
+    }
+
+    // 3. Podium Neon Accent Ring Color
+    if (ringMeshRef.current) {
+      ringMeshRef.current.material.color.set(outfit.themeColor);
+    }
+  }, []);
+
+  // Switch Outfit
+  const handleSelectOutfit = (outfitId) => {
+    setSelectedOutfit(outfitId);
+    localStorage.setItem('lovelink_3d_outfit', outfitId);
+    applyStyling(outfitId, selectedHair, showGlasses, showTie, showShades);
+    playSfx('chime');
+    confetti({
+      particleCount: 40,
+      spread: 60,
+      origin: { y: 0.65 },
+      colors: ['#6366f1', '#ec4899', '#f59e0b', '#10b981'],
+    });
+    const found = OUTFIT_PRESETS.find(o => o.id === outfitId);
+    toast.success(`Dressed in ${found?.name || 'New Look'}! ${found?.emoji || '✨'}`);
+  };
+
+  // Switch Hair Color
+  const handleSelectHair = (hairId) => {
+    setSelectedHair(hairId);
+    localStorage.setItem('lovelink_3d_hair', hairId);
+    applyStyling(selectedOutfit, hairId, showGlasses, showTie, showShades);
+    playSfx('chime');
+    const found = HAIR_COLORS.find(h => h.id === hairId);
+    toast.success(`Hair styled to ${found?.name}! ${found?.emoji || '💇'}`);
+  };
+
+  // Toggle Glasses
+  const handleToggleGlasses = () => {
+    const next = !showGlasses;
+    setShowGlasses(next);
+    localStorage.setItem('lovelink_3d_glasses', String(next));
+    applyStyling(selectedOutfit, selectedHair, next, showTie, showShades);
+    toast.success(next ? 'Glasses on! 👓' : 'Glasses off');
+  };
+
+  // Toggle Tie
+  const handleToggleTie = () => {
+    const next = !showTie;
+    setShowTie(next);
+    localStorage.setItem('lovelink_3d_tie', String(next));
+    applyStyling(selectedOutfit, selectedHair, showGlasses, next, showShades);
+    toast.success(next ? 'Silk tie styled! 👔' : 'Tie removed');
+  };
+
+  // Toggle Male Shades
+  const handleToggleShades = () => {
+    const next = !showShades;
+    setShowShades(next);
+    localStorage.setItem('lovelink_3d_shades', String(next));
+    applyStyling(selectedOutfit, selectedHair, showGlasses, showTie, next);
+    toast.success(next ? 'Designer shades on! 🕶️' : 'Shades removed');
+  };
 
   // Trigger Reaction Emote
   const triggerEmote = useCallback((type = 'clink') => {
@@ -158,7 +483,6 @@ export default function Real3DAvatarStage({
     setLocalMyGlb(objectUrl);
     toast.success(`Loaded 3D Model: ${file.name} ✨`);
   };
-
 
   // Screenshot / Snapshot Canvas
   const handleCaptureSnapshot = () => {
@@ -245,6 +569,7 @@ export default function Real3DAvatarStage({
     ring.rotation.x = Math.PI / 2;
     ring.position.set(0, 0.082, 0);
     scene.add(ring);
+    ringMeshRef.current = ring;
 
     // 6. 360° ORBIT CONTROLS
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -287,6 +612,8 @@ export default function Real3DAvatarStage({
       loadedCount++;
       if (loadedCount >= 2) {
         setIsLoading(false);
+        // Apply active outfit, hair, and accessories
+        applyStyling(selectedOutfit, selectedHair, showGlasses, showTie, showShades);
       }
     };
 
@@ -295,7 +622,6 @@ export default function Real3DAvatarStage({
 
     // Load Left Model (Female Avatar / Neha)
     // Scale: 1.135 -> Height 1.685m (Natural couple proportions: female is ~1.69m, male is ~1.83m)
-    // Suit jacket kept 100% visible so arms & hands are fully attached!
     loader.load(
       femaleGlb,
       (gltf) => {
@@ -305,46 +631,12 @@ export default function Real3DAvatarStage({
         
         model.traverse((child) => {
           if (child.isMesh) {
-            const name = child.name.toLowerCase();
-            // Hide corporate tie, glasses, and button accessories
-            if (name.includes('tie') || name.includes('eyeglass') || name.includes('button')) {
-              child.visible = false;
-            } else {
-              // Keep body, hair, suit jacket, shirt, pants, shoes, earrings VISIBLE!
-              child.visible = true;
-            }
-
-            // Safe material handling (child.material can be an array for multi-primitive meshes like body)
+            child.visible = true;
             if (child.material) {
               if (Array.isArray(child.material)) {
                 child.material = child.material.map(m => m.clone());
               } else {
                 child.material = child.material.clone();
-              }
-
-              // Style suit jacket into chic navy/charcoal blazer
-              if (name.includes('suit')) {
-                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-                mat.color.setHex(0x232733);
-                mat.roughness = 0.5;
-              }
-              // Style inner top into sleek dark top
-              if (name.includes('shirt')) {
-                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-                mat.color.setHex(0x1a1a20);
-                mat.roughness = 0.6;
-              }
-              // Style pants into sleek dark streetwear trousers
-              if (name.includes('pants')) {
-                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-                mat.color.setHex(0x1e2029);
-                mat.roughness = 0.55;
-              }
-              // Style shoes into sleek black boots
-              if (name.includes('shoes')) {
-                const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-                mat.color.setHex(0x121215);
-                mat.roughness = 0.35;
               }
             }
           }
@@ -389,26 +681,38 @@ export default function Real3DAvatarStage({
             } else {
               child.material = child.material.clone();
             }
+          }
 
-            const name = child.name.toLowerCase();
-            // Style top into dark charcoal streetwear shirt
-            if (name.includes('top')) {
-              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-              mat.color.setHex(0x181a24);
-              mat.roughness = 0.55;
-            }
-            // Style bottom into dark indigo denim
-            if (name.includes('bottom')) {
-              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-              mat.color.setHex(0x2d3e52);
-              mat.roughness = 0.65;
-            }
-            // Style shoes into black streetwear sneakers
-            if (name.includes('footwear')) {
-              const mat = Array.isArray(child.material) ? child.material[0] : child.material;
-              mat.color.setHex(0x141418);
-              mat.roughness = 0.4;
-            }
+          // Attach 3D Designer Sunglasses to Male Head Bone
+          if (child.isBone && child.name.toLowerCase() === 'head') {
+            const glassesGroup = new THREE.Group();
+            const glassMat = new THREE.MeshStandardMaterial({ 
+              color: 0x0a0c12, 
+              roughness: 0.1, 
+              metalness: 0.9 
+            });
+            const frameMat = new THREE.MeshStandardMaterial({ 
+              color: 0x181920, 
+              roughness: 0.25, 
+              metalness: 0.5 
+            });
+
+            // Curved Left & Right Lenses
+            const leftLens = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.038, 0.008), glassMat);
+            leftLens.position.set(-0.042, 0.085, 0.145);
+            glassesGroup.add(leftLens);
+
+            const rightLens = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.038, 0.008), glassMat);
+            rightLens.position.set(0.042, 0.085, 0.145);
+            glassesGroup.add(rightLens);
+
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.008, 0.008), frameMat);
+            bridge.position.set(0, 0.09, 0.145);
+            glassesGroup.add(bridge);
+
+            glassesGroup.visible = showShades;
+            child.add(glassesGroup);
+            sunglassesGroupRef.current = glassesGroup;
           }
         });
 
@@ -729,7 +1033,9 @@ export default function Real3DAvatarStage({
       renderer.dispose();
       mount.innerHTML = '';
     };
-  }, [isRotating, partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb]);
+  }, [isRotating, partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb, applyStyling, selectedOutfit, selectedHair, showGlasses, showTie, showShades]);
+
+  const activeOutfitObj = OUTFIT_PRESETS.find(o => o.id === selectedOutfit) || OUTFIT_PRESETS[0];
 
   return (
     <div className={`relative w-full flex flex-col items-center select-none ${className}`}>
@@ -767,15 +1073,40 @@ export default function Real3DAvatarStage({
         {/* Top Floating Controls Dock */}
         <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none z-20">
           
-          {/* Badge */}
-          <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white shadow-xl pointer-events-auto">
-            <Box size={14} className="text-amber-400" />
-            <span className="text-xs font-black tracking-tight">Real 3D WebGL</span>
+          {/* Badge & Active Outfit Indicator */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white shadow-xl">
+              <Box size={14} className="text-amber-400" />
+              <span className="text-xs font-black tracking-tight">Real 3D WebGL</span>
+            </div>
+
+            <button
+              onClick={() => setShowWardrobe(!showWardrobe)}
+              className="hidden sm:flex items-center gap-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white shadow-xl text-xs font-bold transition-all"
+              title="Current Style"
+            >
+              <span>{activeOutfitObj.emoji}</span>
+              <span className="text-[11px] truncate max-w-[100px]">{activeOutfitObj.name}</span>
+            </button>
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 pointer-events-auto">
             
+            {/* Wardrobe & Outfits Toggle */}
+            <button
+              onClick={() => setShowWardrobe(!showWardrobe)}
+              className={`px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
+                showWardrobe 
+                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300' 
+                  : 'bg-black/60 hover:bg-black/80 text-white'
+              }`}
+              title="Change Outfits, Hair & Accessories"
+            >
+              <Shirt size={13} className={showWardrobe ? 'text-stone-950' : 'text-amber-400'} />
+              <span>Wardrobe</span>
+            </button>
+
             {/* Custom .glb Model Upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -823,6 +1154,168 @@ export default function Real3DAvatarStage({
             Drag to rotate 360° • Pinch to zoom
           </p>
         </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* INTERACTIVE WARDROBE DRAWER (SLIDES UP INSIDE STAGE) */}
+        {/* ------------------------------------------------------------- */}
+        {showWardrobe && (
+          <div className="absolute inset-x-3 bottom-3 z-30 bg-[#121620]/95 backdrop-blur-xl border border-white/15 rounded-3xl p-3.5 shadow-2xl animate-fadeIn flex flex-col gap-2.5">
+            
+            {/* Header with Tabs & Close */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setWardrobeTab('outfits')}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                    wardrobeTab === 'outfits'
+                      ? 'bg-amber-400 text-stone-950 font-black'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Shirt size={12} />
+                  <span>Outfits (7)</span>
+                </button>
+
+                <button
+                  onClick={() => setWardrobeTab('hair')}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                    wardrobeTab === 'hair'
+                      ? 'bg-amber-400 text-stone-950 font-black'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Palette size={12} />
+                  <span>Hair (6)</span>
+                </button>
+
+                <button
+                  onClick={() => setWardrobeTab('accessories')}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                    wardrobeTab === 'accessories'
+                      ? 'bg-amber-400 text-stone-950 font-black'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Sparkles size={12} />
+                  <span>Style</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowWardrobe(false)}
+                className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition-colors"
+                title="Close Wardrobe"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* TAB 1: 7 COUPLE OUTFITS */}
+            {wardrobeTab === 'outfits' && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-white/20">
+                {OUTFIT_PRESETS.map((outfit) => {
+                  const isSelected = selectedOutfit === outfit.id;
+                  return (
+                    <button
+                      key={outfit.id}
+                      onClick={() => handleSelectOutfit(outfit.id)}
+                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all text-left ${
+                        isSelected
+                          ? 'bg-white/20 border-amber-400 shadow-lg scale-[1.02] ring-1 ring-amber-400'
+                          : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      }`}
+                    >
+                      <span className="text-xl">{outfit.emoji}</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white leading-tight flex items-center gap-1">
+                          {outfit.name}
+                          {isSelected && <Check size={11} className="text-amber-400" />}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{outfit.tag}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 2: 6 HAIR COLORS */}
+            {wardrobeTab === 'hair' && (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {HAIR_COLORS.map((hair) => {
+                  const isSelected = selectedHair === hair.id;
+                  return (
+                    <button
+                      key={hair.id}
+                      onClick={() => handleSelectHair(hair.id)}
+                      className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                        isSelected
+                          ? 'bg-white/20 border-amber-400 ring-1 ring-amber-400'
+                          : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      }`}
+                    >
+                      <span 
+                        className="w-4 h-4 rounded-full border border-white/30 flex-shrink-0 shadow-sm" 
+                        style={{ backgroundColor: hair.swatch }}
+                      />
+                      <span className="text-xs font-bold text-white truncate">{hair.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 3: ACCESSORIES & EXTRAS */}
+            {wardrobeTab === 'accessories' && (
+              <div className="grid grid-cols-3 gap-2">
+                
+                {/* Male Designer Shades */}
+                <button
+                  onClick={handleToggleShades}
+                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
+                    showShades 
+                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+                  }`}
+                >
+                  <span className="text-lg">🕶️</span>
+                  <span className="text-xs mt-1">Boy Shades</span>
+                  <span className="text-[10px] opacity-75">{showShades ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {/* Female Chic Glasses */}
+                <button
+                  onClick={handleToggleGlasses}
+                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
+                    showGlasses 
+                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+                  }`}
+                >
+                  <span className="text-lg">👓</span>
+                  <span className="text-xs mt-1">Girl Glasses</span>
+                  <span className="text-[10px] opacity-75">{showGlasses ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {/* Formal Silk Tie */}
+                <button
+                  onClick={handleToggleTie}
+                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
+                    showTie 
+                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+                  }`}
+                >
+                  <span className="text-lg">👔</span>
+                  <span className="text-xs mt-1">Silk Tie</span>
+                  <span className="text-[10px] opacity-75">{showTie ? 'ON' : 'OFF'}</span>
+                </button>
+              </div>
+            )}
+
+          </div>
+        )}
+
       </div>
 
       {/* 2. REACTION EMOTE DOCK */}
