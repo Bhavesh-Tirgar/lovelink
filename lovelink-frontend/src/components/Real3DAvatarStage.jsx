@@ -5,181 +5,153 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { 
   RotateCw, Sparkles, Heart, Coffee, 
   Music, Upload, RefreshCw, Camera, Box, Shirt, 
-  Palette, Check, X
+  Check, X, User
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 
 // -------------------------------------------------------------
-// 7 CURATED COUPLE OUTFIT PRESETS
+// 1. INDIVIDUAL BOY CLOTHING & ACCESSORIES CATALOG
 // -------------------------------------------------------------
-export const OUTFIT_PRESETS = [
+export const BOY_TOPS = [
+  { id: 'noir_street', name: 'Noir Bomber', color: 0x181a24, rough: 0.55, metal: 0.1, swatch: '#181a24', emoji: '🧥' },
+  { id: 'caramel_suede', name: 'Caramel Suede', color: 0x8e5431, rough: 0.5, metal: 0.05, swatch: '#8e5431', emoji: '🍂' },
+  { id: 'minimal_white', name: 'White Tee', color: 0xf2f5f9, rough: 0.5, metal: 0.05, swatch: '#f2f5f9', emoji: '🤍' },
+  { id: 'forest_green', name: 'Evergreen Top', color: 0x1b3b2b, rough: 0.6, metal: 0.1, swatch: '#1b3b2b', emoji: '🌲' },
+  { id: 'burgundy_velour', name: 'Burgundy Velvet', color: 0x4a1523, rough: 0.4, metal: 0.25, swatch: '#4a1523', emoji: '🍷' },
+  { id: 'cyber_cobalt', name: 'Cyber Cobalt', color: 0x202464, rough: 0.3, metal: 0.5, swatch: '#202464', emoji: '🔮' },
+  { id: 'vintage_navy', name: 'Varsity Navy', color: 0x1d2d48, rough: 0.55, metal: 0.1, swatch: '#1d2d48', emoji: '🧢' },
+  { id: 'amber_gold', name: 'Sunset Amber', color: 0xd97706, rough: 0.45, metal: 0.15, swatch: '#d97706', emoji: '⚡' },
+];
+
+export const BOY_BOTTOMS = [
+  { id: 'raw_denim', name: 'Indigo Denim', color: 0x2b3d54, rough: 0.65, swatch: '#2b3d54', emoji: '👖' },
+  { id: 'jet_black', name: 'Jet Black Jeans', color: 0x111215, rough: 0.55, swatch: '#111215', emoji: '🖤' },
+  { id: 'espresso_chinos', name: 'Espresso Chinos', color: 0x36281e, rough: 0.6, swatch: '#36281e', emoji: '☕' },
+  { id: 'slate_shorts', name: 'Slate Denim', color: 0x444c57, rough: 0.65, swatch: '#444c57', emoji: '🩶' },
+  { id: 'off_white', name: 'Off-White Canvas', color: 0xdcdfe5, rough: 0.5, swatch: '#dcdfe5', emoji: '🤍' },
+  { id: 'deep_olive', name: 'Olive Military', color: 0x242d20, rough: 0.65, swatch: '#242d20', emoji: '🪖' },
+  { id: 'cyber_carbon', name: 'Cyber Carbon', color: 0x161622, rough: 0.3, swatch: '#161622', emoji: '🔮' },
+];
+
+export const BOY_SHOES = [
+  { id: 'black_runners', name: 'Black Runners', color: 0x141418, rough: 0.4, swatch: '#141418', emoji: '👟' },
+  { id: 'white_kicks', name: 'White High-Tops', color: 0xe5eaef, rough: 0.35, swatch: '#e5eaef', emoji: '⚪' },
+  { id: 'dark_tan_boots', name: 'Dark Tan Boots', color: 0x2a1e16, rough: 0.4, swatch: '#2a1e16', emoji: '🥾' },
+  { id: 'neon_stompers', name: 'Cyber Stompers', color: 0x261633, rough: 0.3, swatch: '#261633', emoji: '🟣' },
+];
+
+// -------------------------------------------------------------
+// 2. INDIVIDUAL GIRL CLOTHING & ACCESSORIES CATALOG
+// -------------------------------------------------------------
+export const GIRL_JACKETS = [
+  { id: 'noir_blazer', name: 'Noir Blazer', color: 0x232733, rough: 0.5, metal: 0.1, swatch: '#232733', emoji: '🖤' },
+  { id: 'caramel_coat', name: 'Caramel Coat', color: 0x8a4b27, rough: 0.45, metal: 0.15, swatch: '#8a4b27', emoji: '🧥' },
+  { id: 'ivory_silk', name: 'Ivory Silk Blazer', color: 0xe6e9ee, rough: 0.45, metal: 0.1, swatch: '#e6e9ee', emoji: '🤍' },
+  { id: 'sakura_pink', name: 'Sakura Blush Jacket', color: 0xc97a8e, rough: 0.5, metal: 0.1, swatch: '#c97a8e', emoji: '🌸' },
+  { id: 'cyber_violet', name: 'Cyber Violet Jacket', color: 0x4a1f80, rough: 0.25, metal: 0.6, swatch: '#4a1f80', emoji: '🔮' },
+  { id: 'velvet_ruby', name: 'Velvet Wine Blazer', color: 0x5a1828, rough: 0.35, metal: 0.3, swatch: '#5a1828', emoji: '🍷' },
+  { id: 'regal_emerald', name: 'Emerald Velvet Jacket', color: 0x163828, rough: 0.4, metal: 0.2, swatch: '#163828', emoji: '👑' },
+  { id: 'french_navy', name: 'French Navy Blazer', color: 0x1e293b, rough: 0.5, metal: 0.1, swatch: '#1e293b', emoji: '💙' },
+];
+
+export const GIRL_TOPS = [
+  { id: 'obsidian_top', name: 'Obsidian Top', color: 0x1a1a20, rough: 0.6, swatch: '#1a1a20', emoji: '🖤' },
+  { id: 'vanilla_cream', name: 'Vanilla Cream Top', color: 0xdfd5c4, rough: 0.6, swatch: '#dfd5c4', emoji: '🤍' },
+  { id: 'dusty_rose', name: 'Dusty Rose Silk', color: 0xf5e8ed, rough: 0.55, swatch: '#f5e8ed', emoji: '🌸' },
+  { id: 'champagne_knit', name: 'Champagne Gold', color: 0xd0ab75, rough: 0.5, swatch: '#d0ab75', emoji: '🪙' },
+  { id: 'neon_magenta', name: 'Magenta Club Top', color: 0x941662, rough: 0.4, swatch: '#941662', emoji: '💖' },
+  { id: 'slate_contrast', name: 'Cool Slate Top', color: 0x222630, rough: 0.6, swatch: '#222630', emoji: '🩶' },
+];
+
+export const GIRL_PANTS = [
+  { id: 'noir_trousers', name: 'Jet Black Slacks', color: 0x1e2029, rough: 0.55, swatch: '#1e2029', emoji: '🖤' },
+  { id: 'vintage_blue', name: 'Vintage Blue Jeans', color: 0x2e3d50, rough: 0.65, swatch: '#2e3d50', emoji: '👖' },
+  { id: 'espresso_wide', name: 'Cocoa Espresso Slacks', color: 0x302018, rough: 0.55, swatch: '#302018', emoji: '☕' },
+  { id: 'slate_tailored', name: 'Slate Slacks', color: 0x333b47, rough: 0.55, swatch: '#333b47', emoji: '🩶' },
+  { id: 'linen_white', name: 'Off-White Linen', color: 0xdcdfe5, rough: 0.5, swatch: '#dcdfe5', emoji: '🤍' },
+  { id: 'cyber_pants', name: 'Cyber Vinyl Pants', color: 0x141224, rough: 0.3, swatch: '#141224', emoji: '🔮' },
+];
+
+export const GIRL_SHOES = [
+  { id: 'noir_boots', name: 'Black Leather Boots', color: 0x121215, rough: 0.35, swatch: '#121215', emoji: '👢' },
+  { id: 'wine_pumps', name: 'Velvet Wine Heels', color: 0x160810, rough: 0.35, swatch: '#160810', emoji: '👠' },
+  { id: 'white_boots', name: 'Ivory White Boots', color: 0xe0e4ea, rough: 0.35, swatch: '#e0e4ea', emoji: '⚪' },
+  { id: 'cyber_boots', name: 'Purple Neon Combat', color: 0x1b0f30, rough: 0.3, swatch: '#1b0f30', emoji: '🟣' },
+];
+
+// -------------------------------------------------------------
+// 3. HAIR COLOR PRESETS
+// -------------------------------------------------------------
+export const HAIR_COLORS = [
+  { id: 'natural', name: 'Brunette', hex: 0x221712, swatch: '#221712', emoji: '🌰' },
+  { id: 'blonde', name: 'Honey Blonde', hex: 0xd6b77c, swatch: '#d6b77c', emoji: '🍯' },
+  { id: 'noir', name: 'Jet Noir', hex: 0x0d0d0f, swatch: '#0d0d0f', emoji: '🖤' },
+  { id: 'auburn', name: 'Auburn', hex: 0x6e2c18, swatch: '#6e2c18', emoji: '🍂' },
+  { id: 'sakura', name: 'Pastel Rose', hex: 0xb56984, swatch: '#b56984', emoji: '🌸' },
+  { id: 'silver', name: 'Silver Platinum', hex: 0xc8d0dc, swatch: '#c8d0dc', emoji: '❄️' },
+];
+
+// -------------------------------------------------------------
+// 4. COORDINATED COUPLE PRESETS (QUICK MATCH)
+// -------------------------------------------------------------
+export const COUPLE_PRESETS = [
   {
     id: 'streetwear',
     name: 'Streetwear Chic',
-    tag: 'Casual Street',
     emoji: '⚡',
     themeColor: '#6366f1',
-    female: {
-      jacket: 0x232733, // sleek navy/charcoal blazer
-      jacketRough: 0.5,
-      jacketMetal: 0.1,
-      shirt: 0x1a1a20,
-      pants: 0x1e2029,
-      shoes: 0x121215,
-    },
-    male: {
-      top: 0x181a24, // dark streetwear top
-      topRough: 0.55,
-      topMetal: 0.1,
-      bottom: 0x2d3e52, // dark indigo denim
-      shoes: 0x141418,
-    },
+    boy: { top: 'noir_street', bottom: 'raw_denim', shoes: 'black_runners', shades: false },
+    girl: { jacket: 'noir_blazer', top: 'obsidian_top', pants: 'noir_trousers', shoes: 'noir_boots', glasses: false, tie: false },
   },
   {
     id: 'cozy_date',
     name: 'Cozy Autumn Date',
-    tag: 'Warm & Sweet',
     emoji: '☕',
     themeColor: '#f59e0b',
-    female: {
-      jacket: 0x8a4b27, // warm hazelnut/caramel coat
-      jacketRough: 0.45,
-      jacketMetal: 0.15,
-      shirt: 0xdfd5c4, // cream vanilla inner
-      pants: 0x302018, // warm espresso slacks
-      shoes: 0x1e130c, // brown leather boots
-    },
-    male: {
-      top: 0x985e36, // warm camel sweater
-      topRough: 0.6,
-      topMetal: 0.05,
-      bottom: 0x33251c, // dark chocolate slacks
-      shoes: 0x221711, // suede boots
-    },
+    boy: { top: 'caramel_suede', bottom: 'espresso_chinos', shoes: 'dark_tan_boots', shades: false },
+    girl: { jacket: 'caramel_coat', top: 'vanilla_cream', pants: 'espresso_wide', shoes: 'noir_boots', glasses: false, tie: false },
   },
   {
     id: 'monochrome',
     name: 'Noir Luxury',
-    tag: 'All Black',
     emoji: '🖤',
     themeColor: '#94a3b8',
-    female: {
-      jacket: 0x0f1014, // jet black tailored blazer
-      jacketRough: 0.35,
-      jacketMetal: 0.25,
-      shirt: 0x17181f, // silk charcoal top
-      pants: 0x0c0d11, // obsidian trousers
-      shoes: 0x08080a, // glossy heels
-    },
-    male: {
-      top: 0x101115, // matte black dress shirt
-      topRough: 0.4,
-      topMetal: 0.15,
-      bottom: 0x0d0e12, // dark black slim trousers
-      shoes: 0x090a0d, // polished black dress shoes
-    },
+    boy: { top: 'noir_street', bottom: 'jet_black', shoes: 'black_runners', shades: true },
+    girl: { jacket: 'noir_blazer', top: 'obsidian_top', pants: 'noir_trousers', shoes: 'noir_boots', glasses: false, tie: false },
   },
   {
     id: 'pastel_love',
     name: 'Sakura Blush',
-    tag: 'Pastel Romance',
     emoji: '🌸',
     themeColor: '#f43f5e',
-    female: {
-      jacket: 0xc97a8e, // soft sakura pink jacket
-      jacketRough: 0.5,
-      jacketMetal: 0.1,
-      shirt: 0xf5e8ed, // soft ivory blush
-      pants: 0x422f3b, // dusty mauve slacks
-      shoes: 0x33222d, // rosewood boots
-    },
-    male: {
-      top: 0x8c7fa8, // lavender lilac top
-      topRough: 0.55,
-      topMetal: 0.05,
-      bottom: 0x4f6580, // soft slate denim
-      shoes: 0xd8dde8, // white/lilac sneakers
-    },
+    boy: { top: 'minimal_white', bottom: 'slate_shorts', shoes: 'white_kicks', shades: false },
+    girl: { jacket: 'sakura_pink', top: 'dusty_rose', pants: 'slate_tailored', shoes: 'white_boots', glasses: false, tie: false },
   },
   {
     id: 'cyberpunk',
     name: 'Cyber Neon 2077',
-    tag: 'Night City',
     emoji: '🔮',
     themeColor: '#a855f7',
-    female: {
-      jacket: 0x4a1f80, // iridescent neon violet jacket
-      jacketRough: 0.25,
-      jacketMetal: 0.6,
-      shirt: 0x941662, // fuchsia neon top
-      pants: 0x141224, // glossy vinyl pants
-      shoes: 0x1b0f30, // purple neon combat boots
-    },
-    male: {
-      top: 0x27246b, // neon cobalt cyber jacket
-      topRough: 0.3,
-      topMetal: 0.5,
-      bottom: 0x184460, // neon cyan tactical pants
-      shoes: 0x161530, // high-tech kicks
-    },
+    boy: { top: 'cyber_cobalt', bottom: 'cyber_carbon', shoes: 'neon_stompers', shades: true },
+    girl: { jacket: 'cyber_violet', top: 'neon_magenta', pants: 'cyber_pants', shoes: 'cyber_boots', glasses: false, tie: false },
   },
   {
     id: 'clean_ivory',
     name: 'Clean Minimalist',
-    tag: 'Pure & Modern',
     emoji: '🤍',
     themeColor: '#38bdf8',
-    female: {
-      jacket: 0xe6e9ee, // crisp ivory white blazer
-      jacketRough: 0.45,
-      jacketMetal: 0.1,
-      shirt: 0x222630, // contrast slate top
-      pants: 0x333b47, // slate grey slacks
-      shoes: 0xe0e4ea, // clean white boots
-    },
-    male: {
-      top: 0xf0f3f8, // crisp clean white tee
-      topRough: 0.5,
-      topMetal: 0.05,
-      bottom: 0x445060, // slate denim
-      shoes: 0xe5eaf2, // crisp white sneakers
-    },
+    boy: { top: 'minimal_white', bottom: 'slate_shorts', shoes: 'white_kicks', shades: false },
+    girl: { jacket: 'ivory_silk', top: 'slate_contrast', pants: 'slate_tailored', shoes: 'white_boots', glasses: false, tie: false },
   },
   {
     id: 'royal_gala',
     name: 'Royal Gala',
-    tag: 'Velvet & Gold',
     emoji: '👑',
     themeColor: '#10b981',
-    female: {
-      jacket: 0x5a1828, // rich velvet wine jacket
-      jacketRough: 0.35,
-      jacketMetal: 0.3,
-      shirt: 0xd0ab75, // champagne gold top
-      pants: 0x14151b, // midnight dress trousers
-      shoes: 0x160810, // velvet dress shoes
-    },
-    male: {
-      top: 0x194332, // regal emerald green velour
-      topRough: 0.4,
-      topMetal: 0.2,
-      bottom: 0x12171c, // formal midnight pants
-      shoes: 0x0c0f12, // polished oxford shoes
-    },
+    boy: { top: 'forest_green', bottom: 'jet_black', shoes: 'black_runners', shades: false },
+    girl: { jacket: 'velvet_ruby', top: 'champagne_knit', pants: 'noir_trousers', shoes: 'wine_pumps', glasses: false, tie: false },
   },
-];
-
-// -------------------------------------------------------------
-// 6 HAIR COLOR PRESETS
-// -------------------------------------------------------------
-export const HAIR_COLORS = [
-  { id: 'natural', name: 'Dark Brunette', hex: 0x221712, swatch: '#221712', emoji: '🌰' },
-  { id: 'blonde', name: 'Golden Honey', hex: 0xd6b77c, swatch: '#d6b77c', emoji: '🍯' },
-  { id: 'noir', name: 'Jet Noir', hex: 0x0d0d0f, swatch: '#0d0d0f', emoji: '🖤' },
-  { id: 'auburn', name: 'Auburn Chestnut', hex: 0x6e2c18, swatch: '#6e2c18', emoji: '🍂' },
-  { id: 'sakura', name: 'Pastel Rose', hex: 0xb56984, swatch: '#b56984', emoji: '🌸' },
-  { id: 'silver', name: 'Platinum Silver', hex: 0xc8d0dc, swatch: '#c8d0dc', emoji: '❄️' },
 ];
 
 export default function Real3DAvatarStage({
@@ -199,23 +171,44 @@ export default function Real3DAvatarStage({
   const [isRotating, setIsRotating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State: Wardrobe & Customization
+  // State: Wardrobe Drawer & Active Target Character ('boy' | 'girl' | 'sets')
   const [showWardrobe, setShowWardrobe] = useState(false);
-  const [wardrobeTab, setWardrobeTab] = useState('outfits'); // 'outfits' | 'hair' | 'accessories'
-  const [selectedOutfit, setSelectedOutfit] = useState(() => {
-    return localStorage.getItem('lovelink_3d_outfit') || 'streetwear';
+  const [wardrobeTarget, setWardrobeTarget] = useState('boy'); // 'boy' | 'girl' | 'sets'
+  const [boySubTab, setBoySubTab] = useState('tops'); // 'tops' | 'pants' | 'shoes' | 'hair' | 'shades'
+  const [girlSubTab, setGirlSubTab] = useState('jackets'); // 'jackets' | 'tops' | 'pants' | 'shoes' | 'hair' | 'accessories'
+
+  // Independent Wardrobe State for Boy
+  const [boyWardrobe, setBoyWardrobe] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lovelink_3d_boy_wardrobe');
+      return saved ? JSON.parse(saved) : {
+        top: 'noir_street',
+        bottom: 'raw_denim',
+        shoes: 'black_runners',
+        hair: 'natural',
+        shades: false,
+      };
+    } catch {
+      return { top: 'noir_street', bottom: 'raw_denim', shoes: 'black_runners', hair: 'natural', shades: false };
+    }
   });
-  const [selectedHair, setSelectedHair] = useState(() => {
-    return localStorage.getItem('lovelink_3d_hair') || 'natural';
-  });
-  const [showGlasses, setShowGlasses] = useState(() => {
-    return localStorage.getItem('lovelink_3d_glasses') === 'true';
-  });
-  const [showTie, setShowTie] = useState(() => {
-    return localStorage.getItem('lovelink_3d_tie') === 'true';
-  });
-  const [showShades, setShowShades] = useState(() => {
-    return localStorage.getItem('lovelink_3d_shades') === 'true';
+
+  // Independent Wardrobe State for Girl
+  const [girlWardrobe, setGirlWardrobe] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lovelink_3d_girl_wardrobe');
+      return saved ? JSON.parse(saved) : {
+        jacket: 'noir_blazer',
+        top: 'obsidian_top',
+        pants: 'noir_trousers',
+        shoes: 'noir_boots',
+        hair: 'natural',
+        glasses: false,
+        tie: false,
+      };
+    } catch {
+      return { jacket: 'noir_blazer', top: 'obsidian_top', pants: 'noir_trousers', shoes: 'noir_boots', hair: 'natural', glasses: false, tie: false };
+    }
   });
 
   // Custom Local Overrides (if user uploads a custom .glb file)
@@ -290,41 +283,44 @@ export default function Real3DAvatarStage({
   }, []);
 
   // -------------------------------------------------------------
-  // DYNAMIC THREE.JS PBR MATERIAL APPLIER (WARDROBE CHANGER)
+  // DYNAMIC THREE.JS PBR MATERIAL APPLIER (INDEPENDENT BOY & GIRL)
   // -------------------------------------------------------------
-  const applyStyling = useCallback((outfitId, hairId, glassesVal, tieVal, shadesVal) => {
-    const outfit = OUTFIT_PRESETS.find(o => o.id === outfitId) || OUTFIT_PRESETS[0];
-    const hair = HAIR_COLORS.find(h => h.id === hairId) || HAIR_COLORS[0];
-
-    // 1. Female Styling
+  const applyAllWardrobe = useCallback((boyState, girlState) => {
+    // 1. Apply Girl (Left Model)
     if (leftModelRef.current) {
+      const jacketItem = GIRL_JACKETS.find(j => j.id === girlState.jacket) || GIRL_JACKETS[0];
+      const topItem = GIRL_TOPS.find(t => t.id === girlState.top) || GIRL_TOPS[0];
+      const pantsItem = GIRL_PANTS.find(p => p.id === girlState.pants) || GIRL_PANTS[0];
+      const shoesItem = GIRL_SHOES.find(s => s.id === girlState.shoes) || GIRL_SHOES[0];
+      const hairItem = HAIR_COLORS.find(h => h.id === girlState.hair) || HAIR_COLORS[0];
+
       leftModelRef.current.traverse((child) => {
         if (child.isMesh) {
           const name = child.name.toLowerCase();
 
           // Toggles
-          if (name.includes('tie')) child.visible = !!tieVal;
-          else if (name.includes('eyeglass')) child.visible = !!glassesVal;
+          if (name.includes('tie')) child.visible = !!girlState.tie;
+          else if (name.includes('eyeglass')) child.visible = !!girlState.glasses;
           else if (name.includes('button')) child.visible = false;
           else child.visible = true;
 
           if (child.material) {
             const mat = Array.isArray(child.material) ? child.material[0] : child.material;
             if (name.includes('suit')) {
-              mat.color.setHex(outfit.female.jacket);
-              mat.roughness = outfit.female.jacketRough;
-              mat.metalness = outfit.female.jacketMetal || 0.1;
+              mat.color.setHex(jacketItem.color);
+              mat.roughness = jacketItem.rough;
+              mat.metalness = jacketItem.metal || 0.1;
             } else if (name.includes('shirt')) {
-              mat.color.setHex(outfit.female.shirt);
-              mat.roughness = 0.6;
+              mat.color.setHex(topItem.color);
+              mat.roughness = topItem.rough;
             } else if (name.includes('pants')) {
-              mat.color.setHex(outfit.female.pants);
-              mat.roughness = 0.55;
+              mat.color.setHex(pantsItem.color);
+              mat.roughness = pantsItem.rough;
             } else if (name.includes('shoes')) {
-              mat.color.setHex(outfit.female.shoes);
-              mat.roughness = 0.35;
+              mat.color.setHex(shoesItem.color);
+              mat.roughness = shoesItem.rough;
             } else if (name.includes('hair') || name.includes('nurbspath')) {
-              mat.color.setHex(hair.hex);
+              mat.color.setHex(hairItem.hex);
               mat.roughness = 0.5;
             }
           }
@@ -332,24 +328,29 @@ export default function Real3DAvatarStage({
       });
     }
 
-    // 2. Male Styling
+    // 2. Apply Boy (Right Model)
     if (rightModelRef.current) {
+      const topItem = BOY_TOPS.find(t => t.id === boyState.top) || BOY_TOPS[0];
+      const bottomItem = BOY_BOTTOMS.find(b => b.id === boyState.bottom) || BOY_BOTTOMS[0];
+      const shoesItem = BOY_SHOES.find(s => s.id === boyState.shoes) || BOY_SHOES[0];
+      const hairItem = HAIR_COLORS.find(h => h.id === boyState.hair) || HAIR_COLORS[0];
+
       rightModelRef.current.traverse((child) => {
         if (child.isMesh && child.material) {
           const name = child.name.toLowerCase();
           const mat = Array.isArray(child.material) ? child.material[0] : child.material;
           if (name.includes('top')) {
-            mat.color.setHex(outfit.male.top);
-            mat.roughness = outfit.male.topRough;
-            mat.metalness = outfit.male.topMetal || 0.1;
+            mat.color.setHex(topItem.color);
+            mat.roughness = topItem.rough;
+            mat.metalness = topItem.metal || 0.1;
           } else if (name.includes('bottom')) {
-            mat.color.setHex(outfit.male.bottom);
-            mat.roughness = 0.65;
+            mat.color.setHex(bottomItem.color);
+            mat.roughness = bottomItem.rough;
           } else if (name.includes('footwear')) {
-            mat.color.setHex(outfit.male.shoes);
-            mat.roughness = 0.4;
+            mat.color.setHex(shoesItem.color);
+            mat.roughness = shoesItem.rough;
           } else if (name.includes('hair')) {
-            mat.color.setHex(hair.hex);
+            mat.color.setHex(hairItem.hex);
             mat.roughness = 0.55;
           }
         }
@@ -357,67 +358,58 @@ export default function Real3DAvatarStage({
 
       // Male Designer Sunglasses
       if (sunglassesGroupRef.current) {
-        sunglassesGroupRef.current.visible = !!shadesVal;
+        sunglassesGroupRef.current.visible = !!boyState.shades;
       }
-    }
-
-    // 3. Podium Neon Accent Ring Color
-    if (ringMeshRef.current) {
-      ringMeshRef.current.material.color.set(outfit.themeColor);
     }
   }, []);
 
-  // Switch Outfit
-  const handleSelectOutfit = (outfitId) => {
-    setSelectedOutfit(outfitId);
-    localStorage.setItem('lovelink_3d_outfit', outfitId);
-    applyStyling(outfitId, selectedHair, showGlasses, showTie, showShades);
+  // Update Boy Item
+  const handleUpdateBoy = (slot, value) => {
+    const updated = { ...boyWardrobe, [slot]: value };
+    setBoyWardrobe(updated);
+    try { localStorage.setItem('lovelink_3d_boy_wardrobe', JSON.stringify(updated)); } catch {}
+    applyAllWardrobe(updated, girlWardrobe);
+    playSfx('chime');
+  };
+
+  // Update Girl Item
+  const handleUpdateGirl = (slot, value) => {
+    const updated = { ...girlWardrobe, [slot]: value };
+    setGirlWardrobe(updated);
+    try { localStorage.setItem('lovelink_3d_girl_wardrobe', JSON.stringify(updated)); } catch {}
+    applyAllWardrobe(boyWardrobe, updated);
+    playSfx('chime');
+  };
+
+  // Apply Coordinated Preset to Both
+  const handleApplyPreset = (presetId) => {
+    const preset = COUPLE_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+
+    const newBoy = { ...boyWardrobe, ...preset.boy };
+    const newGirl = { ...girlWardrobe, ...preset.girl };
+
+    setBoyWardrobe(newBoy);
+    setGirlWardrobe(newGirl);
+    try {
+      localStorage.setItem('lovelink_3d_boy_wardrobe', JSON.stringify(newBoy));
+      localStorage.setItem('lovelink_3d_girl_wardrobe', JSON.stringify(newGirl));
+    } catch {}
+
+    applyAllWardrobe(newBoy, newGirl);
+
+    if (ringMeshRef.current) {
+      ringMeshRef.current.material.color.set(preset.themeColor);
+    }
+
     playSfx('chime');
     confetti({
-      particleCount: 40,
-      spread: 60,
+      particleCount: 50,
+      spread: 70,
       origin: { y: 0.65 },
       colors: ['#6366f1', '#ec4899', '#f59e0b', '#10b981'],
     });
-    const found = OUTFIT_PRESETS.find(o => o.id === outfitId);
-    toast.success(`Dressed in ${found?.name || 'New Look'}! ${found?.emoji || '✨'}`);
-  };
-
-  // Switch Hair Color
-  const handleSelectHair = (hairId) => {
-    setSelectedHair(hairId);
-    localStorage.setItem('lovelink_3d_hair', hairId);
-    applyStyling(selectedOutfit, hairId, showGlasses, showTie, showShades);
-    playSfx('chime');
-    const found = HAIR_COLORS.find(h => h.id === hairId);
-    toast.success(`Hair styled to ${found?.name}! ${found?.emoji || '💇'}`);
-  };
-
-  // Toggle Glasses
-  const handleToggleGlasses = () => {
-    const next = !showGlasses;
-    setShowGlasses(next);
-    localStorage.setItem('lovelink_3d_glasses', String(next));
-    applyStyling(selectedOutfit, selectedHair, next, showTie, showShades);
-    toast.success(next ? 'Glasses on! 👓' : 'Glasses off');
-  };
-
-  // Toggle Tie
-  const handleToggleTie = () => {
-    const next = !showTie;
-    setShowTie(next);
-    localStorage.setItem('lovelink_3d_tie', String(next));
-    applyStyling(selectedOutfit, selectedHair, showGlasses, next, showShades);
-    toast.success(next ? 'Silk tie styled! 👔' : 'Tie removed');
-  };
-
-  // Toggle Male Shades
-  const handleToggleShades = () => {
-    const next = !showShades;
-    setShowShades(next);
-    localStorage.setItem('lovelink_3d_shades', String(next));
-    applyStyling(selectedOutfit, selectedHair, showGlasses, showTie, next);
-    toast.success(next ? 'Designer shades on! 🕶️' : 'Shades removed');
+    toast.success(`Matched: ${preset.name}! ${preset.emoji}`);
   };
 
   // Trigger Reaction Emote
@@ -516,7 +508,7 @@ export default function Real3DAvatarStage({
     const width = mount.clientWidth || 440;
     const height = mount.clientHeight || 640;
 
-    // 2. PERSPECTIVE CAMERA (Framed to show both characters head-to-toe)
+    // 2. PERSPECTIVE CAMERA
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
     camera.position.set(0, 1.05, 3.8);
     cameraRef.current = camera;
@@ -538,7 +530,7 @@ export default function Real3DAvatarStage({
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
-    // 4. STUDIO LIGHTING (Warm Key + Cool Fill + Silhouetting Rim)
+    // 4. STUDIO LIGHTING
     const ambientLight = new THREE.AmbientLight(0xfff8ee, 1.6);
     scene.add(ambientLight);
 
@@ -575,7 +567,7 @@ export default function Real3DAvatarStage({
     const controls = new OrbitControls(camera, renderer.domElement);
     controlsRef.current = controls;
     controls.enableZoom = true;
-    controls.minDistance = 2.0;
+    controls.minDistance = 1.8;
     controls.maxDistance = 5.5;
     controls.enablePan = false;
     controls.enableDamping = true;
@@ -612,8 +604,7 @@ export default function Real3DAvatarStage({
       loadedCount++;
       if (loadedCount >= 2) {
         setIsLoading(false);
-        // Apply active outfit, hair, and accessories
-        applyStyling(selectedOutfit, selectedHair, showGlasses, showTie, showShades);
+        applyAllWardrobe(boyWardrobe, girlWardrobe);
       }
     };
 
@@ -621,7 +612,6 @@ export default function Real3DAvatarStage({
     const maleGlb = localMyGlb || myGlbUrl || '/models/male_avatar.glb';
 
     // Load Left Model (Female Avatar / Neha)
-    // Scale: 1.135 -> Height 1.685m (Natural couple proportions: female is ~1.69m, male is ~1.83m)
     loader.load(
       femaleGlb,
       (gltf) => {
@@ -644,7 +634,6 @@ export default function Real3DAvatarStage({
 
         mapBones(model, leftBonesRef);
 
-        // Lower arms naturally down from raw T-pose into relaxed idle posture
         if (leftBonesRef.current.leftArm) {
           leftBonesRef.current.leftArm.rotation.z = -1.25;
           leftBonesRef.current.leftArm.rotation.x = 0.15;
@@ -666,7 +655,6 @@ export default function Real3DAvatarStage({
     );
 
     // Load Right Model (Male Avatar / User)
-    // Scale: 0.98 -> Height 1.825m (Naturally ~14cm taller than female avatar!)
     loader.load(
       maleGlb,
       (gltf) => {
@@ -697,7 +685,6 @@ export default function Real3DAvatarStage({
               metalness: 0.5 
             });
 
-            // Curved Left & Right Lenses
             const leftLens = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.038, 0.008), glassMat);
             leftLens.position.set(-0.042, 0.085, 0.145);
             glassesGroup.add(leftLens);
@@ -710,7 +697,7 @@ export default function Real3DAvatarStage({
             bridge.position.set(0, 0.09, 0.145);
             glassesGroup.add(bridge);
 
-            glassesGroup.visible = showShades;
+            glassesGroup.visible = !!boyWardrobe.shades;
             child.add(glassesGroup);
             sunglassesGroupRef.current = glassesGroup;
           }
@@ -728,7 +715,7 @@ export default function Real3DAvatarStage({
       }
     );
 
-    // 9. MOUSE & TOUCH TRACKING FOR 3D HEAD LOOK-AT
+    // 9. MOUSE TRACKING
     const handlePointerMove = (e) => {
       const rect = mount.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -739,7 +726,7 @@ export default function Real3DAvatarStage({
 
     mount.addEventListener('pointermove', handlePointerMove);
 
-    // 10. ANIMATION & RENDER LOOP WITH SKELETAL EMOTE ANIMATIONS
+    // 10. ANIMATION & RENDER LOOP
     const clock = new THREE.Clock();
 
     const animate = () => {
@@ -769,15 +756,11 @@ export default function Real3DAvatarStage({
       const rightBones = rightBonesRef.current;
 
       if (leftModel && rightModel) {
-        // Natural idle breathing physics
         const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.005;
         const idleSway = Math.sin(elapsedTime * 1.5) * 0.03;
 
-        // -----------------------------------------------------------------
-        // SKELETAL EMOTE ANIMATIONS
-        // -----------------------------------------------------------------
+        // EMOTE OVERRIDES
         if (currentEmote === 'clink' && emoteProgress < 1.0) {
-          // Toast Coffee ☕: Step toward center, raise inner arms, bring cups together
           const env = Math.sin(emoteProgress * Math.PI);
 
           leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.32, env);
@@ -785,7 +768,6 @@ export default function Real3DAvatarStage({
           leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
 
-          // Female raises right arm to clink cup
           if (leftBones.rightArm) {
             leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.1, env);
             leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.55, env);
@@ -799,7 +781,6 @@ export default function Real3DAvatarStage({
             leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.1, env);
           }
 
-          // Male raises left arm to clink cup
           if (rightBones.leftArm) {
             rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -1.1, env);
             rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.55, env);
@@ -814,7 +795,6 @@ export default function Real3DAvatarStage({
           }
 
         } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
-          // Blow Kiss 💕: Female brings hand to lips and reaches; Male puts hand on heart
           const env = Math.sin(emoteProgress * Math.PI);
 
           leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.34, env);
@@ -822,7 +802,6 @@ export default function Real3DAvatarStage({
           leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.35, env);
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.35, env);
 
-          // Female hand to lips then extends kiss
           if (leftBones.rightArm) {
             leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(0.15, -1.35, env);
             leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(1.25, 0.35, env);
@@ -836,7 +815,6 @@ export default function Real3DAvatarStage({
             leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
           }
 
-          // Male hand over heart, touched by love
           if (rightBones.leftArm) {
             rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(0, -0.95, env);
             rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(0, -0.35, env);
@@ -853,7 +831,6 @@ export default function Real3DAvatarStage({
           }
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
-          // Dance Party 💃: Rhythmic beat bounce, spine swaying, dynamic arm pumps
           const beat = Math.sin(elapsedTime * 10);
           const beatCos = Math.cos(elapsedTime * 10);
           const bounce = Math.abs(beat) * 0.04;
@@ -864,7 +841,6 @@ export default function Real3DAvatarStage({
           if (leftBones.spine) leftBones.spine.rotation.z = beat * 0.14;
           if (rightBones.spine) rightBones.spine.rotation.z = -beat * 0.12;
 
-          // Female dance arms
           if (leftBones.leftArm) {
             leftBones.leftArm.rotation.z = -1.2 + beat * 0.45;
             leftBones.leftArm.rotation.x = 0.15 + beatCos * 0.35;
@@ -878,7 +854,6 @@ export default function Real3DAvatarStage({
             leftBones.head.rotation.z = -beat * 0.1;
           }
 
-          // Male dance arms
           if (rightBones.leftArm) {
             rightBones.leftArm.rotation.x = -0.6 + beatCos * 0.35;
             rightBones.leftArm.rotation.z = -0.5 + beat * 0.3;
@@ -892,11 +867,9 @@ export default function Real3DAvatarStage({
           }
 
         } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
-          // Wave Hello 👋: Male waves right arm, Female waves left arm
           const env = Math.sin(emoteProgress * Math.PI);
           const waveCycle = Math.sin(elapsedTime * 14);
 
-          // Male waves right arm
           if (rightBones.rightArm) {
             rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0, -2.35, env);
             rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(0, -0.25, env);
@@ -908,7 +881,6 @@ export default function Real3DAvatarStage({
             rightBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.1, env);
           }
 
-          // Female waves left arm
           if (leftBones.leftArm) {
             leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(-1.25, 2.3, env);
             leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.15, -0.25, env);
@@ -921,9 +893,7 @@ export default function Real3DAvatarStage({
           }
 
         } else {
-          // -----------------------------------------------------------------
-          // NATURAL RELAXED IDLE POSTURE & CURSOR TRACKING
-          // -----------------------------------------------------------------
+          // NATURAL RELAXED IDLE POSTURE
           leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
           rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
           leftModel.position.y = 0.08 + idleBreathing;
@@ -934,7 +904,6 @@ export default function Real3DAvatarStage({
           leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, 0, 0.1);
           rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
 
-          // Female arms relaxed at sides (lowered down from T-pose)
           if (leftBones.leftArm) {
             leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(leftBones.leftArm.rotation.z, -1.25 + idleSway, 0.1);
             leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(leftBones.leftArm.rotation.x, 0.15, 0.1);
@@ -949,7 +918,6 @@ export default function Real3DAvatarStage({
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0, 0);
           if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
 
-          // Male arms in natural rest pose
           if (rightBones.leftArm) {
             rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, 0, 0.1);
             rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, 0, 0.1);
@@ -964,7 +932,6 @@ export default function Real3DAvatarStage({
           if (rightBones.rightForeArm) rightBones.rightForeArm.rotation.set(0, 0, 0);
           if (rightBones.spine) rightBones.spine.rotation.set(0, 0, 0);
 
-          // Dynamic 3D Head Tracking toward cursor in idle
           if (leftBones.head) {
             leftBones.head.rotation.y = THREE.MathUtils.lerp(
               leftBones.head.rotation.y,
@@ -1033,9 +1000,7 @@ export default function Real3DAvatarStage({
       renderer.dispose();
       mount.innerHTML = '';
     };
-  }, [isRotating, partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb, applyStyling, selectedOutfit, selectedHair, showGlasses, showTie, showShades]);
-
-  const activeOutfitObj = OUTFIT_PRESETS.find(o => o.id === selectedOutfit) || OUTFIT_PRESETS[0];
+  }, [isRotating, partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb, applyAllWardrobe, boyWardrobe, girlWardrobe]);
 
   return (
     <div className={`relative w-full flex flex-col items-center select-none ${className}`}>
@@ -1073,27 +1038,25 @@ export default function Real3DAvatarStage({
         {/* Top Floating Controls Dock */}
         <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none z-20">
           
-          {/* Badge & Active Outfit Indicator */}
-          <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Badge & Active Wardrobe Toggle */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white shadow-xl">
               <Box size={14} className="text-amber-400" />
               <span className="text-xs font-black tracking-tight">Real 3D WebGL</span>
             </div>
 
-            <button
-              onClick={() => setShowWardrobe(!showWardrobe)}
-              className="hidden sm:flex items-center gap-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white shadow-xl text-xs font-bold transition-all"
-              title="Current Style"
-            >
-              <span>{activeOutfitObj.emoji}</span>
-              <span className="text-[11px] truncate max-w-[100px]">{activeOutfitObj.name}</span>
-            </button>
+            {/* Quick Character Indicator */}
+            <div className="hidden sm:flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 text-[11px] font-bold text-slate-200">
+              <span>{myName}</span>
+              <span className="text-rose-400">♥</span>
+              <span>{partnerName}</span>
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 pointer-events-auto">
             
-            {/* Wardrobe & Outfits Toggle */}
+            {/* Wardrobe Toggle */}
             <button
               onClick={() => setShowWardrobe(!showWardrobe)}
               className={`px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
@@ -1101,7 +1064,7 @@ export default function Real3DAvatarStage({
                   ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300' 
                   : 'bg-black/60 hover:bg-black/80 text-white'
               }`}
-              title="Change Outfits, Hair & Accessories"
+              title="Change Clothes, Pants, Jackets & Style"
             >
               <Shirt size={13} className={showWardrobe ? 'text-stone-950' : 'text-amber-400'} />
               <span>Wardrobe</span>
@@ -1156,51 +1119,57 @@ export default function Real3DAvatarStage({
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* INTERACTIVE WARDROBE DRAWER (SLIDES UP INSIDE STAGE) */}
+        {/* INDEPENDENT BOY & GIRL WARDROBE DRAWER */}
         {/* ------------------------------------------------------------- */}
         {showWardrobe && (
-          <div className="absolute inset-x-3 bottom-3 z-30 bg-[#121620]/95 backdrop-blur-xl border border-white/15 rounded-3xl p-3.5 shadow-2xl animate-fadeIn flex flex-col gap-2.5">
+          <div className="absolute inset-x-2.5 bottom-2.5 z-30 bg-[#10141f]/95 backdrop-blur-xl border border-white/15 rounded-3xl p-3 shadow-2xl animate-fadeIn flex flex-col gap-2">
             
-            {/* Header with Tabs & Close */}
+            {/* Top Bar: Target Selector: [ 🙋‍♂️ Boy's Closet ] [ 🙋‍♀️ Girl's Closet ] [ ⚡ Matching Sets ] */}
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                
+                {/* Boy Closet */}
                 <button
-                  onClick={() => setWardrobeTab('outfits')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                    wardrobeTab === 'outfits'
-                      ? 'bg-amber-400 text-stone-950 font-black'
+                  onClick={() => setWardrobeTarget('boy')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    wardrobeTarget === 'boy'
+                      ? 'bg-sky-500 text-stone-950 font-black shadow-md ring-2 ring-sky-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  <Shirt size={12} />
-                  <span>Outfits (7)</span>
+                  <User size={13} />
+                  <span>Boy (Me)</span>
                 </button>
 
+                {/* Girl Closet */}
                 <button
-                  onClick={() => setWardrobeTab('hair')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                    wardrobeTab === 'hair'
-                      ? 'bg-amber-400 text-stone-950 font-black'
+                  onClick={() => setWardrobeTarget('girl')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    wardrobeTarget === 'girl'
+                      ? 'bg-rose-500 text-white font-black shadow-md ring-2 ring-rose-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  <Palette size={12} />
-                  <span>Hair (6)</span>
+                  <Heart size={13} className="fill-white" />
+                  <span>Girl ({partnerName})</span>
                 </button>
 
+                {/* Couple Matching Sets */}
                 <button
-                  onClick={() => setWardrobeTab('accessories')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                    wardrobeTab === 'accessories'
-                      ? 'bg-amber-400 text-stone-950 font-black'
+                  onClick={() => setWardrobeTarget('sets')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    wardrobeTarget === 'sets'
+                      ? 'bg-amber-400 text-stone-950 font-black shadow-md ring-2 ring-amber-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  <Sparkles size={12} />
-                  <span>Style</span>
+                  <Sparkles size={13} />
+                  <span className="hidden sm:inline">Couple</span>
+                  <span>Sets</span>
                 </button>
               </div>
 
+              {/* Close Button */}
               <button
                 onClick={() => setShowWardrobe(false)}
                 className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition-colors"
@@ -1210,106 +1179,288 @@ export default function Real3DAvatarStage({
               </button>
             </div>
 
-            {/* TAB 1: 7 COUPLE OUTFITS */}
-            {wardrobeTab === 'outfits' && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-white/20">
-                {OUTFIT_PRESETS.map((outfit) => {
-                  const isSelected = selectedOutfit === outfit.id;
-                  return (
+            {/* --------------------------------------------------------- */}
+            {/* BOY WARDROBE CONTROLS */}
+            {/* --------------------------------------------------------- */}
+            {wardrobeTarget === 'boy' && (
+              <div className="flex flex-col gap-2">
+                {/* Boy Sub-Tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { id: 'tops', label: 'Tops / Jackets (8)', icon: '🧥' },
+                    { id: 'pants', label: 'Pants (7)', icon: '👖' },
+                    { id: 'shoes', label: 'Shoes (4)', icon: '👟' },
+                    { id: 'hair', label: 'Hair (6)', icon: '💇' },
+                    { id: 'shades', label: 'Shades 🕶️', icon: '🕶️' },
+                  ].map((tab) => (
                     <button
-                      key={outfit.id}
-                      onClick={() => handleSelectOutfit(outfit.id)}
-                      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all text-left ${
-                        isSelected
-                          ? 'bg-white/20 border-amber-400 shadow-lg scale-[1.02] ring-1 ring-amber-400'
-                          : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      key={tab.id}
+                      onClick={() => setBoySubTab(tab.id)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
+                        boySubTab === tab.id
+                          ? 'bg-white/20 text-sky-400 border border-sky-400/40'
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
                       }`}
                     >
-                      <span className="text-xl">{outfit.emoji}</span>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white leading-tight flex items-center gap-1">
-                          {outfit.name}
-                          {isSelected && <Check size={11} className="text-amber-400" />}
-                        </span>
-                        <span className="text-[10px] text-slate-400">{outfit.tag}</span>
-                      </div>
+                      {tab.label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+
+                {/* Boy Items Content */}
+                <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
+                  {boySubTab === 'tops' && BOY_TOPS.map((item) => {
+                    const isSelected = boyWardrobe.top === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('top', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {boySubTab === 'pants' && BOY_BOTTOMS.map((item) => {
+                    const isSelected = boyWardrobe.bottom === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('bottom', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {boySubTab === 'shoes' && BOY_SHOES.map((item) => {
+                    const isSelected = boyWardrobe.shoes === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('shoes', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {boySubTab === 'hair' && HAIR_COLORS.map((hair) => {
+                    const isSelected = boyWardrobe.hair === hair.id;
+                    return (
+                      <button
+                        key={hair.id}
+                        onClick={() => handleUpdateBoy('hair', hair.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
+                        <span className="text-xs font-bold text-white">{hair.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {boySubTab === 'shades' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdateBoy('shades', !boyWardrobe.shades)}
+                        className={`px-4 py-2 rounded-xl border font-bold text-xs flex items-center gap-2 transition-all ${
+                          boyWardrobe.shades
+                            ? 'bg-sky-500 text-stone-950 border-sky-400 ring-2 ring-sky-300'
+                            : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <span>🕶️ Designer Shades</span>
+                        <span className="text-[10px] opacity-80">{boyWardrobe.shades ? 'ENABLED' : 'DISABLED'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* TAB 2: 6 HAIR COLORS */}
-            {wardrobeTab === 'hair' && (
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {HAIR_COLORS.map((hair) => {
-                  const isSelected = selectedHair === hair.id;
-                  return (
+            {/* --------------------------------------------------------- */}
+            {/* GIRL WARDROBE CONTROLS */}
+            {/* --------------------------------------------------------- */}
+            {wardrobeTarget === 'girl' && (
+              <div className="flex flex-col gap-2">
+                {/* Girl Sub-Tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { id: 'jackets', label: 'Jackets (8)', icon: '🧥' },
+                    { id: 'tops', label: 'Inner Tops (6)', icon: '👚' },
+                    { id: 'pants', label: 'Pants (6)', icon: '👖' },
+                    { id: 'shoes', label: 'Shoes (4)', icon: '👢' },
+                    { id: 'hair', label: 'Hair (6)', icon: '💇' },
+                    { id: 'accessories', label: 'Glasses / Tie', icon: '✨' },
+                  ].map((tab) => (
                     <button
-                      key={hair.id}
-                      onClick={() => handleSelectHair(hair.id)}
-                      className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
-                        isSelected
-                          ? 'bg-white/20 border-amber-400 ring-1 ring-amber-400'
-                          : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      key={tab.id}
+                      onClick={() => setGirlSubTab(tab.id)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
+                        girlSubTab === tab.id
+                          ? 'bg-white/20 text-rose-400 border border-rose-400/40'
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
                       }`}
                     >
-                      <span 
-                        className="w-4 h-4 rounded-full border border-white/30 flex-shrink-0 shadow-sm" 
-                        style={{ backgroundColor: hair.swatch }}
-                      />
-                      <span className="text-xs font-bold text-white truncate">{hair.name}</span>
+                      {tab.label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+
+                {/* Girl Items Content */}
+                <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
+                  {girlSubTab === 'jackets' && GIRL_JACKETS.map((item) => {
+                    const isSelected = girlWardrobe.jacket === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('jacket', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'tops' && GIRL_TOPS.map((item) => {
+                    const isSelected = girlWardrobe.top === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('top', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'pants' && GIRL_PANTS.map((item) => {
+                    const isSelected = girlWardrobe.pants === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('pants', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'shoes' && GIRL_SHOES.map((item) => {
+                    const isSelected = girlWardrobe.shoes === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('shoes', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'hair' && HAIR_COLORS.map((hair) => {
+                    const isSelected = girlWardrobe.hair === hair.id;
+                    return (
+                      <button
+                        key={hair.id}
+                        onClick={() => handleUpdateGirl('hair', hair.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                          isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
+                        <span className="text-xs font-bold text-white">{hair.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'accessories' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdateGirl('glasses', !girlWardrobe.glasses)}
+                        className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
+                          girlWardrobe.glasses
+                            ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
+                            : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <span>👓 Glasses</span>
+                        <span className="text-[10px] opacity-80">{girlWardrobe.glasses ? 'ON' : 'OFF'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleUpdateGirl('tie', !girlWardrobe.tie)}
+                        className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
+                          girlWardrobe.tie
+                            ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
+                            : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <span>👔 Silk Tie</span>
+                        <span className="text-[10px] opacity-80">{girlWardrobe.tie ? 'ON' : 'OFF'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* TAB 3: ACCESSORIES & EXTRAS */}
-            {wardrobeTab === 'accessories' && (
-              <div className="grid grid-cols-3 gap-2">
-                
-                {/* Male Designer Shades */}
-                <button
-                  onClick={handleToggleShades}
-                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                    showShades 
-                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
-                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-                  }`}
-                >
-                  <span className="text-lg">🕶️</span>
-                  <span className="text-xs mt-1">Boy Shades</span>
-                  <span className="text-[10px] opacity-75">{showShades ? 'ON' : 'OFF'}</span>
-                </button>
-
-                {/* Female Chic Glasses */}
-                <button
-                  onClick={handleToggleGlasses}
-                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                    showGlasses 
-                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
-                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-                  }`}
-                >
-                  <span className="text-lg">👓</span>
-                  <span className="text-xs mt-1">Girl Glasses</span>
-                  <span className="text-[10px] opacity-75">{showGlasses ? 'ON' : 'OFF'}</span>
-                </button>
-
-                {/* Formal Silk Tie */}
-                <button
-                  onClick={handleToggleTie}
-                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition-all ${
-                    showTie 
-                      ? 'bg-amber-400/20 border-amber-400 text-amber-300 font-bold' 
-                      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-                  }`}
-                >
-                  <span className="text-lg">👔</span>
-                  <span className="text-xs mt-1">Silk Tie</span>
-                  <span className="text-[10px] opacity-75">{showTie ? 'ON' : 'OFF'}</span>
-                </button>
+            {/* --------------------------------------------------------- */}
+            {/* COORDINATED COUPLE PRESETS (QUICK MATCH) */}
+            {/* --------------------------------------------------------- */}
+            {wardrobeTarget === 'sets' && (
+              <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
+                {COUPLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleApplyPreset(preset.id)}
+                    className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left"
+                  >
+                    <span className="text-xl">{preset.emoji}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white">{preset.name}</span>
+                      <span className="text-[10px] text-slate-400">Match Both ✨</span>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
 
