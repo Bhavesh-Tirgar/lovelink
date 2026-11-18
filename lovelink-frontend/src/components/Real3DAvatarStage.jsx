@@ -98,12 +98,12 @@ export const GIRL_SHOES = [
 // 3. AUTHENTIC HUMAN SKIN TONES (NATURAL MELANIN & WARMTH)
 // -------------------------------------------------------------
 export const SKIN_TONES = [
-  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xfdebe1, girlHex: 0xe8a98c, swatch: '#e8a98c', emoji: '🌸' },
-  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf5dac0, girlHex: 0xdf9a75, swatch: '#df9a75', emoji: '🍯' },
-  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xeac2a3, girlHex: 0xd08964, swatch: '#d08964', emoji: '☀️' },
-  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd4a682, girlHex: 0xba724e, swatch: '#ba724e', emoji: '🌴' },
-  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9f6946, girlHex: 0x8a4e30, swatch: '#8a4e30', emoji: '🌰' },
-  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x623e2a, girlHex: 0x542f1d, swatch: '#542f1d', emoji: '☕' },
+  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xce927b, swatch: '#ce927b', emoji: '🌸' },
+  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf5dac0, girlHex: 0xc4846d, swatch: '#c4846d', emoji: '🍯' },
+  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xeac2a3, girlHex: 0xb5735b, swatch: '#b5735b', emoji: '☀️' },
+  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd4a682, girlHex: 0xa1624a, swatch: '#a1624a', emoji: '🌴' },
+  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9f6946, girlHex: 0x76422f, swatch: '#76422f', emoji: '🌰' },
+  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x623e2a, girlHex: 0x482619, swatch: '#482619', emoji: '☕' },
 ];
 
 // -------------------------------------------------------------
@@ -264,6 +264,8 @@ export default function Real3DAvatarStage({
   const animFrameIdRef = useRef(null);
   const ringMeshRef = useRef(null);
   const sunglassesGroupRef = useRef(null);
+  const girlCupRef = useRef(null);
+  const boyCupRef = useRef(null);
 
   // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
@@ -468,7 +470,7 @@ export default function Real3DAvatarStage({
     emoteStateRef.current = {
       current: type,
       startTime: performance.now(),
-      duration: type === 'dance' ? 4500 : 3200,
+      duration: type === 'dance' ? 4500 : type === 'hug' ? 4200 : 3400,
     };
     setActiveEmote(type);
 
@@ -480,7 +482,7 @@ export default function Real3DAvatarStage({
         origin: { y: 0.6 },
         colors: ['#F59E0B', '#FBBF24', '#FCD34D', '#FFFFFF'],
       });
-      toast.success('Cheers! Coffee toasted in 3D! ☕');
+      toast.success('Cheers! Coffee toasted with mugs in 3D! ☕');
     } else if (type === 'kiss') {
       playSfx('chime');
       confetti({
@@ -489,7 +491,16 @@ export default function Real3DAvatarStage({
         origin: { y: 0.6 },
         colors: ['#EC4899', '#F43F5E', '#FDA4AF'],
       });
-      toast.success(`Sending love to ${partnerName}! 💕`);
+      toast.success(`Sweet romantic kiss with ${partnerName}! 💕`);
+    } else if (type === 'hug') {
+      playSfx('chime');
+      confetti({
+        particleCount: 55,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#EC4899', '#F43F5E', '#FBBF24', '#FFFFFF'],
+      });
+      toast.success(`Warm couple hug with ${partnerName}! 🤗💕`);
     } else if (type === 'dance') {
       playSfx('chime');
       confetti({
@@ -667,7 +678,43 @@ export default function Real3DAvatarStage({
     realisticEyeTex.flipY = false;
     realisticEyeTex.colorSpace = THREE.SRGBColorSpace;
 
-    // 9. LOAD REAL 3D HUMANOID MODELS (.GLB)
+
+    // HELPER: CREATE 3D REALISTIC CERAMIC COFFEE CUP PROP
+    const createCoffeeCup = () => {
+      const cupGroup = new THREE.Group();
+      // Cup body (ceramic)
+      const cupGeom = new THREE.CylinderGeometry(0.042, 0.034, 0.09, 24);
+      const cupMat = new THREE.MeshStandardMaterial({
+        color: 0xf5efe6,
+        roughness: 0.18,
+        metalness: 0.05
+      });
+      const cup = new THREE.Mesh(cupGeom, cupMat);
+      cupGroup.add(cup);
+
+      // Coffee liquid inside
+      const coffeeGeom = new THREE.CircleGeometry(0.038, 24);
+      const coffeeMat = new THREE.MeshStandardMaterial({
+        color: 0x3b1e0f,
+        roughness: 0.25,
+        metalness: 0.0
+      });
+      const coffee = new THREE.Mesh(coffeeGeom, coffeeMat);
+      coffee.rotation.x = -Math.PI / 2;
+      coffee.position.y = 0.038;
+      cupGroup.add(coffee);
+
+      // Cup handle
+      const handleGeom = new THREE.TorusGeometry(0.022, 0.006, 12, 18, Math.PI);
+      const handle = new THREE.Mesh(handleGeom, cupMat);
+      handle.position.set(0.042, 0, 0);
+      handle.rotation.z = -Math.PI / 2;
+      cupGroup.add(handle);
+
+      return cupGroup;
+    };
+
+        // 9. LOAD REAL 3D HUMANOID MODELS (.GLB)
     const loader = new GLTFLoader();
     let loadedCount = 0;
     const checkAllLoaded = () => {
@@ -704,7 +751,7 @@ export default function Real3DAvatarStage({
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xe8a98c); // Rich warm natural human skin (harmonized with boy)
+              sm.color.setHex(0xce927b); // Calibrated warm melanin tone matching boy
               sm.roughness = 0.68;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
@@ -761,6 +808,14 @@ export default function Real3DAvatarStage({
         };
         curlFingers('left');
         curlFingers('right');
+
+        // Attach 3D Coffee Cup to Girl's Left Hand
+        const girlCup = createCoffeeCup();
+        girlCup.position.set(0.015, 0.075, -0.01);
+        girlCup.scale.set(1.1, 1.1, 1.1);
+        girlCup.visible = false;
+        if (leftBonesRef.current.leftHand) leftBonesRef.current.leftHand.add(girlCup);
+        girlCupRef.current = girlCup;
 
         scene.add(model);
         leftModelRef.current = model;
@@ -840,6 +895,14 @@ export default function Real3DAvatarStage({
         }
         if (rightBonesRef.current.leftForeArm) rightBonesRef.current.leftForeArm.rotation.set(0, 0, 0);
         if (rightBonesRef.current.rightForeArm) rightBonesRef.current.rightForeArm.rotation.set(0, 0, 0);
+        // Attach 3D Coffee Cup to Boy's Right Hand
+        const boyCup = createCoffeeCup();
+        boyCup.position.set(-0.015, 0.075, 0.01);
+        boyCup.scale.set(1.1, 1.1, 1.1);
+        boyCup.visible = false;
+        if (rightBonesRef.current.rightHand) rightBonesRef.current.rightHand.add(boyCup);
+        boyCupRef.current = boyCup;
+
         scene.add(model);
         rightModelRef.current = model;
         checkAllLoaded();
@@ -897,14 +960,18 @@ export default function Real3DAvatarStage({
 
         // EMOTE OVERRIDES - REALISTIC EXPRESSIVE ROMANTIC COUPLE INTERACTIONS
         if (currentEmote === 'clink' && emoteProgress < 1.0) {
+          // Show 3D Ceramic Coffee Cups in hands
+          if (girlCupRef.current) girlCupRef.current.visible = true;
+          if (boyCupRef.current) boyCupRef.current.visible = true;
+
           // Smooth cubic ease-in-out curve
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.12 * Math.sin(emoteProgress * Math.PI * 2));
 
-          // Both avatars step gently closer together
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.30, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.30, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.28, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
+          // Both avatars step closer together to toast coffee
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.28, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.28, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.26, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.26, env);
 
           // Torso leans in warmly
           if (leftBones.spine) leftBones.spine.rotation.z = -0.06 * env;
@@ -920,7 +987,7 @@ export default function Real3DAvatarStage({
             rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.08, env);
           }
 
-          // Girl raises INNER arm (LeftArm) forward at 45° to toast
+          // Girl raises INNER arm (LeftArm) forward holding coffee mug
           if (leftBones.leftArm) {
             leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 0.65, env);
             leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.85, env);
@@ -939,7 +1006,7 @@ export default function Real3DAvatarStage({
           if (leftBones.rightArm) leftBones.rightArm.rotation.set(-2.192, -1.592, -0.742);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
 
-          // Boy raises INNER arm (RightArm) forward to meet her cup
+          // Boy raises INNER arm (RightArm) forward to meet her mug
           if (rightBones.rightArm) {
             rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 0.65, env);
             rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.85, env);
@@ -959,59 +1026,105 @@ export default function Real3DAvatarStage({
           if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
 
         } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
-          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
+          // Hide coffee cups
+          if (girlCupRef.current) girlCupRef.current.visible = false;
+          if (boyCupRef.current) boyCupRef.current.visible = false;
 
-          // Romantic close step-in
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.24, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.24, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.42, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.42, env);
+          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
+
+          // Romantic close step-in for lip-to-lip kiss proximity
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.165, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.165, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.45, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.45, env);
 
           // Romantic spine tilt toward partner
-          if (leftBones.spine) leftBones.spine.rotation.z = -0.08 * env;
-          if (rightBones.spine) rightBones.spine.rotation.z = 0.08 * env;
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.10 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.10 * env;
 
-          // Romantic head tilt & intimate eye contact
+          // Complementary romantic head angles for close lip alignment
           if (leftBones.head) {
-            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.42, env);
-            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.12, env);
-            leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.05, env);
+            leftBones.head.rotation.set(0.06 * env, 0.52 * env, 0.16 * env);
           }
           if (rightBones.head) {
-            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.42, env);
-            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.12, env);
-            rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.05, env);
+            rightBones.head.rotation.set(0.06 * env, -0.52 * env, -0.16 * env);
           }
 
-          // Girl brings inner hand towards lips to blow sweet kiss
+          // Girl arms wrap tenderly near partner
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 0.50, env);
-            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.50, env);
-            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 0.40, env);
+            leftBones.leftArm.rotation.set(0.55 * env, -0.65 * env, 0.45 * env);
           }
           if (leftBones.leftForeArm) {
-            leftBones.leftForeArm.rotation.x = THREE.MathUtils.lerp(0, -1.10, env);
-            leftBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(-0.45, -0.20, env);
-            leftBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.60, env);
+            leftBones.leftForeArm.rotation.set(-1.15 * env, -0.25 * env, 0.65 * env);
           }
 
-          // Boy extends inner hand gently forward in loving embrace
+          // Boy arms wrap tenderly near her waist
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 0.40, env);
-            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.40, env);
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -0.30, env);
+            rightBones.rightArm.rotation.set(0.55 * env, 0.65 * env, -0.45 * env);
           }
           if (rightBones.rightForeArm) {
-            rightBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.60, env);
-            rightBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.20, env);
-            rightBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.30, env);
+            rightBones.rightForeArm.rotation.set(-0.95 * env, 0.25 * env, -0.45 * env);
           }
 
-          // Outer arms resting naturally
+          // Outer arms resting naturally close
           if (leftBones.rightArm) leftBones.rightArm.rotation.set(-2.192, -1.592, -0.742);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
           if (rightBones.leftArm) rightBones.leftArm.rotation.set(1.350, -0.600, -0.100);
           if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
+
+        } else if (currentEmote === 'hug' && emoteProgress < 1.0) {
+          // Hide coffee cups
+          if (girlCupRef.current) girlCupRef.current.visible = false;
+          if (boyCupRef.current) boyCupRef.current.visible = false;
+
+          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
+          const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.012;
+
+          // Both avatars step into warm intimate couple embrace
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.145 + squeeze, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.145 - squeeze, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.38, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.38, env);
+
+          // Head resting lovingly on partner's shoulder
+          if (leftBones.head) {
+            leftBones.head.rotation.set(0.08 * env, 0.46 * env, 0.22 * env);
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.set(0.08 * env, -0.46 * env, -0.18 * env);
+          }
+
+          // Spines lean into each other
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.06 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.06 * env;
+
+          // Girl wraps both arms lovingly around boy's neck & waist
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.set(0.45 * env, -0.65 * env, 0.30 * env);
+          }
+          if (leftBones.leftForeArm) {
+            leftBones.leftForeArm.rotation.set(-1.35 * env, -0.25 * env, 0.75 * env);
+          }
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.set(-1.45 * env, -0.85 * env, -0.55 * env);
+          }
+          if (leftBones.rightForeArm) {
+            leftBones.rightForeArm.rotation.set(-0.85 * env, 0.35 * env, -0.45 * env);
+          }
+
+          // Boy wraps both arms securely around girl's upper back & waist
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.set(0.45 * env, 0.65 * env, -0.30 * env);
+          }
+          if (rightBones.rightForeArm) {
+            rightBones.rightForeArm.rotation.set(-1.35 * env, 0.25 * env, -0.75 * env);
+          }
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.set(1.10 * env, -0.45 * env, -0.35 * env);
+          }
+          if (rightBones.leftForeArm) {
+            rightBones.leftForeArm.rotation.set(0.85 * env, 0.25 * env, -0.65 * env);
+          }
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
           // Romantic rhythm in sync with lofi music
@@ -1087,6 +1200,10 @@ export default function Real3DAvatarStage({
           }
 
         } else {
+          // Hide coffee cups in idle
+          if (girlCupRef.current) girlCupRef.current.visible = false;
+          if (boyCupRef.current) boyCupRef.current.visible = false;
+
           // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION)
           leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
           rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
@@ -1782,7 +1899,19 @@ export default function Real3DAvatarStage({
           }`}
         >
           <Heart size={15} className="fill-rose-400 text-rose-400" />
-          <span>Blow Kiss 💕</span>
+          <span>Kiss 💕</span>
+        </button>
+
+        <button
+          onClick={() => triggerEmote('hug')}
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
+            activeEmote === 'hug'
+              ? 'bg-pink-500 text-white scale-105 ring-2 ring-pink-300'
+              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+          }`}
+        >
+          <span className="text-sm">🤗</span>
+          <span>Warm Hug</span>
         </button>
 
         <button
