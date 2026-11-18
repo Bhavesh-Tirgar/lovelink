@@ -6,8 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'lovelink-frontend/capacitor.config.json'
-      - 'lovelink-frontend/android/**'
+      - 'lovelink-frontend/**'
       - '.github/workflows/build-apk.yml'
 
 permissions:
