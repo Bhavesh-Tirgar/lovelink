@@ -98,12 +98,12 @@ export const GIRL_SHOES = [
 // 3. AUTHENTIC HUMAN SKIN TONES (NATURAL MELANIN & WARMTH)
 // -------------------------------------------------------------
 export const SKIN_TONES = [
-  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xf4c2a5, swatch: '#f4c2a5', emoji: '🌸' },
-  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xfff2e2, girlHex: 0xebb89b, swatch: '#ebb89b', emoji: '🍯' },
-  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xf4e0cd, girlHex: 0xdfa688, swatch: '#dfa688', emoji: '☀️' },
-  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xdfc0a3, girlHex: 0xce916f, swatch: '#ce916f', emoji: '🌴' },
-  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0xa87854, girlHex: 0x9c6543, swatch: '#9c6543', emoji: '🌰' },
-  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x6e442c, girlHex: 0x5e3720, swatch: '#5e3720', emoji: '☕' },
+  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xfdebe1, girlHex: 0xe8a98c, swatch: '#e8a98c', emoji: '🌸' },
+  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf5dac0, girlHex: 0xdf9a75, swatch: '#df9a75', emoji: '🍯' },
+  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xeac2a3, girlHex: 0xd08964, swatch: '#d08964', emoji: '☀️' },
+  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd4a682, girlHex: 0xba724e, swatch: '#ba724e', emoji: '🌴' },
+  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9f6946, girlHex: 0x8a4e30, swatch: '#8a4e30', emoji: '🌰' },
+  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x623e2a, girlHex: 0x542f1d, swatch: '#542f1d', emoji: '☕' },
 ];
 
 // -------------------------------------------------------------
@@ -575,26 +575,26 @@ export default function Real3DAvatarStage({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.02;
+    renderer.toneMappingExposure = 1.0;
     rendererRef.current = renderer;
 
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
     // 4. BALANCED SOFT PORTRAIT STUDIO LIGHTING (WARM NATURAL HUMAN SKIN)
-    const ambientLight = new THREE.AmbientLight(0xfff8f4, 1.20);
+    const ambientLight = new THREE.AmbientLight(0xfff8f4, 0.95);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5eb, 1.35);
-    keyLight.position.set(2.0, 3.5, 2.5);
+    const keyLight = new THREE.DirectionalLight(0xfff5eb, 1.0);
+    keyLight.position.set(1.8, 3.2, 2.2);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xe4edf8, 0.75);
-    fillLight.position.set(-2.0, 2.5, 2.0);
+    const fillLight = new THREE.DirectionalLight(0xe4edf8, 0.55);
+    fillLight.position.set(-2.0, 2.0, 1.8);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.60);
-    rimLight.position.set(0, 2.8, -2.2);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.45);
+    rimLight.position.set(0, 2.5, -2.0);
     scene.add(rimLight);
 
     // 5. LUXURY STUDIO CIRCULAR PODIUM & NEON ACCENT RING
@@ -704,8 +704,8 @@ export default function Real3DAvatarStage({
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xf4c2a5); // Warm natural human skin
-              sm.roughness = 0.72;
+              sm.color.setHex(0xe8a98c); // Rich warm natural human skin (harmonized with boy)
+              sm.roughness = 0.68;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
             }
@@ -729,33 +729,35 @@ export default function Real3DAvatarStage({
         if (leftBonesRef.current.rightArm) {
           leftBonesRef.current.rightArm.rotation.set(-2.192, -1.592, -0.742);
         }
-        if (leftBonesRef.current.leftForeArm) leftBonesRef.current.leftForeArm.rotation.set(0, 0, 0);
-        if (leftBonesRef.current.rightForeArm) leftBonesRef.current.rightForeArm.rotation.set(0, 0, 0);
-        if (leftBonesRef.current.leftHand) {
-          leftBonesRef.current.leftHand.rotation.y = 0.20;
-          leftBonesRef.current.leftHand.rotation.z = -0.10;
-        }
-        if (leftBonesRef.current.rightHand) {
-          leftBonesRef.current.rightHand.rotation.y = -0.20;
-          leftBonesRef.current.rightHand.rotation.z = 0.10;
-        }
+        // Forearms: pronate naturally so palms face inward towards thighs
+        if (leftBonesRef.current.leftForeArm) leftBonesRef.current.leftForeArm.rotation.set(0, -0.45, 0);
+        if (leftBonesRef.current.rightForeArm) leftBonesRef.current.rightForeArm.rotation.set(0, 0.45, 0);
+        // Wrists: natural relaxed downward drop
+        if (leftBonesRef.current.leftHand) leftBonesRef.current.leftHand.rotation.set(0.05, -0.10, -0.05);
+        if (leftBonesRef.current.rightHand) leftBonesRef.current.rightHand.rotation.set(0.05, 0.10, 0.05);
 
-        // Natural graceful human resting finger curve
+        // Natural graceful human resting finger curve (inverted for Left vs Right to curl toward palm)
         const curlFingers = (side) => {
           const prefix = side === 'left' ? 'leftHand' : 'rightHand';
+          const isLeft = side === 'left';
           ['Index', 'Middle', 'Ring', 'Pinky'].forEach((f, idx) => {
-            const curlAmt = 0.35 + idx * 0.04;
+            const curlAmt = 0.28 + idx * 0.035;
             for (let j = 1; j <= 3; j++) {
               const b = leftBonesRef.current[`${prefix}${f}${j}`];
               if (b) {
-                b.rotation.x = curlAmt * (j === 1 ? 1.0 : j === 2 ? 1.15 : 0.85);
+                const factor = j === 1 ? 0.9 : j === 2 ? 1.05 : 0.8;
+                b.rotation.x = isLeft ? -curlAmt * factor : curlAmt * factor;
               }
             }
           });
           const t1 = leftBonesRef.current[`${prefix}Thumb1`];
           const t2 = leftBonesRef.current[`${prefix}Thumb2`];
-          if (t1) t1.rotation.x = 0.22;
-          if (t2) t2.rotation.x = 0.25;
+          if (t1) {
+            t1.rotation.set(isLeft ? -0.16 : 0.16, isLeft ? 0.12 : -0.12, isLeft ? -0.08 : 0.08);
+          }
+          if (t2) {
+            t2.rotation.x = isLeft ? -0.18 : 0.18;
+          }
         };
         curlFingers('left');
         curlFingers('right');
@@ -788,11 +790,11 @@ export default function Real3DAvatarStage({
             }
 
             const name = child.name.toLowerCase();
-            // Male realistic human skin (soft matte, zero plastic shine)
+            // Male realistic human skin (harmonized with female tone)
             if (name.includes('head') || name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
-              sm.color.setHex(0xffffff);
-              sm.roughness = 0.72;
+              sm.color.setHex(0xfdebe1);
+              sm.roughness = 0.68;
               sm.metalness = 0.0;
             }
           }
@@ -893,145 +895,199 @@ export default function Real3DAvatarStage({
         const idleBreathing = Math.sin(elapsedTime * 2.2) * 0.005;
         const idleSway = Math.sin(elapsedTime * 1.5) * 0.03;
 
-        // EMOTE OVERRIDES
+        // EMOTE OVERRIDES - REALISTIC EXPRESSIVE ROMANTIC COUPLE INTERACTIONS
         if (currentEmote === 'clink' && emoteProgress < 1.0) {
-          const env = Math.sin(emoteProgress * Math.PI);
+          // Smooth cubic ease-in-out curve
+          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.12 * Math.sin(emoteProgress * Math.PI * 2));
 
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.32, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.32, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
+          // Both avatars step gently closer together
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.30, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.30, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.28, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
 
-          if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(-2.192, -1.1, env);
-            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.25, env);
-            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(-0.742, 0.55, env);
-          }
-          if (leftBones.rightForeArm) {
-            leftBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.75, env);
-          }
+          // Torso leans in warmly
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.06 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.06 * env;
+
+          // Heads turn to each other with smiling eye contact
           if (leftBones.head) {
-            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
-            leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.1, env);
-          }
-
-          if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(1.350, -1.1, env);
-            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(-0.600, 0.25, env);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(-0.100, -0.55, env);
-          }
-          if (rightBones.leftForeArm) {
-            rightBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(0, -0.75, env);
+            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.38, env);
+            leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.08, env);
           }
           if (rightBones.head) {
-            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.25, env);
-            rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.1, env);
+            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.38, env);
+            rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.08, env);
           }
+
+          // Girl raises INNER arm (LeftArm) forward at 45° to toast
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 0.65, env);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.85, env);
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 0.35, env);
+          }
+          if (leftBones.leftForeArm) {
+            leftBones.leftForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.75, env);
+            leftBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(-0.45, -0.30, env);
+            leftBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.45, env);
+          }
+          if (leftBones.leftHand) {
+            leftBones.leftHand.rotation.set(0.15 * env, -0.20 * env, 0.10 * env);
+          }
+
+          // Girl outer arm rests naturally at side
+          if (leftBones.rightArm) leftBones.rightArm.rotation.set(-2.192, -1.592, -0.742);
+          if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
+
+          // Boy raises INNER arm (RightArm) forward to meet her cup
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 0.65, env);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.85, env);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -0.35, env);
+          }
+          if (rightBones.rightForeArm) {
+            rightBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.75, env);
+            rightBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.30, env);
+            rightBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.45, env);
+          }
+          if (rightBones.rightHand) {
+            rightBones.rightHand.rotation.set(0.15 * env, 0.20 * env, -0.10 * env);
+          }
+
+          // Boy outer arm rests naturally at side
+          if (rightBones.leftArm) rightBones.leftArm.rotation.set(1.350, -0.600, -0.100);
+          if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
 
         } else if (currentEmote === 'kiss' && emoteProgress < 1.0) {
-          const env = Math.sin(emoteProgress * Math.PI);
+          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
 
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.34, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.34, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.35, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.35, env);
+          // Romantic close step-in
+          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.24, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.24, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.42, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.42, env);
 
-          if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(-2.192, -1.35, env);
-            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(-1.592, 0.0, env);
-            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(-0.742, 0.35, env);
-          }
-          if (leftBones.rightForeArm) {
-            leftBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.9, env);
-            leftBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.7, env);
-          }
+          // Romantic spine tilt toward partner
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.08 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.08 * env;
+
+          // Romantic head tilt & intimate eye contact
           if (leftBones.head) {
-            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.18, env);
-            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.25, env);
-          }
-
-          if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(1.350, -0.95, env);
-            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(-0.600, 0.0, env);
-            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(-0.100, -0.35, env);
-          }
-          if (rightBones.leftForeArm) {
-            rightBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.9, env);
-          }
-          if (rightBones.spine) {
-            rightBones.spine.rotation.x = THREE.MathUtils.lerp(0, -0.1, env);
+            leftBones.head.rotation.y = THREE.MathUtils.lerp(0, 0.42, env);
+            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.12, env);
+            leftBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.05, env);
           }
           if (rightBones.head) {
-            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
-            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.1, env);
+            rightBones.head.rotation.y = THREE.MathUtils.lerp(0, -0.42, env);
+            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.12, env);
+            rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.05, env);
           }
+
+          // Girl brings inner hand towards lips to blow sweet kiss
+          if (leftBones.leftArm) {
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 0.50, env);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.50, env);
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 0.40, env);
+          }
+          if (leftBones.leftForeArm) {
+            leftBones.leftForeArm.rotation.x = THREE.MathUtils.lerp(0, -1.10, env);
+            leftBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(-0.45, -0.20, env);
+            leftBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.60, env);
+          }
+
+          // Boy extends inner hand gently forward in loving embrace
+          if (rightBones.rightArm) {
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 0.40, env);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.40, env);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -0.30, env);
+          }
+          if (rightBones.rightForeArm) {
+            rightBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.60, env);
+            rightBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.20, env);
+            rightBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.30, env);
+          }
+
+          // Outer arms resting naturally
+          if (leftBones.rightArm) leftBones.rightArm.rotation.set(-2.192, -1.592, -0.742);
+          if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
+          if (rightBones.leftArm) rightBones.leftArm.rotation.set(1.350, -0.600, -0.100);
+          if (rightBones.leftForeArm) rightBones.leftForeArm.rotation.set(0, 0, 0);
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
-          const beat = Math.sin(elapsedTime * 10);
-          const beatCos = Math.cos(elapsedTime * 10);
-          const bounce = Math.abs(beat) * 0.04;
+          // Romantic rhythm in sync with lofi music
+          const beat = Math.sin(elapsedTime * 8);
+          const bounce = Math.abs(beat) * 0.035;
+          const sway = Math.sin(elapsedTime * 4) * 0.08;
 
           leftModel.position.y = 0.08 + bounce;
-          rightModel.position.y = 0.08 + Math.abs(Math.sin(elapsedTime * 10 + 0.5)) * 0.04;
+          rightModel.position.y = 0.08 + Math.abs(Math.sin(elapsedTime * 8 + 0.4)) * 0.035;
 
-          if (leftBones.spine) leftBones.spine.rotation.z = beat * 0.14;
-          if (rightBones.spine) rightBones.spine.rotation.z = -beat * 0.12;
+          // Hips & Spine romantic sway
+          if (leftBones.hips) leftBones.hips.rotation.z = sway;
+          if (rightBones.hips) rightBones.hips.rotation.z = -sway;
+          if (leftBones.spine) leftBones.spine.rotation.z = -sway * 0.8;
+          if (rightBones.spine) rightBones.spine.rotation.z = sway * 0.8;
 
+          // Natural arm dancing sways
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.z = -1.2 + beat * 0.45;
-            leftBones.leftArm.rotation.x = 0.15 + beatCos * 0.35;
+            leftBones.leftArm.rotation.z = 1.4 + Math.sin(elapsedTime * 8) * 0.25;
+            leftBones.leftArm.rotation.x = 0.6 + Math.cos(elapsedTime * 8) * 0.2;
           }
           if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.z = 1.2 - beat * 0.45;
-            leftBones.rightArm.rotation.x = 0.15 - beatCos * 0.35;
+            leftBones.rightArm.rotation.z = -1.4 - Math.sin(elapsedTime * 8) * 0.25;
+            leftBones.rightArm.rotation.x = -1.8 - Math.cos(elapsedTime * 8) * 0.2;
           }
-          if (leftBones.head) {
-            leftBones.head.rotation.y = beat * 0.2;
-            leftBones.head.rotation.z = -beat * 0.1;
-          }
-
           if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.x = -0.6 + beatCos * 0.35;
-            rightBones.leftArm.rotation.z = -0.5 + beat * 0.3;
+            rightBones.leftArm.rotation.z = -0.4 + Math.sin(elapsedTime * 8) * 0.25;
+            rightBones.leftArm.rotation.x = 1.0 + Math.cos(elapsedTime * 8) * 0.2;
           }
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.x = -0.6 - beatCos * 0.35;
-            rightBones.rightArm.rotation.z = 0.5 - beat * 0.3;
+            rightBones.rightArm.rotation.z = 0.4 - Math.sin(elapsedTime * 8) * 0.25;
+            rightBones.rightArm.rotation.x = 1.0 - Math.cos(elapsedTime * 8) * 0.2;
+          }
+
+          // Cheerful head groove
+          if (leftBones.head) {
+            leftBones.head.rotation.y = Math.sin(elapsedTime * 4) * 0.15;
+            leftBones.head.rotation.x = 0.06 + Math.abs(Math.sin(elapsedTime * 8)) * 0.08;
           }
           if (rightBones.head) {
-            rightBones.head.rotation.x = 0.1 + bounce * 2;
+            rightBones.head.rotation.y = -Math.sin(elapsedTime * 4) * 0.15;
+            rightBones.head.rotation.x = 0.06 + Math.abs(Math.sin(elapsedTime * 8 + 0.4)) * 0.08;
           }
 
         } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
           const env = Math.sin(emoteProgress * Math.PI);
           const waveCycle = Math.sin(elapsedTime * 14);
 
-          if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, -0.25, env);
-            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.0, env);
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -2.35, env);
+          // Girl waves outer arm (RightArm)
+          if (leftBones.rightArm) {
+            leftBones.rightArm.rotation.x = THREE.MathUtils.lerp(-2.192, -0.85, env);
+            leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.20, env);
+            leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(-0.742, -2.10, env);
           }
-          if (rightBones.rightForeArm) {
-            rightBones.rightForeArm.rotation.z = (waveCycle * 0.45) * env;
-          }
-          if (rightBones.head) {
-            rightBones.head.rotation.z = THREE.MathUtils.lerp(0, 0.1, env);
-          }
-
-          if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, -0.25, env);
-            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, 0.0, env);
-            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 2.3, env);
-          }
-          if (leftBones.leftForeArm) {
-            leftBones.leftForeArm.rotation.z = (-Math.sin(elapsedTime * 14 + 0.4) * 0.4) * env;
+          if (leftBones.rightForeArm) {
+            leftBones.rightForeArm.rotation.z = (waveCycle * 0.45) * env;
           }
           if (leftBones.head) {
-            leftBones.head.rotation.z = THREE.MathUtils.lerp(0, -0.12, env);
+            leftBones.head.rotation.set(0, 0.15 * env, 0.08 * env);
+          }
+
+          // Boy waves outer arm (LeftArm)
+          if (rightBones.leftArm) {
+            rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(1.350, -0.85, env);
+            rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(-0.600, 0.20, env);
+            rightBones.leftArm.rotation.z = THREE.MathUtils.lerp(-0.100, 2.10, env);
+          }
+          if (rightBones.leftForeArm) {
+            rightBones.leftForeArm.rotation.z = (Math.sin(elapsedTime * 14 + 0.3) * 0.45) * env;
+          }
+          if (rightBones.head) {
+            rightBones.head.rotation.set(0, -0.15 * env, -0.08 * env);
           }
 
         } else {
-          // NATURAL RELAXED IDLE POSTURE
+          // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION)
           leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
           rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
           leftModel.position.y = 0.08 + idleBreathing;
@@ -1042,6 +1098,7 @@ export default function Real3DAvatarStage({
           leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, 0, 0.1);
           rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
 
+          // Female resting arms and pronated forearms
           if (leftBones.leftArm) {
             leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(leftBones.leftArm.rotation.x, 0.958, 0.1);
             leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(leftBones.leftArm.rotation.y, -1.592, 0.1);
@@ -1052,18 +1109,15 @@ export default function Real3DAvatarStage({
             leftBones.rightArm.rotation.y = THREE.MathUtils.lerp(leftBones.rightArm.rotation.y, -1.592, 0.1);
             leftBones.rightArm.rotation.z = THREE.MathUtils.lerp(leftBones.rightArm.rotation.z, -0.742 - idleSway * 0.1, 0.1);
           }
-          if (leftBones.leftHand) {
-            leftBones.leftHand.rotation.y = THREE.MathUtils.lerp(leftBones.leftHand.rotation.y, 0, 0.1);
-            leftBones.leftHand.rotation.z = THREE.MathUtils.lerp(leftBones.leftHand.rotation.z, 0, 0.1);
-          }
-          if (leftBones.rightHand) {
-            leftBones.rightHand.rotation.y = THREE.MathUtils.lerp(leftBones.rightHand.rotation.y, 0, 0.1);
-            leftBones.rightHand.rotation.z = THREE.MathUtils.lerp(leftBones.rightHand.rotation.z, 0, 0.1);
-          }
-          if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, 0, 0);
-          if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0, 0);
+          // Forearms: maintain inward pronation towards thighs
+          if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, -0.45, 0);
+          if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
+          // Wrists: natural relaxed downward drop
+          if (leftBones.leftHand) leftBones.leftHand.rotation.set(0.05, -0.10, -0.05);
+          if (leftBones.rightHand) leftBones.rightHand.rotation.set(0.05, 0.10, 0.05);
           if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
 
+          // Male resting arms
           if (rightBones.leftArm) {
             rightBones.leftArm.rotation.x = THREE.MathUtils.lerp(rightBones.leftArm.rotation.x, 1.350, 0.1);
             rightBones.leftArm.rotation.y = THREE.MathUtils.lerp(rightBones.leftArm.rotation.y, -0.600, 0.1);
