@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { 
-  RotateCw, Sparkles, Heart, Coffee, 
-  Music, Upload, RefreshCw, Camera, Box, Shirt, 
+  Sparkles, Heart, Coffee, 
+  Music, RefreshCw, Box, Shirt, 
   Check, X, User, Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -27,15 +27,17 @@ export const BOY_TOPS = [
 ];
 
 export const BOY_BOTTOMS = [
-  { id: 'raw_denim', name: 'Indigo Denim', color: 0x2b3d54, rough: 0.65, swatch: '#2b3d54', emoji: '👖' },
-  { id: 'jet_black', name: 'Jet Black Jeans', color: 0x111215, rough: 0.55, swatch: '#111215', emoji: '🖤' },
-  { id: 'espresso_chinos', name: 'Espresso Chinos', color: 0x36281e, rough: 0.6, swatch: '#36281e', emoji: '☕' },
-  { id: 'slate_shorts', name: 'Slate Denim', color: 0x444c57, rough: 0.65, swatch: '#444c57', emoji: '🩶' },
-  { id: 'off_white', name: 'Off-White Canvas', color: 0xdcdfe5, rough: 0.5, swatch: '#dcdfe5', emoji: '🤍' },
-  { id: 'deep_olive', name: 'Olive Military', color: 0x242d20, rough: 0.65, swatch: '#242d20', emoji: '🪖' },
-  { id: 'cyber_carbon', name: 'Cyber Carbon', color: 0x161622, rough: 0.3, swatch: '#161622', emoji: '🔮' },
-  { id: 'charcoal_cargos', name: 'Charcoal Cargos', color: 0x23262b, rough: 0.6, swatch: '#23262b', emoji: '🪨' },
-  { id: 'khaki_tailored', name: 'Tailored Khaki', color: 0x6e604f, rough: 0.55, swatch: '#6e604f', emoji: '🌾' },
+  { id: 'raw_denim', name: 'Indigo Denim Jeans', color: 0x24324a, rough: 0.7, swatch: '#24324a', emoji: '👖', isPants: true },
+  { id: 'jet_black', name: 'Jet Black Slacks', color: 0x111215, rough: 0.55, swatch: '#111215', emoji: '🖤', isPants: true },
+  { id: 'espresso_chinos', name: 'Espresso Chinos', color: 0x36281e, rough: 0.6, swatch: '#36281e', emoji: '☕', isPants: true },
+  { id: 'slate_trousers', name: 'Slate Gray Trousers', color: 0x3b434e, rough: 0.6, swatch: '#3b434e', emoji: '🩶', isPants: true },
+  { id: 'linen_white', name: 'Off-White Slacks', color: 0xdcdfe5, rough: 0.55, swatch: '#dcdfe5', emoji: '🤍', isPants: true },
+  { id: 'charcoal_cargos', name: 'Charcoal Cargo Pants', color: 0x23262b, rough: 0.65, swatch: '#23262b', emoji: '🪨', isPants: true },
+  { id: 'khaki_tailored', name: 'Tailored Khaki Pants', color: 0x6e604f, rough: 0.55, swatch: '#6e604f', emoji: '🌾', isPants: true },
+  { id: 'deep_olive', name: 'Olive Utility Pants', color: 0x242d20, rough: 0.65, swatch: '#242d20', emoji: '🪖', isPants: true },
+  { id: 'cyber_carbon', name: 'Cyber Carbon Pants', color: 0x161622, rough: 0.3, swatch: '#161622', emoji: '🔮', isPants: true },
+  { id: 'summer_shorts', name: 'Summer Denim Shorts', color: 0x444c57, rough: 0.65, swatch: '#444c57', emoji: '🩳', isPants: false },
+  { id: 'bermuda_beige', name: 'Bermuda Resort Shorts', color: 0xb5a083, rough: 0.6, swatch: '#b5a083', emoji: '🏖️', isPants: false },
 ];
 
 export const BOY_SHOES = [
@@ -98,12 +100,12 @@ export const GIRL_SHOES = [
 // 3. AUTHENTIC HUMAN SKIN TONES (NATURAL MELANIN & WARMTH)
 // -------------------------------------------------------------
 export const SKIN_TONES = [
-  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xce927b, swatch: '#ce927b', emoji: '🌸' },
-  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf5dac0, girlHex: 0xc4846d, swatch: '#c4846d', emoji: '🍯' },
-  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xeac2a3, girlHex: 0xb5735b, swatch: '#b5735b', emoji: '☀️' },
-  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd4a682, girlHex: 0xa1624a, swatch: '#a1624a', emoji: '🌴' },
-  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9f6946, girlHex: 0x76422f, swatch: '#76422f', emoji: '🌰' },
-  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x623e2a, girlHex: 0x482619, swatch: '#482619', emoji: '☕' },
+  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xa9a9be, swatch: '#ce927b', emoji: '🌸' },
+  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf4dcbf, girlHex: 0xa1928e, swatch: '#c4846d', emoji: '🍯' },
+  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xe6bda0, girlHex: 0x987e77, swatch: '#b5735b', emoji: '☀️' },
+  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd29f7c, girlHex: 0x8b6a5d, swatch: '#a1624a', emoji: '🌴' },
+  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9c6543, girlHex: 0x674332, swatch: '#76422f', emoji: '🌰' },
+  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x633e28, girlHex: 0x42291e, swatch: '#482619', emoji: '☕' },
 ];
 
 // -------------------------------------------------------------
@@ -190,11 +192,9 @@ export default function Real3DAvatarStage({
   className = '',
 }) {
   const mountRef = useRef(null);
-  const fileInputRef = useRef(null);
   
   // State: Emotes & Stage
   const [activeEmote, setActiveEmote] = useState(null);
-  const [isRotating, setIsRotating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Role Enforcement: Boy only control by boy, Girl only by girl
@@ -253,7 +253,7 @@ export default function Real3DAvatarStage({
   });
 
   // Custom Local Overrides (if user uploads a custom .glb file)
-  const [localMyGlb, setLocalMyGlb] = useState(null);
+  const [localMyGlb] = useState(null);
   const [localPartnerGlb] = useState(null);
 
   // Three.js References
@@ -266,6 +266,7 @@ export default function Real3DAvatarStage({
   const sunglassesGroupRef = useRef(null);
   const girlCupRef = useRef(null);
   const boyCupRef = useRef(null);
+  const boyPantExtensionsRef = useRef(null);
 
   // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
@@ -409,6 +410,19 @@ export default function Real3DAvatarStage({
         }
       });
 
+      // Male 3D Tailored Pants Extensions (Real Pants vs Shorts)
+      const isPants = bottomItem.isPants !== false;
+      if (boyPantExtensionsRef.current) {
+        boyPantExtensionsRef.current.visible = isPants;
+        boyPantExtensionsRef.current.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.color.setHex(bottomItem.color);
+            child.material.roughness = bottomItem.rough;
+            child.material.needsUpdate = true;
+          }
+        });
+      }
+
       // Male Designer Sunglasses
       if (sunglassesGroupRef.current) {
         sunglassesGroupRef.current.visible = !!boyState.shades;
@@ -523,36 +537,7 @@ export default function Real3DAvatarStage({
     }, emoteStateRef.current.duration);
   }, [partnerName, playSfx]);
 
-  // Handle Custom .glb Model Upload
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.glb') && !file.name.toLowerCase().endsWith('.gltf')) {
-      toast.error('Please upload a 3D .glb or .gltf file');
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    setLocalMyGlb(objectUrl);
-    toast.success(`Loaded 3D Model: ${file.name} ✨`);
-  };
-
-  // Screenshot / Snapshot Canvas
-  const handleCaptureSnapshot = () => {
-    if (!rendererRef.current) return;
-    try {
-      const dataUrl = rendererRef.current.domElement.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `lovelink_3d_couple_${Date.now()}.png`;
-      a.click();
-      confetti({ particleCount: 30, spread: 60, origin: { y: 0.5 } });
-      toast.success('Snapshot saved to your device! 📸✨');
-    } catch {
-      toast.error('Could not capture snapshot');
-    }
-  };
 
   // -------------------------------------------------------------
   // THREE.JS SCENE SETUP & REAL 3D MODEL LOADING
@@ -634,7 +619,7 @@ export default function Real3DAvatarStage({
     controls.enablePan = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.autoRotate = isRotating;
+    controls.autoRotate = false;
     controls.autoRotateSpeed = 1.2;
     controls.target.set(0, 1.0, 0);
     controls.minPolarAngle = Math.PI / 2.3;
@@ -680,6 +665,37 @@ export default function Real3DAvatarStage({
     realisticEyeTex.flipY = false;
     realisticEyeTex.colorSpace = THREE.SRGBColorSpace;
 
+
+    // HELPER: CREATE 3D REALISTIC TAILORED PANT EXTENSIONS FOR BOY
+    const createBoyPantExtensions = (bottomMaterial) => {
+      const pantsGroup = new THREE.Group();
+      pantsGroup.name = 'boy_pant_extensions';
+
+      const createLeg = (isLeft) => {
+        // Tapered tailored cylinder sleeve from shorts hem (y = 0.63) down to footwear top (y = 0.16)
+        const legGeom = new THREE.CylinderGeometry(0.076, 0.054, 0.47, 24, 6, true);
+        const pos = legGeom.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i); // -0.235 to +0.235
+          const normY = (y + 0.235) / 0.47; // 0 bottom, 1 top
+          const calf = Math.sin(normY * Math.PI) * 0.006;
+          pos.setX(i, pos.getX(i) * (1 + calf));
+          pos.setZ(i, pos.getZ(i) * (1 + calf));
+        }
+        legGeom.computeVertexNormals();
+
+        const mat = bottomMaterial ? bottomMaterial.clone() : new THREE.MeshStandardMaterial({ color: 0x24324a, roughness: 0.7 });
+        const legMesh = new THREE.Mesh(legGeom, mat);
+        const sign = isLeft ? 1 : -1;
+        legMesh.position.set(sign * 0.134, 0.395, -0.022);
+        legMesh.rotation.set(0.04, 0, -sign * 0.05);
+        return legMesh;
+      };
+
+      pantsGroup.add(createLeg(true));
+      pantsGroup.add(createLeg(false));
+      return pantsGroup;
+    };
 
     // HELPER: CREATE 3D REALISTIC CERAMIC COFFEE CUP PROP
     const createCoffeeCup = () => {
@@ -735,8 +751,8 @@ export default function Real3DAvatarStage({
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(-0.38, 0.08, 0);
-        model.scale.set(1.18, 1.18, 1.18);
+        model.position.set(-0.43, 0.08, 0);
+        model.scale.set(1.14, 1.14, 1.14);
         
         model.traverse((child) => {
           if (child.isMesh) {
@@ -753,7 +769,7 @@ export default function Real3DAvatarStage({
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xce927b); // Calibrated warm melanin tone matching boy
+              sm.color.setHex(0xa9a9be); // Calibrated warm melanin tone harmonized with boy
               sm.roughness = 0.68;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
@@ -785,27 +801,27 @@ export default function Real3DAvatarStage({
         if (leftBonesRef.current.leftHand) leftBonesRef.current.leftHand.rotation.set(0.04, -0.02, 0.0);
         if (leftBonesRef.current.rightHand) leftBonesRef.current.rightHand.rotation.set(0.04, 0.02, 0.0);
 
-        // Natural graceful human resting finger curve (soft human relaxation, zero claw hyperextension)
+        // Natural graceful human resting finger curve (anatomical flexion forward into palm, zero claw hyperextension)
         const curlFingers = (side) => {
           const prefix = side === 'left' ? 'leftHand' : 'rightHand';
-          const isLeft = side === 'left';
           ['Index', 'Middle', 'Ring', 'Pinky'].forEach((f, idx) => {
-            const curlAmt = 0.10 + idx * 0.015;
+            const curlAmt = 0.08 + idx * 0.012;
             for (let j = 1; j <= 3; j++) {
               const b = leftBonesRef.current[`${prefix}${f}${j}`];
               if (b) {
                 const factor = j === 1 ? 0.6 : j === 2 ? 0.7 : 0.5;
-                b.rotation.x = isLeft ? -curlAmt * factor : curlAmt * factor;
+                // In female_avatar.glb, positive rotation.x curls fingers naturally forward into palm for BOTH hands
+                b.rotation.x = curlAmt * factor;
               }
             }
           });
           const t1 = leftBonesRef.current[`${prefix}Thumb1`];
           const t2 = leftBonesRef.current[`${prefix}Thumb2`];
           if (t1) {
-            t1.rotation.set(isLeft ? -0.06 : 0.06, isLeft ? 0.05 : -0.05, isLeft ? -0.03 : 0.03);
+            t1.rotation.set(0.06, side === 'left' ? 0.05 : -0.05, side === 'left' ? -0.03 : 0.03);
           }
           if (t2) {
-            t2.rotation.x = isLeft ? -0.08 : 0.08;
+            t2.rotation.x = 0.08;
           }
         };
         curlFingers('left');
@@ -835,8 +851,8 @@ export default function Real3DAvatarStage({
       maleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(0.38, 0.08, 0);
-        model.scale.set(0.89, 0.89, 0.89);
+        model.position.set(0.43, 0.08, 0);
+        model.scale.set(0.96, 0.96, 0.96);
 
         model.traverse((child) => {
           if (child.isMesh && child.material) {
@@ -887,6 +903,17 @@ export default function Real3DAvatarStage({
             sunglassesGroupRef.current = glassesGroup;
           }
         });
+
+        // Attach 3D Tailored Pant Leg Extensions (giving the boy real long pants/jeans)
+        let bottomMat = null;
+        model.traverse((child) => {
+          if (child.isMesh && child.name.toLowerCase().includes('bottom') && child.material) {
+            bottomMat = Array.isArray(child.material) ? child.material[0] : child.material;
+          }
+        });
+        const pantsExt = createBoyPantExtensions(bottomMat);
+        model.add(pantsExt);
+        boyPantExtensionsRef.current = pantsExt;
 
         mapBones(model, rightBonesRef);
         if (rightBonesRef.current.leftArm) {
@@ -948,7 +975,7 @@ export default function Real3DAvatarStage({
         : 0;
 
       // Update Controls
-      controls.autoRotate = isRotating;
+      controls.autoRotate = false;
       controls.update();
 
       const leftModel = leftModelRef.current;
@@ -975,8 +1002,8 @@ export default function Real3DAvatarStage({
             : 0;
 
           // Both avatars step closer together to toast coffee
-          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.22, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.22, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.20, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.20, env);
           leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.28, env);
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
 
@@ -1039,22 +1066,22 @@ export default function Real3DAvatarStage({
 
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
-          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.095)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.095, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.095, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.48, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.48, env);
+          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.085)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.085, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.085, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.52, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.52, env);
 
           // Romantic spine tilt toward partner
           if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
           if (rightBones.spine) rightBones.spine.rotation.z = 0.05 * env;
 
-          // Head angles aligned directly for lip-to-lip contact
+          // Head angles aligned directly for realistic lip-to-lip contact
           if (leftBones.head) {
-            leftBones.head.rotation.set(0.08 * env, 0.48 * env, 0.12 * env);
+            leftBones.head.rotation.set(0.12 * env, 0.50 * env, 0.10 * env); // Girl tilts up lovingly
           }
           if (rightBones.head) {
-            rightBones.head.rotation.set(0.08 * env, -0.48 * env, -0.12 * env);
+            rightBones.head.rotation.set(-0.04 * env, -0.50 * env, -0.08 * env); // Boy leans gently down to her lips
           }
 
           // Girl arms wrap tenderly near boy's chest & neck
@@ -1087,9 +1114,9 @@ export default function Real3DAvatarStage({
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
           const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.008;
 
-          // Both avatars step into warm intimate couple embrace (+-0.082)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.082 + squeeze, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.082 - squeeze, env);
+          // Both avatars step into warm intimate couple embrace (+-0.075)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.075 + squeeze, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.075 - squeeze, env);
           leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
           rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
 
@@ -1212,9 +1239,9 @@ export default function Real3DAvatarStage({
           if (girlCupRef.current) girlCupRef.current.visible = false;
           if (boyCupRef.current) boyCupRef.current.visible = false;
 
-          // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION)
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.38, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.38, 0.1);
+          // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION, NO HAND CLIPPING)
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.43, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.43, 0.1);
           leftModel.position.y = 0.08 + idleBreathing;
           rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005;
 
@@ -1325,19 +1352,12 @@ export default function Real3DAvatarStage({
       renderer.dispose();
       mount.innerHTML = '';
     };
-  }, [isRotating, partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb, applyAllWardrobe, boyWardrobe, girlWardrobe]);
+  }, [partnerGlbUrl, myGlbUrl, localMyGlb, localPartnerGlb, applyAllWardrobe, boyWardrobe, girlWardrobe]);
 
   return (
     <div className={`relative w-full flex flex-col items-center select-none ${className}`}>
       
-      {/* Hidden File Input for Custom .glb upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".glb,.gltf"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
+
 
       {/* 1. REAL 3D WEBGL STAGE VIEWPORT (Sleek Dark Luxury Studio Atmosphere) */}
       <div className="relative w-full aspect-[9/14] sm:aspect-[9/13] min-h-[520px] sm:min-h-[580px] max-h-[660px] rounded-[38px] overflow-hidden bg-gradient-to-b from-[#141a29] via-[#0d121f] to-[#07090e] border-2 border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col justify-between">
@@ -1378,53 +1398,24 @@ export default function Real3DAvatarStage({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 pointer-events-auto">
+          {/* Action Buttons (Clean & Sleek Studio) */}
+          <div className="flex items-center gap-2 pointer-events-auto">
             
             {/* Wardrobe Toggle */}
             <button
               onClick={() => setShowWardrobe(!showWardrobe)}
-              className={`px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
+              className={`px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
                 showWardrobe 
                   ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300' 
                   : 'bg-black/60 hover:bg-black/80 text-white'
               }`}
               title="Change Clothes, Pants, Jackets & Style"
             >
-              <Shirt size={13} className={showWardrobe ? 'text-stone-950' : 'text-amber-400'} />
+              <Shirt size={14} className={showWardrobe ? 'text-stone-950' : 'text-amber-400'} />
               <span>Wardrobe</span>
             </button>
 
-            {/* Custom .glb Model Upload */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 shadow-xl transition-all active:scale-95"
-              title="Upload your custom 3D model (.glb)"
-            >
-              <Upload size={14} className="text-amber-400" />
-            </button>
-
-            {/* 360° Auto-Rotate Toggle */}
-            <button
-              onClick={() => setIsRotating(!isRotating)}
-              className={`p-2 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 ${
-                isRotating ? 'bg-amber-400 text-stone-950 font-bold' : 'bg-black/60 text-white'
-              }`}
-              title={isRotating ? 'Pause Auto-Spin' : 'Auto-Spin 360°'}
-            >
-              <RotateCw size={14} className={isRotating ? 'animate-spin' : ''} />
-            </button>
-
-            {/* Snapshot Camera */}
-            <button
-              onClick={handleCaptureSnapshot}
-              className="p-2 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white border border-white/20 shadow-xl transition-all active:scale-95"
-              title="Save Snapshot Photo"
-            >
-              <Camera size={14} className="text-emerald-400" />
-            </button>
-
-            {/* 3D Avatar Creator from Selfie / Scratch */}
+            {/* 3D Avatar Creator */}
             <button
               onClick={onOpenCreator}
               className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold shadow-xl border border-white/20 active:scale-95 transition-all flex items-center gap-1.5"

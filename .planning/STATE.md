@@ -1,30 +1,31 @@
 # Project State — LoveLink 3D Avatar Studio & Couple Interactions
 
-## Current Milestone: Authentic 3D Couple Interactions & Harmonized Skin Tones
+## Current Milestone: Real 3D Boy Pants, Anatomical Female Hands, Harmonized Skin Tones & Expressive Emotes
 
 ### Decisions & Invariants
-1. **Skin Tone Matching & Negative UV Texture Wrapping**:
-   - `cleanSkinTex` configured with `wrapS = THREE.RepeatWrapping` and `wrapT = THREE.RepeatWrapping` to correctly handle `female_avatar.glb` negative UV coordinates on hand meshes (`u = -0.892, v = -0.955`), eliminating chalky ghost-white hands.
-   - Calibrated `SKIN_TONES` palette using luminance compensation. Male displays natural photographic ReadyPlayerMe texture (`boyHex: 0xffffff`) and female rendered tone matches within < 3% color delta (`girlHex: 0xce927b`).
-2. **Avatar Eye-Level Height Alignment**:
-   - Girl scaled to `1.18` ($y \approx 1.53\text{m}$) and Boy scaled to `0.89` ($y \approx 1.54\text{m}$).
-   - Perfectly harmonizes character proportions and eliminates the height disparity.
-3. **True Touching Lip-to-Lip Kiss**:
-   - Avatars step in to intimate touching proximity ($x = \pm 0.095\text{m}$).
-   - Complementary head rotations ($y = \pm 0.48\text{ rad}$, $z = \pm 0.12\text{ rad}$, $x = 0.08\text{ rad}$) align faces directly for intimate lip-to-lip contact without mesh intersection.
-4. **Authentic Couple Hug**:
-   - Step into touching chest-to-chest embrace ($x = \pm 0.082\text{m} \pm \text{squeeze}$).
-   - Full two-arm wrapping: girl wraps around boy's neck and waist; boy wraps around girl's upper back and waist.
-   - Heads rest lovingly on each other's shoulders with gentle breathing squeeze motion.
-5. **3D Ceramic Coffee Mugs Clink Contact**:
-   - Procedural ceramic coffee mugs attached to girl's `LeftHand` and boy's `RightHand`.
-   - Forward kinematics calibrated so cup rims physically meet at the exact center $(x = 0, y \approx 1.16\text{m}, z \approx 0.15\text{m})$ with joyful tap recoil.
-6. **Graceful Resting Hand Posture**:
-   - Wrists rest downward without outward splay (`rotation.set(0.04, \mp 0.02, 0.0)`).
-   - Fingers relaxed with soft inward curl without hyperextension.
-7. **Full CSP & Worker Protection**:
-   - `<meta http-equiv="Content-Security-Policy">` in `lovelink-frontend/public/index.html` + `vercel.json` in repo root and frontend directory.
-   - Grants `worker-src 'self' blob:` and `script-src 'self' ... blob:`, completely resolving worker and texture blob blocking on Vercel deployments.
+1. **Male 3D Tailored Long Pants vs Casual Shorts**:
+   - Tailored 3D cylinder leg extensions (`createBoyPantExtensions`) bridge the male shorts hem ($y = 0.63\text{m}$) down to the top of footwear ($y = 0.16\text{m}$) with realistic calf curvature.
+   - Dynamically bound to the selected `bottomItem.material` and toggled with `isPants !== false`.
+   - Offers real long pants (Indigo Denim Jeans, Jet Black Slacks, Espresso Chinos, Slate Gray Trousers, Linen Slacks, Charcoal Cargos, Tailored Khaki, Utility Pants, Cyber Carbon) while preserving resort shorts.
+2. **Female Left Hand Anatomical Flexion (Eliminating "Ghost Claw")**:
+   - Fixed the sign negation bug in `curlFingers`: in `female_avatar.glb`, positive `rotation.x` curls fingers naturally forward into the palm for BOTH hands.
+   - Reversed the previous negative rotation on the left hand that caused backward hyperextension, giving both hands graceful, relaxed, human resting posture.
+3. **Harmonized Melanin Human Skin Tones**:
+   - Harmonized `SKIN_TONES` palette using luminance and chromaticity compensation between the male photographic texture (`boyHex: 0xffffff`) and female cartoon texture (`girlHex: 0xa9a9be`).
+   - Ensures boy and girl match 100% in tone, warmth, and saturation across all 6 presets (`fair_warm`, `golden_honey`, `warm_almond`, `bronze`, `chestnut`, `espresso`).
+4. **Relaxed Portrait Couple Spacing**:
+   - Spacing set to $x = \pm 0.43\text{m}$ in idle, providing a comfortable 10cm clear space between inner hands.
+   - Completely prevents inner hands from clipping into each other or creating a confusing overlapping "double-hand ghost" artifact.
+5. **Expressive Human Emotes**:
+   - **Kiss**: Avatars step in to intimate contact ($x = \pm 0.085\text{m}$). Girl tilts head lovingly up ($+0.12\text{ rad}$), boy leans gently down ($-0.04\text{ rad}$), and both turn faces ($\pm 0.52\text{ rad}$) for authentic lip-to-lip contact.
+   - **Hug**: Authentic close embrace ($x = \pm 0.075\text{m} \pm \text{squeeze}$). Girl wraps left arm over shoulder and right around waist; boy wraps right across upper back and left around waist. Heads rest lovingly on partner's shoulder with rhythmic breathing squeeze.
+   - **Coffee Toast**: 3D ceramic mugs attached to inner hands (girl LeftHand, boy RightHand) meet at center $(x = 0, y = 1.15\text{m}, z = 0.25\text{m})$ with joyful tap recoil.
+6. **Decluttered Studio UI**:
+   - Stripped useless viewport clutter: raw GLB upload button, 360 spin auto-rotate, and duplicate snapshot button.
+   - Preserves a clean, minimal top bar (`Real 3D WebGL`, `Wardrobe`, `Customize 3D`).
+   - Boy only controls boy wardrobe, girl only controls girl wardrobe.
+7. **Production Build Cleanliness**:
+   - Zero unused imports or state (`setLocalMyGlb`, `RotateCw`, `Upload`, `Camera`), passing `react-scripts build` under `CI=true`.
 
 ### Task Progress
 - [x] Elephant & Debug Mode root cause analysis
@@ -32,4 +33,4 @@
 - [x] TDD Red Phase: isolated reproduction tests written & failed
 - [x] Ralph Loop Green Phase: implemented minimal, verified code fixes
 - [x] Production build backpressure verified: `Compiled successfully`
-- [x] Atomic git commits pushed to `main` and synced to `security-fixes`
+- [x] Atomic git commit pushed to `main` and synced to `security-fixes`
