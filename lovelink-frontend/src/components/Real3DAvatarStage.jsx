@@ -673,6 +673,8 @@ export default function Real3DAvatarStage({
     const cleanSkinTex = texLoader.load('/models/female_skin_cleaned.png');
     cleanSkinTex.flipY = false;
     cleanSkinTex.colorSpace = THREE.SRGBColorSpace;
+    cleanSkinTex.wrapS = THREE.RepeatWrapping;
+    cleanSkinTex.wrapT = THREE.RepeatWrapping;
 
     const realisticEyeTex = texLoader.load('/models/female_eye_realistic.png');
     realisticEyeTex.flipY = false;
@@ -734,7 +736,7 @@ export default function Real3DAvatarStage({
       (gltf) => {
         const model = gltf.scene;
         model.position.set(-0.38, 0.08, 0);
-        model.scale.set(1.135, 1.135, 1.135);
+        model.scale.set(1.18, 1.18, 1.18);
         
         model.traverse((child) => {
           if (child.isMesh) {
@@ -779,20 +781,20 @@ export default function Real3DAvatarStage({
         // Forearms: pronate naturally so palms face inward towards thighs
         if (leftBonesRef.current.leftForeArm) leftBonesRef.current.leftForeArm.rotation.set(0, -0.45, 0);
         if (leftBonesRef.current.rightForeArm) leftBonesRef.current.rightForeArm.rotation.set(0, 0.45, 0);
-        // Wrists: natural relaxed downward drop
-        if (leftBonesRef.current.leftHand) leftBonesRef.current.leftHand.rotation.set(0.05, -0.10, -0.05);
-        if (leftBonesRef.current.rightHand) leftBonesRef.current.rightHand.rotation.set(0.05, 0.10, 0.05);
+        // Wrists: natural relaxed downward drop (no outward splay)
+        if (leftBonesRef.current.leftHand) leftBonesRef.current.leftHand.rotation.set(0.04, -0.02, 0.0);
+        if (leftBonesRef.current.rightHand) leftBonesRef.current.rightHand.rotation.set(0.04, 0.02, 0.0);
 
-        // Natural graceful human resting finger curve (inverted for Left vs Right to curl toward palm)
+        // Natural graceful human resting finger curve (soft human relaxation, zero claw hyperextension)
         const curlFingers = (side) => {
           const prefix = side === 'left' ? 'leftHand' : 'rightHand';
           const isLeft = side === 'left';
           ['Index', 'Middle', 'Ring', 'Pinky'].forEach((f, idx) => {
-            const curlAmt = 0.28 + idx * 0.035;
+            const curlAmt = 0.10 + idx * 0.015;
             for (let j = 1; j <= 3; j++) {
               const b = leftBonesRef.current[`${prefix}${f}${j}`];
               if (b) {
-                const factor = j === 1 ? 0.9 : j === 2 ? 1.05 : 0.8;
+                const factor = j === 1 ? 0.6 : j === 2 ? 0.7 : 0.5;
                 b.rotation.x = isLeft ? -curlAmt * factor : curlAmt * factor;
               }
             }
@@ -800,10 +802,10 @@ export default function Real3DAvatarStage({
           const t1 = leftBonesRef.current[`${prefix}Thumb1`];
           const t2 = leftBonesRef.current[`${prefix}Thumb2`];
           if (t1) {
-            t1.rotation.set(isLeft ? -0.16 : 0.16, isLeft ? 0.12 : -0.12, isLeft ? -0.08 : 0.08);
+            t1.rotation.set(isLeft ? -0.06 : 0.06, isLeft ? 0.05 : -0.05, isLeft ? -0.03 : 0.03);
           }
           if (t2) {
-            t2.rotation.x = isLeft ? -0.18 : 0.18;
+            t2.rotation.x = isLeft ? -0.08 : 0.08;
           }
         };
         curlFingers('left');
@@ -834,7 +836,7 @@ export default function Real3DAvatarStage({
       (gltf) => {
         const model = gltf.scene;
         model.position.set(0.38, 0.08, 0);
-        model.scale.set(0.98, 0.98, 0.98);
+        model.scale.set(0.89, 0.89, 0.89);
 
         model.traverse((child) => {
           if (child.isMesh && child.material) {
@@ -848,7 +850,7 @@ export default function Real3DAvatarStage({
             // Male realistic human skin (harmonized with female tone)
             if (name.includes('head') || name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
-              sm.color.setHex(0xfdebe1);
+              sm.color.setHex(0xffffff); // Display authentic photographic skin tone
               sm.roughness = 0.68;
               sm.metalness = 0.0;
             }
@@ -967,15 +969,20 @@ export default function Real3DAvatarStage({
           // Smooth cubic ease-in-out curve
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.12 * Math.sin(emoteProgress * Math.PI * 2));
 
+          // Subtle clink tap recoil at mid-emote when mugs meet
+          const tapRecoil = emoteProgress > 0.44 && emoteProgress < 0.62
+            ? Math.sin((emoteProgress - 0.44) * Math.PI / 0.18) * 0.02
+            : 0;
+
           // Both avatars step closer together to toast coffee
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.28, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.28, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.26, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.26, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.22, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.22, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.28, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
 
           // Torso leans in warmly
-          if (leftBones.spine) leftBones.spine.rotation.z = -0.06 * env;
-          if (rightBones.spine) rightBones.spine.rotation.z = 0.06 * env;
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.05 * env;
 
           // Heads turn to each other with smiling eye contact
           if (leftBones.head) {
@@ -987,38 +994,38 @@ export default function Real3DAvatarStage({
             rightBones.head.rotation.x = THREE.MathUtils.lerp(0, 0.08, env);
           }
 
-          // Girl raises INNER arm (LeftArm) forward holding coffee mug
+          // Girl raises LeftArm forward holding coffee mug to center meeting point
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 0.65, env);
-            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -0.85, env);
-            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 0.35, env);
+            leftBones.leftArm.rotation.x = THREE.MathUtils.lerp(0.958, 1.10, env);
+            leftBones.leftArm.rotation.y = THREE.MathUtils.lerp(-1.592, -1.45, env);
+            leftBones.leftArm.rotation.z = THREE.MathUtils.lerp(2.408, 1.55, env);
           }
           if (leftBones.leftForeArm) {
-            leftBones.leftForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.75, env);
+            leftBones.leftForeArm.rotation.x = THREE.MathUtils.lerp(0, -1.40, env);
             leftBones.leftForeArm.rotation.y = THREE.MathUtils.lerp(-0.45, -0.30, env);
-            leftBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.45, env);
+            leftBones.leftForeArm.rotation.z = THREE.MathUtils.lerp(0, 0.70 - tapRecoil, env);
           }
           if (leftBones.leftHand) {
-            leftBones.leftHand.rotation.set(0.15 * env, -0.20 * env, 0.10 * env);
+            leftBones.leftHand.rotation.set(0.10 * env, -0.15 * env, 0.05 * env);
           }
 
           // Girl outer arm rests naturally at side
           if (leftBones.rightArm) leftBones.rightArm.rotation.set(-2.192, -1.592, -0.742);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
 
-          // Boy raises INNER arm (RightArm) forward to meet her mug
+          // Boy raises RightArm forward holding mug to meet her cup at center
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 0.65, env);
-            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.85, env);
-            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -0.35, env);
+            rightBones.rightArm.rotation.x = THREE.MathUtils.lerp(1.350, 1.30, env);
+            rightBones.rightArm.rotation.y = THREE.MathUtils.lerp(0.600, 0.20, env);
+            rightBones.rightArm.rotation.z = THREE.MathUtils.lerp(0.100, -0.30, env);
           }
           if (rightBones.rightForeArm) {
-            rightBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.75, env);
-            rightBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.30, env);
-            rightBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.45, env);
+            rightBones.rightForeArm.rotation.x = THREE.MathUtils.lerp(0, -0.10, env);
+            rightBones.rightForeArm.rotation.y = THREE.MathUtils.lerp(0, 0.20, env);
+            rightBones.rightForeArm.rotation.z = THREE.MathUtils.lerp(0, -0.80 + tapRecoil, env);
           }
           if (rightBones.rightHand) {
-            rightBones.rightHand.rotation.set(0.15 * env, 0.20 * env, -0.10 * env);
+            rightBones.rightHand.rotation.set(0.10 * env, 0.15 * env, -0.05 * env);
           }
 
           // Boy outer arm rests naturally at side
@@ -1032,38 +1039,38 @@ export default function Real3DAvatarStage({
 
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
-          // Romantic close step-in for lip-to-lip kiss proximity
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.165, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.165, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.45, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.45, env);
+          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.095)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.095, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.095, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.48, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.48, env);
 
           // Romantic spine tilt toward partner
-          if (leftBones.spine) leftBones.spine.rotation.z = -0.10 * env;
-          if (rightBones.spine) rightBones.spine.rotation.z = 0.10 * env;
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.05 * env;
 
-          // Complementary romantic head angles for close lip alignment
+          // Head angles aligned directly for lip-to-lip contact
           if (leftBones.head) {
-            leftBones.head.rotation.set(0.06 * env, 0.52 * env, 0.16 * env);
+            leftBones.head.rotation.set(0.08 * env, 0.48 * env, 0.12 * env);
           }
           if (rightBones.head) {
-            rightBones.head.rotation.set(0.06 * env, -0.52 * env, -0.16 * env);
+            rightBones.head.rotation.set(0.08 * env, -0.48 * env, -0.12 * env);
           }
 
-          // Girl arms wrap tenderly near partner
+          // Girl arms wrap tenderly near boy's chest & neck
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.set(0.55 * env, -0.65 * env, 0.45 * env);
+            leftBones.leftArm.rotation.set(0.40 * env, -0.55 * env, 0.35 * env);
           }
           if (leftBones.leftForeArm) {
-            leftBones.leftForeArm.rotation.set(-1.15 * env, -0.25 * env, 0.65 * env);
+            leftBones.leftForeArm.rotation.set(-1.15 * env, -0.20 * env, 0.55 * env);
           }
 
-          // Boy arms wrap tenderly near her waist
+          // Boy arms wrap tenderly near her waist & back
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.set(0.55 * env, 0.65 * env, -0.45 * env);
+            rightBones.rightArm.rotation.set(0.40 * env, 0.55 * env, -0.35 * env);
           }
           if (rightBones.rightForeArm) {
-            rightBones.rightForeArm.rotation.set(-0.95 * env, 0.25 * env, -0.45 * env);
+            rightBones.rightForeArm.rotation.set(-1.05 * env, 0.20 * env, -0.50 * env);
           }
 
           // Outer arms resting naturally close
@@ -1078,52 +1085,53 @@ export default function Real3DAvatarStage({
           if (boyCupRef.current) boyCupRef.current.visible = false;
 
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
-          const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.012;
+          const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.008;
 
-          // Both avatars step into warm intimate couple embrace
-          leftModel.position.x = THREE.MathUtils.lerp(-0.44, -0.145 + squeeze, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.44, 0.145 - squeeze, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.38, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.38, env);
+          // Both avatars step into warm intimate couple embrace (+-0.082)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.38, -0.082 + squeeze, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.38, 0.082 - squeeze, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
 
-          // Head resting lovingly on partner's shoulder
+          // Heads rest lovingly on each other's shoulders
           if (leftBones.head) {
-            leftBones.head.rotation.set(0.08 * env, 0.46 * env, 0.22 * env);
+            leftBones.head.rotation.set(0.12 * env, 0.42 * env, 0.24 * env);
           }
           if (rightBones.head) {
-            rightBones.head.rotation.set(0.08 * env, -0.46 * env, -0.18 * env);
+            rightBones.head.rotation.set(0.12 * env, -0.42 * env, -0.22 * env);
           }
 
           // Spines lean into each other
-          if (leftBones.spine) leftBones.spine.rotation.z = -0.06 * env;
-          if (rightBones.spine) rightBones.spine.rotation.z = 0.06 * env;
+          if (leftBones.spine) leftBones.spine.rotation.z = -0.04 * env;
+          if (rightBones.spine) rightBones.spine.rotation.z = 0.04 * env;
 
-          // Girl wraps both arms lovingly around boy's neck & waist
+          // Full two-arm wrapping embrace:
+          // Girl wraps left arm over boy's shoulder/neck, right arm around boy's waist
           if (leftBones.leftArm) {
-            leftBones.leftArm.rotation.set(0.45 * env, -0.65 * env, 0.30 * env);
+            leftBones.leftArm.rotation.set(0.40 * env, -0.60 * env, 0.25 * env);
           }
           if (leftBones.leftForeArm) {
-            leftBones.leftForeArm.rotation.set(-1.35 * env, -0.25 * env, 0.75 * env);
+            leftBones.leftForeArm.rotation.set(-1.30 * env, -0.20 * env, 0.70 * env);
           }
           if (leftBones.rightArm) {
-            leftBones.rightArm.rotation.set(-1.45 * env, -0.85 * env, -0.55 * env);
+            leftBones.rightArm.rotation.set(-1.35 * env, -0.75 * env, -0.45 * env);
           }
           if (leftBones.rightForeArm) {
-            leftBones.rightForeArm.rotation.set(-0.85 * env, 0.35 * env, -0.45 * env);
+            leftBones.rightForeArm.rotation.set(-0.80 * env, 0.30 * env, -0.40 * env);
           }
 
-          // Boy wraps both arms securely around girl's upper back & waist
+          // Boy wraps right arm across girl's upper back, left arm securely around waist
           if (rightBones.rightArm) {
-            rightBones.rightArm.rotation.set(0.45 * env, 0.65 * env, -0.30 * env);
+            rightBones.rightArm.rotation.set(0.40 * env, 0.60 * env, -0.25 * env);
           }
           if (rightBones.rightForeArm) {
-            rightBones.rightForeArm.rotation.set(-1.35 * env, 0.25 * env, -0.75 * env);
+            rightBones.rightForeArm.rotation.set(-1.30 * env, 0.20 * env, -0.70 * env);
           }
           if (rightBones.leftArm) {
-            rightBones.leftArm.rotation.set(1.10 * env, -0.45 * env, -0.35 * env);
+            rightBones.leftArm.rotation.set(1.05 * env, -0.40 * env, -0.30 * env);
           }
           if (rightBones.leftForeArm) {
-            rightBones.leftForeArm.rotation.set(0.85 * env, 0.25 * env, -0.65 * env);
+            rightBones.leftForeArm.rotation.set(0.80 * env, 0.20 * env, -0.60 * env);
           }
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
@@ -1205,8 +1213,8 @@ export default function Real3DAvatarStage({
           if (boyCupRef.current) boyCupRef.current.visible = false;
 
           // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION)
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.44, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.44, 0.1);
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.38, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.38, 0.1);
           leftModel.position.y = 0.08 + idleBreathing;
           rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005;
 
@@ -1229,9 +1237,9 @@ export default function Real3DAvatarStage({
           // Forearms: maintain inward pronation towards thighs
           if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(0, -0.45, 0);
           if (leftBones.rightForeArm) leftBones.rightForeArm.rotation.set(0, 0.45, 0);
-          // Wrists: natural relaxed downward drop
-          if (leftBones.leftHand) leftBones.leftHand.rotation.set(0.05, -0.10, -0.05);
-          if (leftBones.rightHand) leftBones.rightHand.rotation.set(0.05, 0.10, 0.05);
+          // Wrists: natural relaxed downward drop (no outward splay)
+          if (leftBones.leftHand) leftBones.leftHand.rotation.set(0.04, -0.02, 0.0);
+          if (leftBones.rightHand) leftBones.rightHand.rotation.set(0.04, 0.02, 0.0);
           if (leftBones.spine) leftBones.spine.rotation.set(0, 0, 0);
 
           // Male resting arms
