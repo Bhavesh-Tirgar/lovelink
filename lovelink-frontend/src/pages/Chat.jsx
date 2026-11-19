@@ -380,7 +380,24 @@ function Chat() {
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            
+            // Cross-platform audio format negotiation (iOS Safari vs Chromium)
+            let mimeType = '';
+            let fileExt = 'webm';
+            if (typeof MediaRecorder !== 'undefined') {
+                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus';
+                    fileExt = 'webm';
+                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    mimeType = 'audio/webm';
+                    fileExt = 'webm';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                    fileExt = 'mp4';
+                }
+            }
+
+            const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
@@ -389,8 +406,9 @@ function Chat() {
             };
 
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                const file = new File([audioBlob], 'voice_message.webm', { type: 'audio/webm' });
+                const finalType = mimeType || 'audio/webm';
+                const audioBlob = new Blob(audioChunksRef.current, { type: finalType });
+                const file = new File([audioBlob], `voice_message.${fileExt}`, { type: finalType });
 
                 const formData = new FormData();
                 formData.append('file', file);

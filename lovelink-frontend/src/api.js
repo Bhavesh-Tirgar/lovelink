@@ -2,8 +2,21 @@ import axios from 'axios';
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
+const getDefaultBaseUrl = () => {
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  if (typeof window !== 'undefined') {
+    if (
+      window.location.hostname.includes('vercel.app') ||
+      (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ) {
+      return 'https://lovelink-sfzx.onrender.com';
+    }
+  }
+  return 'http://localhost:8000';
+};
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  baseURL: getDefaultBaseUrl(),
 });
 
 api.interceptors.request.use(
