@@ -211,7 +211,6 @@ async def add_to_couple_playlist(
 @router.websocket("/ws/{couple_id}")
 async def music_sync_websocket(websocket: WebSocket, couple_id: str, token: str = Query(...)):
     """WebSocket for real-time synchronized music playback."""
-    await websocket.accept()
     from routers.auth import decode_token
     user_id = decode_token(token)
     if not user_id:
@@ -231,6 +230,8 @@ async def music_sync_websocket(websocket: WebSocket, couple_id: str, token: str 
         await websocket.close(code=4001, reason="Authentication error")
         return
 
+    # Accept connection only after authentication and authorization succeed
+    await websocket.accept()
     room = f"music_{couple_id}"
     await manager.connect(websocket, room)
 
