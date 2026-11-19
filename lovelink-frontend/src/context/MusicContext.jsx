@@ -36,11 +36,45 @@ export const MusicProvider = ({ children }) => {
             if (action === 'play') command = { event: 'command', func: 'playVideo', args: [] };
             else if (action === 'pause') command = { event: 'command', func: 'pauseVideo', args: [] };
             else if (action === 'seek') command = { event: 'command', func: 'seekTo', args: [param, true] };
+            else if (action === 'listen') command = { event: 'listening', id: 'yt-music-iframe' };
             if (command) {
                 iframe.contentWindow.postMessage(JSON.stringify(command), '*');
             }
         }
     };
+
+    // YouTube iframe postMessage listener for real continuous playback & accurate duration
+    useEffect(() => {
+        const handleYtMessage = (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (!data) return;
+
+                if (data.event === 'infoDelivery' && data.info) {
+                    if (data.info.currentTime !== undefined) {
+                        setCurrentTime(data.info.currentTime);
+                    }
+                    if (data.info.duration !== undefined && data.info.duration > 0) {
+                        setDuration(data.info.duration);
+                    }
+                    if (data.info.playerState !== undefined) {
+                        if (data.info.playerState === 0) {
+                            // Video finished naturally -> play next track!
+                            playNext();
+                        } else if (data.info.playerState === 1) {
+                            setIsPlaying(true);
+                        } else if (data.info.playerState === 2) {
+                            setIsPlaying(false);
+                        }
+                    }
+                }
+            } catch {}
+        };
+
+        window.addEventListener('message', handleYtMessage);
+        return () => window.removeEventListener('message', handleYtMessage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentTrack]);
 
     // Keep token & coupleId in sync on navigation / state changes
     useEffect(() => {
@@ -99,25 +133,23 @@ export const MusicProvider = ({ children }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack]);
 
-    // 2b. YouTube simulated progress & auto-advance ticker
+    // 2b. YouTube smooth progress ticker (never cuts off song prematurely - YouTube playerState ended event controls track completion)
     useEffect(() => {
         const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
         if (!isYt || !isPlaying) return;
 
         const interval = setInterval(() => {
             setCurrentTime(prev => {
-                const next = prev + 1;
-                if (currentTrack.duration && next >= currentTrack.duration) {
-                    playNext();
-                    return 0;
+                const dur = duration || currentTrack?.duration || 0;
+                if (dur > 0 && prev >= dur) {
+                    return dur;
                 }
-                return next;
+                return prev + 1;
             });
         }, 1000);
 
         return () => clearInterval(interval);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentTrack, isPlaying]);
+    }, [currentTrack, isPlaying, duration]);
 
     // 3. WebSockets for partner synchronization
     useEffect(() => {
@@ -341,7 +373,15 @@ export const MusicProvider = ({ children }) => {
     };
 
     const playNext = () => {
-        if (!currentTrack || channels.length === 0) return;
+        if (!currentTrack) return;
+        if (customPlaylist && customPlaylist.length > 0) {
+            const idx = customPlaylist.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+            if (idx !== -1) {
+                const nextTrack = customPlaylist[(idx + 1) % customPlaylist.length];
+                playTrack(nextTrack);
+                return;
+            }
+        }
         for (const channel of channels) {
             const idx = channel.tracks.findIndex(t => t.id === currentTrack.id);
             if (idx !== -1) {
@@ -350,10 +390,21 @@ export const MusicProvider = ({ children }) => {
                 return;
             }
         }
+        if (channels.length > 0 && channels[0].tracks.length > 0) {
+            playTrack(channels[0].tracks[0]);
+        }
     };
 
     const playPrev = () => {
-        if (!currentTrack || channels.length === 0) return;
+        if (!currentTrack) return;
+        if (customPlaylist && customPlaylist.length > 0) {
+            const idx = customPlaylist.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+            if (idx !== -1) {
+                const prevTrack = customPlaylist[(idx - 1 + customPlaylist.length) % customPlaylist.length];
+                playTrack(prevTrack);
+                return;
+            }
+        }
         for (const channel of channels) {
             const idx = channel.tracks.findIndex(t => t.id === currentTrack.id);
             if (idx !== -1) {

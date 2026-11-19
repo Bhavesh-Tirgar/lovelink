@@ -10,6 +10,9 @@ export default function FloatingMusicPlayer() {
         customPlaylist,
         currentTrack,
         isPlaying,
+        currentTime,
+        duration,
+        seek,
         isPlayerOpen,
         setIsPlayerOpen,
         djName,
@@ -81,16 +84,28 @@ export default function FloatingMusicPlayer() {
 
     return (
         <>
-            {/* ── EMBEDDED YOUTUBE ENGINE WHEN YOUTUBE TRACK IS ACTIVE ── */}
+            {/* ── EMBEDDED YOUTUBE ENGINE (Robust offscreen container ensures mobile browsers never throttle media) ── */}
             {isYouTube && currentTrack.videoId && (
-                <div className="fixed bottom-1 right-1 w-4 h-4 opacity-[0.02] pointer-events-none z-[-1] overflow-hidden">
+                <div
+                    className="fixed -left-[9999px] top-0 w-[320px] h-[240px] pointer-events-none z-[-1] overflow-hidden"
+                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '320px', height: '240px' }}
+                >
                     <iframe
                         id="yt-music-iframe"
                         title="YouTube Music Player"
-                        width="100"
-                        height="100"
-                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                        allow="autoplay"
+                        width="320"
+                        height="240"
+                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                        allow="autoplay; encrypted-media"
+                        onLoad={() => {
+                            const iframe = document.getElementById('yt-music-iframe');
+                            if (iframe?.contentWindow) {
+                                iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt-music-iframe' }), '*');
+                                if (isPlaying) {
+                                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                }
+                            }
+                        }}
                     />
                 </div>
             )}
@@ -117,49 +132,72 @@ export default function FloatingMusicPlayer() {
                                     </span>
                                 )}
                             </div>
-                            <button
-                                onClick={() => setIsPlayerOpen(false)}
-                                className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition"
-                            >
-                                <ChevronDown className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] bg-red-600/30 text-red-200 border border-red-500/30 px-2 py-0.5 rounded-full font-bold">
+                                    Full Song 🎵
+                                </span>
+                                <button
+                                    onClick={() => setIsPlayerOpen(false)}
+                                    className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition"
+                                >
+                                    <ChevronDown className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Center Vinyl & Track Info */}
-                        <div className="flex items-center gap-4 my-4 px-2 flex-shrink-0 bg-white/5 p-3 rounded-2xl border border-white/5">
-                            <div className={`relative w-20 h-20 rounded-full border-2 border-purple-400/40 shadow-xl overflow-hidden bg-black flex-shrink-0 flex items-center justify-center ${isPlaying ? 'animate-[spin_8s_linear_infinite]' : ''}`}>
-                                <img
-                                    src={currentTrack.cover || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80'}
-                                    alt={currentTrack.title}
-                                    className="w-full h-full object-cover opacity-85"
-                                />
-                                <div className="absolute w-6 h-6 rounded-full bg-gray-950 border border-pink-400 flex items-center justify-center">
-                                    <Heart className="w-3 h-3 text-pink-400 fill-pink-400" />
+                        <div className="flex flex-col gap-3 my-4 px-2 flex-shrink-0 bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className={`relative w-20 h-20 rounded-full border-2 border-purple-400/40 shadow-xl overflow-hidden bg-black flex-shrink-0 flex items-center justify-center ${isPlaying ? 'animate-[spin_8s_linear_infinite]' : ''}`}>
+                                    <img
+                                        src={currentTrack.cover || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80'}
+                                        alt={currentTrack.title}
+                                        className="w-full h-full object-cover opacity-85"
+                                    />
+                                    <div className="absolute w-6 h-6 rounded-full bg-gray-950 border border-pink-400 flex items-center justify-center">
+                                        <Heart className="w-3 h-3 text-pink-400 fill-pink-400" />
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-base font-bold text-white tracking-wide truncate">{currentTrack.title}</h3>
+                                    <p className="text-xs text-purple-300/80 truncate">{currentTrack.artist}</p>
+                                    <div className="flex items-center gap-3 mt-3">
+                                        <button
+                                            onClick={playPrev}
+                                            className="p-1 text-gray-300 hover:text-white transition active:scale-90"
+                                        >
+                                            <SkipBack className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={togglePlay}
+                                            className="p-2.5 bg-gradient-to-tr from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white rounded-full shadow-md transition active:scale-95"
+                                        >
+                                            {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                                        </button>
+                                        <button
+                                            onClick={playNext}
+                                            className="p-1 text-gray-300 hover:text-white transition active:scale-90"
+                                        >
+                                            <SkipForward className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-base font-bold text-white tracking-wide truncate">{currentTrack.title}</h3>
-                                <p className="text-xs text-purple-300/80 truncate">{currentTrack.artist}</p>
-                                <div className="flex items-center gap-3 mt-3">
-                                    <button
-                                        onClick={playPrev}
-                                        className="p-1 text-gray-300 hover:text-white transition"
-                                    >
-                                        <SkipBack className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={togglePlay}
-                                        className="p-2.5 bg-gradient-to-tr from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white rounded-full shadow-md transition active:scale-95"
-                                    >
-                                        {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
-                                    </button>
-                                    <button
-                                        onClick={playNext}
-                                        className="p-1 text-gray-300 hover:text-white transition"
-                                    >
-                                        <SkipForward className="w-4 h-4" />
-                                    </button>
+                            {/* Scrubber Progress Bar */}
+                            <div className="flex flex-col gap-1 w-full pt-1">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={Math.max(duration || currentTrack.duration || 1, 1)}
+                                    value={currentTime || 0}
+                                    onChange={(e) => seek(Number(e.target.value))}
+                                    className="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-pink-500 hover:accent-pink-400 transition"
+                                />
+                                <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono px-0.5">
+                                    <span>{formatTime(currentTime)}</span>
+                                    <span>{formatTime(duration || currentTrack.duration || 0)}</span>
                                 </div>
                             </div>
                         </div>
