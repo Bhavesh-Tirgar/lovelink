@@ -119,8 +119,8 @@ api.interceptors.response.use(
     if (
       originalRequest &&
       (error.response?.status === 504 ||
-       error.response?.status === 502 ||
-       (!error.response && error.message?.includes('Network Error')))
+        error.response?.status === 502 ||
+        (!error.response && error.message?.includes('Network Error')))
     ) {
       originalRequest._coldRetryCount = (originalRequest._coldRetryCount || 0) + 1;
       if (originalRequest._coldRetryCount <= 3) {
@@ -167,7 +167,7 @@ export const initFirebasePush = async () => {
 
       // ONLY sync FCM token if the user is already authenticated!
       if (token && typeof window !== 'undefined' && window.localStorage.getItem('token')) {
-        await api.post('/auth/fcm-token', { fcm_token: token }).catch(() => {});
+        await api.post('/auth/fcm-token', { fcm_token: token }).catch(() => { });
       }
 
       onMessage(messaging, (payload) => {
