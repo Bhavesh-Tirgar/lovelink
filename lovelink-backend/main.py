@@ -68,7 +68,7 @@ app = FastAPI(title="LoveLink API", lifespan=lifespan)
 
 import re
 
-ALLOWED_ORIGIN_REGEX = re.compile(r"^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$")
+ALLOWED_ORIGIN_REGEX = re.compile(r"^https://lovelink-pearl(-git-[a-zA-Z0-9_-]+)?\.vercel\.app$")
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -102,7 +102,7 @@ def get_cors_headers(request: Request) -> dict:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https://lovelink(-[a-zA-Z0-9_-]+)?\.vercel\.app$",
+    allow_origin_regex=r"^https://lovelink-pearl(-git-[a-zA-Z0-9_-]+)?\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],

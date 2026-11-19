@@ -91,13 +91,13 @@ async def send_message(
     receiver = receiver_user.scalar_one_or_none()
     
     if receiver and receiver.fcm_token:
-        # Determine notification body
+        # Determine notification body (privacy masked to prevent FCM/APNs cleartext leakage)
         if payload.photo_url:
             body = "Sent a photo 📸"
         elif payload.voice_url:
             body = "Sent a voice message 🎙️"
         else:
-            body = payload.text
+            body = "Sent a message 💬"
             
         await send_push(
             fcm_token=receiver.fcm_token,
@@ -193,8 +193,6 @@ async def websocket_chat(
     token: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    await websocket.accept()
-    
     user_id = None
     if ticket:
         from utils.tickets import verify_and_consume_ws_ticket
@@ -231,6 +229,8 @@ async def websocket_chat(
         await websocket.close(code=4001, reason="Authentication error")
         return
         
+    # Only accept WebSocket connection AFTER credentials and permissions are verified
+    await websocket.accept()
     await manager.connect(websocket, couple_id)
     await manager.send_personal(websocket, {"type": "connected", "couple_id": couple_id})
     

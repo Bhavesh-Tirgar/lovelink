@@ -162,7 +162,6 @@ async def games_websocket(
     token: Optional[str] = Query(None)
 ):
     """Multiplayer WebSocket for Rock-Paper-Scissors, Tic-Tac-Toe, and Truth/Dare sync."""
-    await websocket.accept()
     user_id = None
     if ticket:
         from utils.tickets import verify_and_consume_ws_ticket
@@ -190,6 +189,8 @@ async def games_websocket(
         await websocket.close(code=4001, reason="Authentication error")
         return
 
+    # Only accept WebSocket connection AFTER credentials and permissions are verified
+    await websocket.accept()
     room = f"games_{couple_id}"
     await manager.connect(websocket, room)
 

@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
-import random
+import secrets
 import string
+import time
+import asyncio
+from typing import Dict, List
 
 from database import get_db
 from models.user import User
@@ -17,9 +20,33 @@ from schemas.couple import (
 
 router = APIRouter(prefix="/couples", tags=["couples"])
 
+# In-memory sliding window rate limiter for invite code brute-force protection
+JOIN_ATTEMPTS: Dict[str, List[float]] = {}
+MAX_JOIN_ATTEMPTS = 5
+LOCKOUT_WINDOW_SECONDS = 900  # 15 minutes
+
+
+def _is_rate_limited(user_id: str) -> bool:
+    now = time.time()
+    attempts = [t for t in JOIN_ATTEMPTS.get(user_id, []) if now - t < LOCKOUT_WINDOW_SECONDS]
+    JOIN_ATTEMPTS[user_id] = attempts
+    return len(attempts) >= MAX_JOIN_ATTEMPTS
+
+
+def _record_failure(user_id: str):
+    now = time.time()
+    if user_id not in JOIN_ATTEMPTS:
+        JOIN_ATTEMPTS[user_id] = []
+    JOIN_ATTEMPTS[user_id].append(now)
+
+
+def _reset_attempts(user_id: str):
+    JOIN_ATTEMPTS.pop(user_id, None)
+
 
 def _generate_code(length: int = 6) -> str:
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 @router.post("/generate-invite", response_model=GenerateInviteResponse)
@@ -32,7 +59,7 @@ async def generate_invite(
     couple = result.scalars().first()
 
     if not couple:
-        # Create a new couple with a fresh invite code
+        # Create a new couple with a cryptographically secure fresh invite code
         invite_code = _generate_code()
         couple = Couple(user1_id=current_user.id, invite_code=invite_code)
         db.add(couple)
@@ -48,6 +75,13 @@ async def join_couple(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    user_key = str(current_user.id)
+    if _is_rate_limited(user_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed join attempts. Please wait 15 minutes before trying again."
+        )
+
     code = data.invite_code.strip().upper()
 
     result = await db.execute(
@@ -55,6 +89,8 @@ async def join_couple(
     )
     couple = result.scalars().first()
     if not couple:
+        _record_failure(user_key)
+        await asyncio.sleep(1.0)  # Cryptographic timing defense
         raise HTTPException(status_code=404, detail="Invite code not found or already used")
 
     if couple.user1_id == current_user.id:
@@ -66,6 +102,8 @@ async def join_couple(
     db.add(couple)
     await db.commit()
     await db.refresh(couple)
+
+    _reset_attempts(user_key)
 
     # Determine partner relative to the current user
     partner_id = couple.user1_id if couple.user2_id == current_user.id else couple.user2_id
