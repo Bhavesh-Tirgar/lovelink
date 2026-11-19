@@ -5,35 +5,40 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import {
   Sparkles, Heart, Coffee,
   Music, RefreshCw, Box, Shirt,
-  Check, X, User, Lock
+  Check, X, User
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 
 // -------------------------------------------------------------
-// 1. INDIVIDUAL BOY CLOTHING & ACCESSORIES CATALOG
+// 1. INDIVIDUAL BOY CLOTHING & ACCESSORIES CATALOG (STREETWEAR & CASUAL)
 // -------------------------------------------------------------
 export const BOY_TOPS = [
+  { id: 'street_hoodie_lavender', name: 'Oversized Lavender Hoodie', color: 0x9d8ec2, rough: 0.6, metal: 0.05, swatch: '#9d8ec2', emoji: '🪻' },
+  { id: 'street_hoodie_mint', name: 'Mint Cloud Hoodie', color: 0x76b89e, rough: 0.6, metal: 0.05, swatch: '#76b89e', emoji: '🍃' },
+  { id: 'varsity_royal', name: 'Royal Varsity Bomber', color: 0x2248a8, rough: 0.5, metal: 0.15, swatch: '#2248a8', emoji: '🧢' },
+  { id: 'y2k_zip_orange', name: 'Y2K Sunset Zip-Up', color: 0xe0632a, rough: 0.55, metal: 0.1, swatch: '#e0632a', emoji: '⚡' },
   { id: 'noir_street', name: 'Noir Bomber', color: 0x181a24, rough: 0.55, metal: 0.1, swatch: '#181a24', emoji: '🧥' },
-  { id: 'caramel_suede', name: 'Caramel Suede', color: 0x8e5431, rough: 0.5, metal: 0.05, swatch: '#8e5431', emoji: '🍂' },
-  { id: 'minimal_white', name: 'White Tee', color: 0xf2f5f9, rough: 0.5, metal: 0.05, swatch: '#f2f5f9', emoji: '🤍' },
-  { id: 'forest_green', name: 'Evergreen Top', color: 0x1b3b2b, rough: 0.6, metal: 0.1, swatch: '#1b3b2b', emoji: '🌲' },
-  { id: 'burgundy_velour', name: 'Burgundy Velvet', color: 0x4a1523, rough: 0.4, metal: 0.25, swatch: '#4a1523', emoji: '🍷' },
-  { id: 'cyber_cobalt', name: 'Cyber Cobalt', color: 0x202464, rough: 0.3, metal: 0.5, swatch: '#202464', emoji: '🔮' },
+  { id: 'minimal_white', name: 'White Street Tee', color: 0xf2f5f9, rough: 0.5, metal: 0.05, swatch: '#f2f5f9', emoji: '🤍' },
+  { id: 'caramel_suede', name: 'Caramel Suede Overshirt', color: 0x8e5431, rough: 0.5, metal: 0.05, swatch: '#8e5431', emoji: '🍂' },
+  { id: 'forest_green', name: 'Evergreen Street Jacket', color: 0x1b3b2b, rough: 0.6, metal: 0.1, swatch: '#1b3b2b', emoji: '🌲' },
+  { id: 'burgundy_velour', name: 'Burgundy Velvet Bomber', color: 0x4a1523, rough: 0.4, metal: 0.25, swatch: '#4a1523', emoji: '🍷' },
+  { id: 'cyber_cobalt', name: 'Cyber Cobalt Hoodie', color: 0x202464, rough: 0.3, metal: 0.5, swatch: '#202464', emoji: '🔮' },
   { id: 'vintage_navy', name: 'Varsity Navy', color: 0x1d2d48, rough: 0.55, metal: 0.1, swatch: '#1d2d48', emoji: '🧢' },
-  { id: 'amber_gold', name: 'Sunset Amber', color: 0xd97706, rough: 0.45, metal: 0.15, swatch: '#d97706', emoji: '⚡' },
-  { id: 'sage_utility', name: 'Sage Overshirt', color: 0x405244, rough: 0.55, metal: 0.1, swatch: '#405244', emoji: '🌿' },
+  { id: 'amber_gold', name: 'Sunset Amber Fleece', color: 0xd97706, rough: 0.45, metal: 0.15, swatch: '#d97706', emoji: '⚡' },
+  { id: 'sage_utility', name: 'Sage Utility Overshirt', color: 0x405244, rough: 0.55, metal: 0.1, swatch: '#405244', emoji: '🌿' },
   { id: 'sand_linen', name: 'Desert Sand Knit', color: 0xc8b69b, rough: 0.6, metal: 0.05, swatch: '#c8b69b', emoji: '🏖️' },
 ];
 
 export const BOY_BOTTOMS = [
-  { id: 'raw_denim', name: 'Indigo Denim Jeans', color: 0x24324a, rough: 0.7, swatch: '#24324a', emoji: '👖', isPants: true },
+  { id: 'baggy_light_denim', name: 'Baggy Light Wash Jeans', color: 0x4f709c, rough: 0.65, swatch: '#4f709c', emoji: '👖', isPants: true },
+  { id: 'raw_denim', name: 'Indigo Denim Street Jeans', color: 0x24324a, rough: 0.7, swatch: '#24324a', emoji: '👖', isPants: true },
+  { id: 'y2k_cargos_beige', name: 'Y2K Parachute Cargos', color: 0xb5a083, rough: 0.6, swatch: '#b5a083', emoji: '🌾', isPants: true },
   { id: 'jet_black', name: 'Jet Black Slacks', color: 0x111215, rough: 0.55, swatch: '#111215', emoji: '🖤', isPants: true },
+  { id: 'charcoal_cargos', name: 'Charcoal Cargo Pants', color: 0x23262b, rough: 0.65, swatch: '#23262b', emoji: '🪨', isPants: true },
   { id: 'espresso_chinos', name: 'Espresso Chinos', color: 0x36281e, rough: 0.6, swatch: '#36281e', emoji: '☕', isPants: true },
   { id: 'slate_trousers', name: 'Slate Gray Trousers', color: 0x3b434e, rough: 0.6, swatch: '#3b434e', emoji: '🩶', isPants: true },
   { id: 'linen_white', name: 'Off-White Slacks', color: 0xdcdfe5, rough: 0.55, swatch: '#dcdfe5', emoji: '🤍', isPants: true },
-  { id: 'charcoal_cargos', name: 'Charcoal Cargo Pants', color: 0x23262b, rough: 0.65, swatch: '#23262b', emoji: '🪨', isPants: true },
-  { id: 'khaki_tailored', name: 'Tailored Khaki Pants', color: 0x6e604f, rough: 0.55, swatch: '#6e604f', emoji: '🌾', isPants: true },
   { id: 'deep_olive', name: 'Olive Utility Pants', color: 0x242d20, rough: 0.65, swatch: '#242d20', emoji: '🪖', isPants: true },
   { id: 'cyber_carbon', name: 'Cyber Carbon Pants', color: 0x161622, rough: 0.3, swatch: '#161622', emoji: '🔮', isPants: true },
   { id: 'summer_shorts', name: 'Summer Denim Shorts', color: 0x444c57, rough: 0.65, swatch: '#444c57', emoji: '🩳', isPants: false },
@@ -41,31 +46,36 @@ export const BOY_BOTTOMS = [
 ];
 
 export const BOY_SHOES = [
-  { id: 'black_runners', name: 'Black Runners', color: 0x141418, rough: 0.4, swatch: '#141418', emoji: '👟' },
-  { id: 'white_kicks', name: 'White High-Tops', color: 0xe5eaef, rough: 0.35, swatch: '#e5eaef', emoji: '⚪' },
+  { id: 'white_kicks', name: 'Clean White Dunks', color: 0xe5eaef, rough: 0.35, swatch: '#e5eaef', emoji: '⚪' },
+  { id: 'retro_court', name: 'Vintage Street High-Tops', color: 0xd0d5dc, rough: 0.4, swatch: '#d0d5dc', emoji: '👟' },
+  { id: 'black_runners', name: 'Black Runners', color: 0x141418, rough: 0.4, swatch: '#141418', emoji: '🖤' },
   { id: 'dark_tan_boots', name: 'Dark Tan Boots', color: 0x2a1e16, rough: 0.4, swatch: '#2a1e16', emoji: '🥾' },
   { id: 'neon_stompers', name: 'Cyber Stompers', color: 0x261633, rough: 0.3, swatch: '#261633', emoji: '🟣' },
-  { id: 'retro_court', name: 'Vintage Court 80s', color: 0xd0d5dc, rough: 0.4, swatch: '#d0d5dc', emoji: '🎾' },
   { id: 'olive_sneakers', name: 'Olive Combat Low', color: 0x333b2e, rough: 0.45, swatch: '#333b2e', emoji: '🪖' },
 ];
 
 // -------------------------------------------------------------
-// 2. INDIVIDUAL GIRL CLOTHING & ACCESSORIES CATALOG
+// 2. INDIVIDUAL GIRL CLOTHING & ACCESSORIES CATALOG (STREETWEAR & CASUAL)
 // -------------------------------------------------------------
 export const GIRL_JACKETS = [
-  { id: 'noir_blazer', name: 'Noir Blazer', color: 0x232733, rough: 0.5, metal: 0.1, swatch: '#232733', emoji: '🖤' },
-  { id: 'caramel_coat', name: 'Caramel Coat', color: 0x8a4b27, rough: 0.45, metal: 0.15, swatch: '#8a4b27', emoji: '🧥' },
+  { id: 'sakura_puffer', name: 'Sakura Cropped Puffer', color: 0xe67b97, rough: 0.4, metal: 0.15, swatch: '#e67b97', emoji: '🌸' },
+  { id: 'lavender_varsity', name: 'Lavender Varsity Bomber', color: 0x9370db, rough: 0.5, metal: 0.1, swatch: '#9370db', emoji: '💜' },
+  { id: 'y2k_cropped_denim', name: 'Y2K Cropped Denim', color: 0x3e5f8a, rough: 0.65, metal: 0.05, swatch: '#3e5f8a', emoji: '🧥' },
+  { id: 'noir_blazer', name: 'Noir Streetwear Blazer', color: 0x181a24, rough: 0.5, metal: 0.1, swatch: '#181a24', emoji: '🖤' },
+  { id: 'caramel_coat', name: 'Caramel Moto Jacket', color: 0x8a4b27, rough: 0.45, metal: 0.15, swatch: '#8a4b27', emoji: '🍂' },
   { id: 'ivory_silk', name: 'Ivory Silk Blazer', color: 0xe6e9ee, rough: 0.45, metal: 0.1, swatch: '#e6e9ee', emoji: '🤍' },
   { id: 'sakura_pink', name: 'Sakura Blush Jacket', color: 0xc97a8e, rough: 0.5, metal: 0.1, swatch: '#c97a8e', emoji: '🌸' },
   { id: 'cyber_violet', name: 'Cyber Violet Jacket', color: 0x4a1f80, rough: 0.25, metal: 0.6, swatch: '#4a1f80', emoji: '🔮' },
   { id: 'velvet_ruby', name: 'Velvet Wine Blazer', color: 0x5a1828, rough: 0.35, metal: 0.3, swatch: '#5a1828', emoji: '🍷' },
-  { id: 'regal_emerald', name: 'Emerald Velvet Jacket', color: 0x163828, rough: 0.4, metal: 0.2, swatch: '#163828', emoji: '👑' },
-  { id: 'french_navy', name: 'French Navy Blazer', color: 0x1e293b, rough: 0.5, metal: 0.1, swatch: '#1e293b', emoji: '💙' },
+  { id: 'regal_emerald', name: 'Emerald Street Jacket', color: 0x163828, rough: 0.4, metal: 0.2, swatch: '#163828', emoji: '👑' },
+  { id: 'french_navy', name: 'French Navy Varsity', color: 0x1e293b, rough: 0.5, metal: 0.1, swatch: '#1e293b', emoji: '💙' },
   { id: 'pastel_sage', name: 'Sage Cropped Trench', color: 0x5a6b5e, rough: 0.5, metal: 0.1, swatch: '#5a6b5e', emoji: '🌿' },
   { id: 'mocha_leather', name: 'Mocha Moto Jacket', color: 0x4a3328, rough: 0.4, metal: 0.2, swatch: '#4a3328', emoji: '🤎' },
 ];
 
 export const GIRL_TOPS = [
+  { id: 'y2k_baby_pink', name: 'Y2K Baby Pink Tee', color: 0xfab0c8, rough: 0.55, swatch: '#fab0c8', emoji: '🌸' },
+  { id: 'matcha_ribbed', name: 'Matcha Ribbed Crop', color: 0xa8c3a0, rough: 0.6, swatch: '#a8c3a0', emoji: '🍵' },
   { id: 'obsidian_top', name: 'Obsidian Top', color: 0x1a1a20, rough: 0.6, swatch: '#1a1a20', emoji: '🖤' },
   { id: 'vanilla_cream', name: 'Vanilla Cream Top', color: 0xdfd5c4, rough: 0.6, swatch: '#dfd5c4', emoji: '🤍' },
   { id: 'dusty_rose', name: 'Dusty Rose Silk', color: 0xf5e8ed, rough: 0.55, swatch: '#f5e8ed', emoji: '🌸' },
@@ -77,8 +87,9 @@ export const GIRL_TOPS = [
 ];
 
 export const GIRL_PANTS = [
+  { id: 'vintage_blue', name: 'Wide Vintage Denim', color: 0x2e3d50, rough: 0.65, swatch: '#2e3d50', emoji: '👖' },
+  { id: 'y2k_cargos_cream', name: 'Y2K Parachute Pants', color: 0xe6e1d5, rough: 0.55, swatch: '#e6e1d5', emoji: '🤍' },
   { id: 'noir_trousers', name: 'Jet Black Slacks', color: 0x1e2029, rough: 0.55, swatch: '#1e2029', emoji: '🖤' },
-  { id: 'vintage_blue', name: 'Vintage Blue Jeans', color: 0x2e3d50, rough: 0.65, swatch: '#2e3d50', emoji: '👖' },
   { id: 'espresso_wide', name: 'Cocoa Espresso Slacks', color: 0x302018, rough: 0.55, swatch: '#302018', emoji: '☕' },
   { id: 'slate_tailored', name: 'Slate Slacks', color: 0x333b47, rough: 0.55, swatch: '#333b47', emoji: '🩶' },
   { id: 'linen_white', name: 'Off-White Linen', color: 0xdcdfe5, rough: 0.5, swatch: '#dcdfe5', emoji: '🤍' },
@@ -88,24 +99,24 @@ export const GIRL_PANTS = [
 ];
 
 export const GIRL_SHOES = [
+  { id: 'white_boots', name: 'Clean White Platform Kicks', color: 0xe0e4ea, rough: 0.35, swatch: '#e0e4ea', emoji: '⚪' },
   { id: 'noir_boots', name: 'Black Leather Boots', color: 0x121215, rough: 0.35, swatch: '#121215', emoji: '👢' },
   { id: 'wine_pumps', name: 'Velvet Wine Heels', color: 0x160810, rough: 0.35, swatch: '#160810', emoji: '👠' },
-  { id: 'white_boots', name: 'Ivory White Boots', color: 0xe0e4ea, rough: 0.35, swatch: '#e0e4ea', emoji: '⚪' },
+  { id: 'chunky_loafers', name: 'Platform Loafers', color: 0x1a191f, rough: 0.35, swatch: '#1a191f', emoji: '👞' },
   { id: 'cyber_boots', name: 'Purple Neon Combat', color: 0x1b0f30, rough: 0.3, swatch: '#1b0f30', emoji: '🟣' },
   { id: 'nude_stilettos', name: 'Warm Nude Heels', color: 0xb8937b, rough: 0.35, swatch: '#b8937b', emoji: '👡' },
-  { id: 'chunky_loafers', name: 'Platform Loafers', color: 0x1a191f, rough: 0.35, swatch: '#1a191f', emoji: '👞' },
 ];
 
 // -------------------------------------------------------------
-// 3. AUTHENTIC HUMAN SKIN TONES (NATURAL MELANIN & WARMTH)
+// 3. AUTHENTIC YOUTHFUL HUMAN SKIN TONES (RADIANT & HEALTHY)
 // -------------------------------------------------------------
 export const SKIN_TONES = [
-  { id: 'fair_warm', name: 'Fair Warm', boyHex: 0xffffff, girlHex: 0xa9a9be, swatch: '#ce927b', emoji: '🌸' },
-  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf4dcbf, girlHex: 0xa1928e, swatch: '#c4846d', emoji: '🍯' },
-  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xe6bda0, girlHex: 0x987e77, swatch: '#b5735b', emoji: '☀️' },
-  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd29f7c, girlHex: 0x8b6a5d, swatch: '#a1624a', emoji: '🌴' },
-  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9c6543, girlHex: 0x674332, swatch: '#76422f', emoji: '🌰' },
-  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x633e28, girlHex: 0x42291e, swatch: '#482619', emoji: '☕' },
+  { id: 'fair_warm', name: 'Fair Radiant Peach', boyHex: 0xffffff, girlHex: 0xffe2d9, swatch: '#ffd2c4', emoji: '🌸' },
+  { id: 'golden_honey', name: 'Golden Honey', boyHex: 0xf6debf, girlHex: 0xf8e0cb, swatch: '#f1c296', emoji: '🍯' },
+  { id: 'warm_almond', name: 'Warm Almond', boyHex: 0xe6bda0, girlHex: 0xebc4ad, swatch: '#d09f7a', emoji: '☀️' },
+  { id: 'bronze', name: 'Sun-Kissed Bronze', boyHex: 0xd29f7c, girlHex: 0xd9a889, swatch: '#b87c53', emoji: '🌴' },
+  { id: 'chestnut', name: 'Deep Chestnut', boyHex: 0x9c6543, girlHex: 0xa46e4c, swatch: '#834b29', emoji: '🌰' },
+  { id: 'espresso', name: 'Rich Espresso', boyHex: 0x633e28, girlHex: 0x69422a, swatch: '#4d2a13', emoji: '☕' },
 ];
 
 // -------------------------------------------------------------
@@ -125,12 +136,20 @@ export const HAIR_COLORS = [
 // -------------------------------------------------------------
 export const COUPLE_PRESETS = [
   {
-    id: 'streetwear',
-    name: 'Streetwear Chic',
+    id: 'snapchat_streetwear',
+    name: 'Snap Y2K Streetwear',
     emoji: '⚡',
     themeColor: '#6366f1',
-    boy: { top: 'noir_street', bottom: 'raw_denim', shoes: 'black_runners', skin: 'fair_warm', shades: false },
-    girl: { jacket: 'noir_blazer', top: 'obsidian_top', pants: 'noir_trousers', shoes: 'noir_boots', skin: 'fair_warm', glasses: false, tie: false },
+    boy: { top: 'street_hoodie_lavender', bottom: 'baggy_light_denim', shoes: 'white_kicks', skin: 'fair_warm', shades: true },
+    girl: { jacket: 'sakura_puffer', top: 'y2k_baby_pink', pants: 'vintage_blue', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
+  },
+  {
+    id: 'varsity_couple',
+    name: 'College Varsity Duo',
+    emoji: '🧢',
+    themeColor: '#3b82f6',
+    boy: { top: 'varsity_royal', bottom: 'raw_denim', shoes: 'retro_court', skin: 'fair_warm', shades: false },
+    girl: { jacket: 'lavender_varsity', top: 'vanilla_cream', pants: 'vintage_blue', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
   },
   {
     id: 'cozy_date',
@@ -150,11 +169,11 @@ export const COUPLE_PRESETS = [
   },
   {
     id: 'pastel_love',
-    name: 'Sakura Blush',
+    name: 'Sakura Blush Romance',
     emoji: '🌸',
     themeColor: '#f43f5e',
-    boy: { top: 'minimal_white', bottom: 'slate_shorts', shoes: 'white_kicks', skin: 'fair_warm', shades: false },
-    girl: { jacket: 'sakura_pink', top: 'dusty_rose', pants: 'slate_tailored', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
+    boy: { top: 'minimal_white', bottom: 'baggy_light_denim', shoes: 'white_kicks', skin: 'fair_warm', shades: false },
+    girl: { jacket: 'sakura_puffer', top: 'y2k_baby_pink', pants: 'y2k_cargos_cream', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
   },
   {
     id: 'cyberpunk',
@@ -169,8 +188,8 @@ export const COUPLE_PRESETS = [
     name: 'Clean Minimalist',
     emoji: '🤍',
     themeColor: '#38bdf8',
-    boy: { top: 'minimal_white', bottom: 'slate_shorts', shoes: 'white_kicks', skin: 'fair_warm', shades: false },
-    girl: { jacket: 'ivory_silk', top: 'slate_contrast', pants: 'slate_tailored', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
+    boy: { top: 'minimal_white', bottom: 'y2k_cargos_beige', shoes: 'white_kicks', skin: 'fair_warm', shades: false },
+    girl: { jacket: 'ivory_silk', top: 'vanilla_cream', pants: 'linen_white', shoes: 'white_boots', skin: 'fair_warm', glasses: false, tie: false },
   },
   {
     id: 'royal_gala',
@@ -189,6 +208,7 @@ export default function Real3DAvatarStage({
   partnerName = 'Partner',
   partnerHandle = '',
   externalAction = null,
+  actionNonce = 0,
   onEmoteTrigger,
   onOpenCreator,
   className = '',
@@ -202,7 +222,7 @@ export default function Real3DAvatarStage({
   // Dynamic handle for partner if not provided
   const displayPartnerHandle = partnerHandle || (partnerName ? `@${partnerName.toLowerCase().replace(/\s+/g, '_')}` : '@partner');
 
-  // Role Enforcement: Boy only control by boy, Girl only by girl
+  // Role Detection: Default to current user's avatar
   const detectedRole = (() => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -212,8 +232,6 @@ export default function Real3DAvatarStage({
     } catch { }
     return 'boy';
   })();
-
-  const [activeRole, setActiveRole] = useState(detectedRole);
 
   // State: Wardrobe Drawer & Active Target Character ('boy' | 'girl' | 'sets')
   const [showWardrobe, setShowWardrobe] = useState(false);
@@ -226,15 +244,15 @@ export default function Real3DAvatarStage({
     try {
       const saved = localStorage.getItem('lovelink_3d_boy_wardrobe');
       return saved ? JSON.parse(saved) : {
-        top: 'noir_street',
-        bottom: 'raw_denim',
-        shoes: 'black_runners',
+        top: 'street_hoodie_lavender',
+        bottom: 'baggy_light_denim',
+        shoes: 'white_kicks',
         skin: 'fair_warm',
         hair: 'natural',
         shades: false,
       };
     } catch {
-      return { top: 'noir_street', bottom: 'raw_denim', shoes: 'black_runners', skin: 'fair_warm', hair: 'natural', shades: false };
+      return { top: 'street_hoodie_lavender', bottom: 'baggy_light_denim', shoes: 'white_kicks', skin: 'fair_warm', hair: 'natural', shades: false };
     }
   });
 
@@ -243,17 +261,17 @@ export default function Real3DAvatarStage({
     try {
       const saved = localStorage.getItem('lovelink_3d_girl_wardrobe');
       return saved ? JSON.parse(saved) : {
-        jacket: 'noir_blazer',
-        top: 'obsidian_top',
-        pants: 'noir_trousers',
-        shoes: 'noir_boots',
+        jacket: 'sakura_puffer',
+        top: 'y2k_baby_pink',
+        pants: 'vintage_blue',
+        shoes: 'white_boots',
         skin: 'fair_warm',
         hair: 'natural',
         glasses: false,
         tie: false,
       };
     } catch {
-      return { jacket: 'noir_blazer', top: 'obsidian_top', pants: 'noir_trousers', shoes: 'noir_boots', skin: 'fair_warm', hair: 'natural', glasses: false, tie: false };
+      return { jacket: 'sakura_puffer', top: 'y2k_baby_pink', pants: 'vintage_blue', shoes: 'white_boots', skin: 'fair_warm', hair: 'natural', glasses: false, tie: false };
     }
   });
 
@@ -358,8 +376,9 @@ export default function Real3DAvatarStage({
             const mat = Array.isArray(child.material) ? child.material[0] : child.material;
             if (name.includes('body')) {
               mat.color.setHex(skinItem.girlHex);
-              mat.roughness = 0.72; // soft natural skin (no plastic glare)
+              mat.roughness = 0.55; // youthful radiant glow
               mat.metalness = 0.0;
+              mat.needsUpdate = true;
             } else if (name.includes('suit')) {
               mat.color.setHex(jacketItem.color);
               mat.roughness = jacketItem.rough;
@@ -489,7 +508,7 @@ export default function Real3DAvatarStage({
     emoteStateRef.current = {
       current: type,
       startTime: performance.now(),
-      duration: type === 'dance' ? 4500 : type === 'hug' ? 4200 : 3400,
+      duration: type === 'dance' ? 4500 : type === 'hug' ? 4200 : type === 'couch' ? 4000 : 3400,
     };
     setActiveEmote(type);
 
@@ -524,6 +543,15 @@ export default function Real3DAvatarStage({
         colors: ['#EC4899', '#F43F5E', '#FBBF24', '#FFFFFF'],
       });
       toast.success(`Warm couple hug with ${partnerName}! 🤗💕`);
+    } else if (type === 'couch') {
+      playSfx('chime');
+      confetti({
+        particleCount: 50,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#F43F5E', '#EC4899', '#FBBF24', '#A855F7'],
+      });
+      toast.success(`Cozying up & cuddling on the couch with ${partnerName}! 🛋️💖`);
     } else if (type === 'dance') {
       playSfx('chime');
       confetti({
@@ -552,17 +580,19 @@ export default function Real3DAvatarStage({
     const actionMap = {
       kiss: 'kiss',
       hug: 'hug',
+      couch: 'couch',
+      cuddle: 'couch',
+      spoon: 'couch',
       toast: 'clink',
       clink: 'clink',
-      couch: 'clink',
       dance: 'dance',
       wave: 'wave',
-      hand_hold: 'wave',
+      hand_hold: 'couch',
       high_five: 'wave',
     };
-    const target = actionMap[externalAction] || 'clink';
+    const target = actionMap[externalAction] || 'couch';
     triggerEmote(target, false);
-  }, [externalAction, triggerEmote]);
+  }, [externalAction, actionNonce, triggerEmote]);
 
 
 
@@ -792,12 +822,12 @@ export default function Real3DAvatarStage({
               }
             }
             const name = child.name.toLowerCase();
-            // Upgrade female skin to smooth human complexion (no anime clown blush)
+            // Upgrade female skin to youthful, smooth radiant human complexion
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xa9a9be); // Calibrated warm melanin tone harmonized with boy
-              sm.roughness = 0.68;
+              sm.color.setHex(0xffe2d9); // Radiant youthful warm peach melanin tone harmonized with boy
+              sm.roughness = 0.55;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
             }
@@ -1188,6 +1218,33 @@ export default function Real3DAvatarStage({
             rightBones.leftForeArm.rotation.set(0.80 * env, 0.20 * env, -0.60 * env);
           }
 
+        } else if (currentEmote === 'couch' && emoteProgress < 1.0) {
+          // Dedicated Couch Cuddle IK - intimate side-by-side lean & drape
+          if (girlCupRef.current) girlCupRef.current.visible = false;
+          if (boyCupRef.current) boyCupRef.current.visible = false;
+
+          const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
+
+          // Lean in close side-by-side into cozy couch cuddle
+          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.16, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.16, env);
+          leftModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
+          rightModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.22, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.22, env);
+
+          // Heads rest affectionately toward each other
+          if (leftBones.head) leftBones.head.rotation.set(0.10 * env, 0.38 * env, 0.12 * env);
+          if (rightBones.head) rightBones.head.rotation.set(-0.04 * env, -0.38 * env, -0.10 * env);
+
+          // Boy drapes right arm comfortably around her shoulder
+          if (rightBones.rightArm) rightBones.rightArm.rotation.set(0.35 * env, 0.55 * env, -0.25 * env);
+          if (rightBones.rightForeArm) rightBones.rightForeArm.rotation.set(-1.10 * env, 0.20 * env, -0.60 * env);
+
+          // Girl rests her left arm gently on his torso/lap
+          if (leftBones.leftArm) leftBones.leftArm.rotation.set(0.35 * env, -0.55 * env, 0.25 * env);
+          if (leftBones.leftForeArm) leftBones.leftForeArm.rotation.set(-1.10 * env, -0.20 * env, 0.60 * env);
+
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
           // Romantic rhythm in sync with lofi music
           const beat = Math.sin(elapsedTime * 8);
@@ -1481,7 +1538,6 @@ export default function Real3DAvatarStage({
                 >
                   <User size={13} />
                   <span>Boy (Me)</span>
-                  {activeRole !== 'boy' && <Lock size={10} className="text-slate-400 opacity-70" />}
                 </button>
 
                 {/* Girl Closet */}
@@ -1494,7 +1550,6 @@ export default function Real3DAvatarStage({
                 >
                   <Heart size={13} className="fill-white" />
                   <span>Girl ({partnerName})</span>
-                  {activeRole !== 'girl' && <Lock size={10} className="text-slate-400 opacity-70" />}
                 </button>
 
                 {/* Couple Matching Sets */}
@@ -1511,24 +1566,8 @@ export default function Real3DAvatarStage({
                 </button>
               </div>
 
-              {/* Active Role Control & Close Button */}
+              {/* Close Button */}
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => {
-                    const nextRole = activeRole === 'boy' ? 'girl' : 'boy';
-                    setActiveRole(nextRole);
-                    setWardrobeTarget(nextRole);
-                    playSfx('chime');
-                    toast.success(`Active control: ${nextRole === 'boy' ? 'Boy (Me)' : `Girl (${partnerName})`}`);
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-slate-300 border border-white/15 flex items-center gap-1.5 transition-all"
-                  title="Switch between Boy and Girl control"
-                >
-                  <span className="opacity-75">Control:</span>
-                  <span className="font-bold text-white">{activeRole === 'boy' ? '🙋‍♂️ Boy' : '🙋‍♀️ Girl'}</span>
-                  <RefreshCw size={10} className="text-amber-400" />
-                </button>
-
                 <button
                   onClick={() => setShowWardrobe(false)}
                   className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 transition-colors"
@@ -1544,46 +1583,31 @@ export default function Real3DAvatarStage({
             {/* --------------------------------------------------------- */}
             {wardrobeTarget === 'boy' && (
               <div className="flex flex-col gap-2">
-                {activeRole !== 'boy' ? (
-                  <div className="p-2.5 bg-sky-950/40 border border-sky-500/20 rounded-2xl flex items-center justify-between text-xs text-sky-200">
-                    <div className="flex items-center gap-2">
-                      <Lock size={13} className="text-sky-400 flex-shrink-0" />
-                      <span>Boy's Wardrobe is locked. (Boy only controlled by Boy).</span>
-                    </div>
+                {/* Boy Sub-Tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { id: 'tops', label: `Tops (${BOY_TOPS.length})`, icon: '🧥' },
+                    { id: 'pants', label: `Pants (${BOY_BOTTOMS.length})`, icon: '👖' },
+                    { id: 'shoes', label: `Shoes (${BOY_SHOES.length})`, icon: '👟' },
+                    { id: 'skin', label: `Skin Tone (${SKIN_TONES.length})`, icon: '🌸' },
+                    { id: 'hair', label: `Hair (${HAIR_COLORS.length})`, icon: '💇' },
+                    { id: 'shades', label: 'Shades 🕶️', icon: '🕶️' },
+                  ].map((tab) => (
                     <button
-                      onClick={() => { setActiveRole('boy'); playSfx('chime'); }}
-                      className="px-2.5 py-1 rounded-xl bg-sky-500 text-stone-950 font-bold hover:bg-sky-400 text-[11px] flex-shrink-0 ml-2"
+                      key={tab.id}
+                      onClick={() => setBoySubTab(tab.id)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${boySubTab === tab.id
+                          ? 'bg-white/20 text-sky-400 border border-sky-400/40'
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                        }`}
                     >
-                      Control as Boy
+                      {tab.label}
                     </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* Boy Sub-Tabs */}
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
-                      {[
-                        { id: 'tops', label: `Tops (${BOY_TOPS.length})`, icon: '🧥' },
-                        { id: 'pants', label: `Pants (${BOY_BOTTOMS.length})`, icon: '👖' },
-                        { id: 'shoes', label: `Shoes (${BOY_SHOES.length})`, icon: '👟' },
-                        { id: 'skin', label: `Skin Tone (${SKIN_TONES.length})`, icon: '🌸' },
-                        { id: 'hair', label: `Hair (${HAIR_COLORS.length})`, icon: '💇' },
-                        { id: 'shades', label: 'Shades 🕶️', icon: '🕶️' },
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setBoySubTab(tab.id)}
-                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${boySubTab === tab.id
-                              ? 'bg-white/20 text-sky-400 border border-sky-400/40'
-                              : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                            }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
+                  ))}
+                </div>
 
-                    {/* Boy Items Content */}
-                    <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
+                {/* Boy Items Content */}
+                <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
                       {boySubTab === 'tops' && BOY_TOPS.map((item) => {
                         const isSelected = boyWardrobe.top === item.id;
                         return (
@@ -1679,8 +1703,6 @@ export default function Real3DAvatarStage({
                         </div>
                       )}
                     </div>
-                  </>
-                )}
               </div>
             )}
 
@@ -1689,22 +1711,7 @@ export default function Real3DAvatarStage({
             {/* --------------------------------------------------------- */}
             {wardrobeTarget === 'girl' && (
               <div className="flex flex-col gap-2">
-                {activeRole !== 'girl' ? (
-                  <div className="p-2.5 bg-rose-950/40 border border-rose-500/20 rounded-2xl flex items-center justify-between text-xs text-rose-200">
-                    <div className="flex items-center gap-2">
-                      <Lock size={13} className="text-rose-400 flex-shrink-0" />
-                      <span>{partnerName}'s Wardrobe is locked. (Girl only controlled by Girl).</span>
-                    </div>
-                    <button
-                      onClick={() => { setActiveRole('girl'); playSfx('chime'); }}
-                      className="px-2.5 py-1 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-400 text-[11px] flex-shrink-0 ml-2"
-                    >
-                      Control as Girl
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* Girl Sub-Tabs */}
+                {/* Girl Sub-Tabs */}
                     <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
                       {[
                         { id: 'jackets', label: `Jackets (${GIRL_JACKETS.length})`, icon: '🧥' },
@@ -1852,8 +1859,6 @@ export default function Real3DAvatarStage({
                         </div>
                       )}
                     </div>
-                  </>
-                )}
               </div>
             )}
 
@@ -1916,6 +1921,17 @@ export default function Real3DAvatarStage({
         >
           <span className="text-sm">🤗</span>
           <span>Warm Hug</span>
+        </button>
+
+        <button
+          onClick={() => triggerEmote('couch')}
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'couch'
+              ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
+              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            }`}
+        >
+          <span className="text-sm">🛋️</span>
+          <span>Couch Cuddle</span>
         </button>
 
         <button

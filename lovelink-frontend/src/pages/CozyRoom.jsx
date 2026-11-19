@@ -18,6 +18,7 @@ export default function CozyRoom() {
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [currentAction, setCurrentAction] = useState('toast');
+  const [actionNonce, setActionNonce] = useState(0);
   const [stageMode, setStageMode] = useState('3d_real'); // '3d_real' (Default Real 3D Humanoid Avatars) | 'studio_art'
   
   // Interactive Modals
@@ -72,6 +73,7 @@ export default function CozyRoom() {
       if (data.action === 'couple_interaction') {
         const nextAction = data.interaction || data.interaction_action || data.sub_action || 'couch';
         setCurrentAction(nextAction);
+        setActionNonce(prev => prev + 1);
         
         confetti({
           particleCount: 45,
@@ -110,6 +112,7 @@ export default function CozyRoom() {
   // Switch Couple Scene & broadcast to partner
   const handleSelectScene = async (sceneId) => {
     setCurrentAction(sceneId);
+    setActionNonce(prev => prev + 1);
     
     // Play subtle haptic / visual celebration
     confetti({
@@ -306,6 +309,7 @@ export default function CozyRoom() {
                 myGlbUrl={room?.my_avatar?.glb_url}
                 partnerGlbUrl={room?.partner_avatar?.glb_url}
                 externalAction={currentAction}
+                actionNonce={actionNonce}
                 onEmoteTrigger={(emote) => handleSelectScene(emote)}
                 onOpenCreator={() => setShowBitmojiModal(true)}
                 className="w-full"
