@@ -24,6 +24,7 @@ export default function CozyRoom() {
   const [showBitmojiModal, setShowBitmojiModal] = useState(false);
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState('varsity_jacket');
+  const [isNightMode, setIsNightMode] = useState(true);
 
   // Sticky Note Input
   const [newNoteText, setNewNoteText] = useState('');
@@ -272,6 +273,8 @@ export default function CozyRoom() {
               partnerAvatar={room?.partner_avatar}
               myName={room?.my_name || 'You'}
               partnerName={room?.partner_name || 'Partner'}
+              isNightMode={isNightMode}
+              onToggleNightMode={() => setIsNightMode(prev => !prev)}
               onWardrobeClick={() => setShowWardrobeModal(true)}
             />
           </div>
@@ -309,6 +312,38 @@ export default function CozyRoom() {
               })}
             </div>
           </div>
+
+          {/* ── Studio Live Wall Decor Preview ── */}
+          {((room?.sticky_notes && room.sticky_notes.length > 0) || (room?.wall_photos && room.wall_photos.length > 0)) && (
+            <div className="w-full max-w-lg p-3 rounded-2xl bg-[#131722]/80 border border-white/10 flex items-center justify-between gap-3 shadow-md">
+              {room?.sticky_notes?.length > 0 && (
+                <div 
+                  onClick={() => setShowNotesModal(true)}
+                  className="flex-1 p-2.5 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-200 cursor-pointer hover:bg-amber-400/25 transition-all group"
+                  title="Click to view all pinned sticky notes"
+                >
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 mb-0.5">
+                    <span>📌 Pinned Note</span>
+                    <span className="text-[9px] text-gray-400">by {room.sticky_notes[0].author || 'Partner'}</span>
+                  </div>
+                  <p className="text-xs truncate italic">"{room.sticky_notes[0].text}"</p>
+                </div>
+              )}
+              {room?.wall_photos?.length > 0 && (
+                <div 
+                  onClick={() => setShowPhotoModal(true)}
+                  className="p-1 rounded-xl bg-white/10 border border-white/20 cursor-pointer hover:scale-105 transition-all flex items-center gap-2 pr-3"
+                  title="Click to view Photo Wall"
+                >
+                  <img src={room.wall_photos[0].url} alt="Memory" className="w-9 h-9 rounded-lg object-cover" />
+                  <div className="text-left">
+                    <p className="text-[10px] font-bold text-white truncate max-w-[90px]">{room.wall_photos[0].caption || 'Framed'}</p>
+                    <span className="text-[9px] text-sky-400">🖼️ Photo Wall</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Room Wall Extras (Sticky Notes & Wall Photos) ─────── */}
           <div className="w-full max-w-lg grid grid-cols-2 gap-3 pt-2">
