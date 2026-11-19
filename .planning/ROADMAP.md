@@ -26,3 +26,11 @@ go
 - [x] Task 7.4: Overhaul app UI across Dashboard, Room, Chat, Hub & NavigationDock for Web and Android APK.
 - [x] Task 7.5: Run full frontend build (`react-scripts build`) & backend verification (`compileall`).
 - [x] Task 7.6: Atomic Git commit and push to `origin main` to trigger GitHub Actions Android APK build.
+
+### Phase 8: Authentic Snapchat Profile 3D Bitmojis & Complete Gimmick Removal
+- [x] Task 8.1: Eliminate all tacky gimmicks (yellow Snapchat cards, ghost icons, fake streaks, canned speech bubbles).
+- [x] Task 8.2: Build `SnapchatBitmojiStage.jsx` with high-resolution authentic 3D Bitmoji couple models on Refined Dark Luxury obsidian stage.
+- [x] Task 8.3: Implement realistic physical contact movements for Kiss, Warm Hug, Coffee Toast, Velvet Couch Cuddle, and Slow Dance.
+- [x] Task 8.4: Add 3D perspective parallax depth with gyroscopic / pointer response and floor reflection grid.
+- [x] Task 8.5: Compile frontend bundle with 0 errors and 0 warnings.
+- [x] Task 8.6: Atomic commit & push to `origin main` to trigger OTA Android APK update.

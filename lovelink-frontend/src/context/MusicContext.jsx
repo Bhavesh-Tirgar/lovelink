@@ -68,7 +68,7 @@ export const MusicProvider = ({ children }) => {
                         }
                     }
                 }
-            } catch {}
+            } catch { }
         };
 
         window.addEventListener('message', handleYtMessage);
