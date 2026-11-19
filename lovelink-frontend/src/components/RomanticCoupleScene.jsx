@@ -148,6 +148,11 @@ export default function RomanticCoupleScene({
   const outfitId = myAvatar?.outfit || 'varsity_jacket';
   const outfit = OUTFIT_THEMES[outfitId] || OUTFIT_THEMES.varsity_jacket;
 
+  // Normalize actions
+  let activeScene = action;
+  if (action === 'sitting_on_couch' || action === 'watching_movie' || action === 'idle') activeScene = 'couch';
+  if (action === 'eating') activeScene = 'toast';
+
   const mSkin = BITMOJI_SKIN_TONES[myAvatar?.skin] || BITMOJI_SKIN_TONES.fair;
   const fSkin = BITMOJI_SKIN_TONES[partnerAvatar?.skin] || BITMOJI_SKIN_TONES.fair;
 
@@ -172,7 +177,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 1. COUCH SCENE (Lounge Velvet Sofa Cuddle) */}
       {/* ============================================================= */}
-      {action === 'couch' && (
+      {activeScene === 'couch' && (
         <svg viewBox="0 0 400 320" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(0,0,0,0.6)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="sofaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -325,7 +330,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 2. WARM HUG SCENE (Intimate Loving Full Embrace) */}
       {/* ============================================================= */}
-      {action === 'hug' && (
+      {activeScene === 'hug' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(244,63,94,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Ground Contact Shadow */}
           <ellipse cx="180" cy="315" rx="90" ry="14" fill="#000000" fillOpacity="0.5" />
@@ -391,7 +396,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 3. SWEET KISS SCENE (Tender Forehead & Lip Kiss) */}
       {/* ============================================================= */}
-      {action === 'kiss' && (
+      {activeScene === 'kiss' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(244,63,94,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Ground Shadow */}
           <ellipse cx="180" cy="315" rx="85" ry="14" fill="#000000" fillOpacity="0.5" />
@@ -460,7 +465,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 4. HOLDING HANDS SCENE (Gentle Walk Together) */}
       {/* ============================================================= */}
-      {action === 'hand_hold' && (
+      {activeScene === 'hand_hold' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(0,0,0,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Ground Shadows */}
           <ellipse cx="130" cy="315" rx="35" ry="10" fill="#000000" fillOpacity="0.4" />
@@ -540,7 +545,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 5. BED SPOON SCENE (Luxury Bed Cuddle & Sleep) */}
       {/* ============================================================= */}
-      {action === 'spoon' && (
+      {activeScene === 'spoon' && (
         <svg viewBox="0 0 400 320" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(99,102,241,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="headboardGrad" x1="0" y1="0" x2="0" y2="1">
@@ -610,7 +615,7 @@ export default function RomanticCoupleScene({
       {/* ============================================================= */}
       {/* 6. COFFEE TOAST SCENE (Morning Toast Cheers) */}
       {/* ============================================================= */}
-      {action === 'toast' && (
+      {activeScene === 'toast' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(245,158,11,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Ground Shadow */}
           <ellipse cx="180" cy="315" rx="85" ry="12" fill="#000000" fillOpacity="0.4" />

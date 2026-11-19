@@ -331,6 +331,35 @@ export default function Dashboard() {
             </div>
           </section>
 
+          {/* Couple Presence & Avatar Studio Widget */}
+          <div 
+            onClick={() => navigate('/room')}
+            className="p-4 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#131722] to-purple-950/40 border border-rose-500/25 hover:border-rose-500/40 cursor-pointer transition-all flex items-center justify-between group shadow-xl hover:scale-[1.01]"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">
+                🛋️
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white group-hover:text-rose-200 transition-colors">
+                    Couple Studio & Avatars
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                    Live Presence
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Hang out with {partner_user?.name || 'Partner'} • Hug, Kiss, Cuddle & Wardrobe
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 group-hover:text-rose-300 group-hover:translate-x-1 transition-all">
+              <span>Open Studio</span>
+              <span>→</span>
+            </div>
+          </div>
+
           {/* Compact Quick Actions Strip */}
           <section className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 px-1">

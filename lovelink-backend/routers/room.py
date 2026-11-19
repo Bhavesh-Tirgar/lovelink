@@ -38,7 +38,7 @@ class AvatarConfigRequest(BaseModel):
     glb_url: Optional[str] = None
 
 class CoupleInteractionRequest(BaseModel):
-    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch"
+    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating"
 
 class RoomThemeRequest(BaseModel):
     theme: Optional[str] = None
@@ -386,6 +386,13 @@ async def trigger_couple_interaction(
     db.add(room)
     await db.commit()
 
+    ALLOWED_ACTIONS = {
+        "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch",
+        "idle", "watching_movie", "eating", "sitting_on_couch"
+    }
+    if action not in ALLOWED_ACTIONS:
+        raise HTTPException(status_code=400, detail="Invalid couple action")
+
     action_messages = {
         "hug": f"{current_user.name} wrapped you in a warm hug! 🤗💖",
         "kiss": f"{current_user.name} gave you a sweet kiss! 💋✨",
@@ -394,6 +401,10 @@ async def trigger_couple_interaction(
         "dance": f"{current_user.name} pulled you in for a slow dance! 💃🎶",
         "toast": f"{current_user.name} cheered morning coffee with you! ☕🥂",
         "couch": f"{current_user.name} sat next to you on the couch! 🛋️",
+        "sitting_on_couch": f"{current_user.name} is cuddling next to you on the couch! 🛋️",
+        "idle": f"{current_user.name} is chilling with you in the room! ✨",
+        "watching_movie": f"{current_user.name} started watching a movie with you! 🍿🎬",
+        "eating": f"{current_user.name} is sharing a sweet snack with you! 🍰☕",
     }
     msg = action_messages.get(action, f"{current_user.name} interacted with you in the room! 💕")
 
