@@ -34,3 +34,11 @@ go
 - [x] Task 8.4: Add 3D perspective parallax depth with gyroscopic / pointer response and floor reflection grid.
 - [x] Task 8.5: Compile frontend bundle with 0 errors and 0 warnings.
 - [x] Task 8.6: Atomic commit & push to `origin main` to trigger OTA Android APK update.
+
+### Phase 9: Purge All Static Sliced Images & Cylinders — Restore Real Humanoid 3D GLB Stage
+- [x] Task 9.1: Permanently delete `SnapchatBitmojiStage.jsx` (the sliced coffee-cup images with black center lines).
+- [x] Task 9.2: Permanently delete `Bitmoji3DStage.jsx` (the crude wooden cylinder mannequin dolls).
+- [x] Task 9.3: Permanently delete `SnapchatFriendshipProfile.jsx` and `Studio3DStage.jsx`.
+- [x] Task 9.4: Mount `Real3DAvatarStage.jsx` as primary default visualizer in `CozyRoom.jsx` with real 3D GLTF humanoid models (`female_avatar.glb` & `male_avatar.glb`), realistic bone IK, tailored wardrobes, and 360° OrbitControls.
+- [x] Task 9.5: Run full frontend build verification (`react-scripts build`) — passed with 0 errors and 0 warnings.
+- [x] Task 9.6: Commit & push to `origin main` to deploy live OTA updates.
