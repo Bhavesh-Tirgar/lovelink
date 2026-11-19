@@ -1,126 +1,83 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Droplets, HeartHandshake, CalendarClock, Camera, Film, Ticket, ListTodo, Heart, LogOut, Headphones, Gamepad2, Flame, Sparkles } from 'lucide-react';
+import { Home, MessageCircle, Sparkles, Compass, Headphones } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
-import api from '../api';
 
 export default function NavigationDock() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { setIsPlayerOpen, isPlaying } = useMusic();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { setIsPlayerOpen, isPlaying } = useMusic();
 
-    const navItems = [
-        { name: 'Home', path: '/dashboard', icon: Home },
-        { name: 'Cozy Room', path: '/room', icon: Sparkles },
-        { name: 'Cycle Care', path: '/cycle', icon: Droplets },
-        { name: 'Snap Map', path: '/map', icon: Flame },
-        { name: 'Chat', path: '/chat', icon: MessageCircle },
-        { name: 'Heartbeat Touch', path: '/touch', icon: Flame },
-        { name: 'Our Universe', path: '/universe', icon: Sparkles },
-        { name: 'Games', path: '/games', icon: Gamepad2 },
-        { name: 'Notes', path: '/notes', icon: HeartHandshake },
-        { name: 'Albums', path: '/album', icon: Camera },
-        { name: 'Movies', path: '/movies', icon: Film },
-        { name: 'Coupons', path: '/coupons', icon: Ticket },
-        { name: 'Comfort', path: '/comfort', icon: Heart },
-        { name: 'Bucket List', path: '/bucket-list', icon: ListTodo },
-        { name: 'Countdowns', path: '/countdowns', icon: CalendarClock },
-    ];
+  const navItems = [
+    { name: 'Home', path: '/dashboard', icon: Home },
+    { name: 'Chat', path: '/chat', icon: MessageCircle },
+    { name: 'Studio', path: '/room', icon: Sparkles },
+    { name: 'Hub', path: '/hub', icon: Compass },
+  ];
 
-    const handleLogout = async () => {
-        const refreshToken = window.localStorage.getItem('refresh_token');
-        try {
-            if (refreshToken) {
-                await api.post('/auth/logout', { refresh_token: refreshToken });
-            }
-        } catch (e) {
-            // Ignore network errors on logout
-        } finally {
-            window.localStorage.clear();
-            navigate('/login', { replace: true });
-        }
-    };
+  // Hide dock on auth screens or immersive fullscreen modes
+  const hiddenPaths = ['/login', '/signup', '/link'];
+  if (
+    hiddenPaths.includes(location.pathname) ||
+    location.pathname.startsWith('/call/') ||
+    location.pathname.startsWith('/watch/') ||
+    location.pathname === '/doodle'
+  ) {
+    return null;
+  }
 
-    // Hide dock on unauthenticated pages or fullscreen/focused routes
-    const hiddenPaths = ['/login', '/signup', '/link'];
-    if (hiddenPaths.includes(location.pathname) || 
-        location.pathname.startsWith('/call/') || 
-        location.pathname.startsWith('/watch/') || 
-        location.pathname === '/touch' || 
-        location.pathname === '/universe' || 
-        location.pathname === '/map' || 
-        location.pathname === '/chat' || 
-        location.pathname === '/doodle') {
-        return null;
-    }
+  return (
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[95vw] w-max select-none">
+      <nav aria-label="Main Navigation" className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 bg-black/70 backdrop-blur-2xl border border-white/15 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
+        {navItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          const Icon = item.icon;
 
-    return (
-        <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[95vw] w-max">
-            <div className="flex items-center gap-1 sm:gap-1.5 p-1.5 sm:p-2.5 bg-black/60 backdrop-blur-2xl border border-white/15 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.7)] overflow-x-auto no-scrollbar max-w-full">
-                {navItems.map((item) => {
-                    const isActive = location.pathname.startsWith(item.path);
-                    const Icon = item.icon;
+          return (
+            <button
+              key={item.name}
+              onClick={() => navigate(item.path)}
+              className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full transition-all duration-300 group ${
+                isActive
+                  ? 'text-white bg-gradient-to-r from-rose-500/25 to-pink-500/25 border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                  : 'text-gray-400 hover:text-rose-200 hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              <Icon
+                size={19}
+                strokeWidth={isActive ? 2.5 : 2}
+                className={`transition-transform duration-300 ${
+                  isActive ? 'scale-110 text-rose-400' : 'group-hover:scale-105'
+                }`}
+              />
+              <span
+                className={`text-xs font-bold tracking-wide transition-colors ${
+                  isActive ? 'text-white' : 'hidden sm:inline-block text-gray-400 group-hover:text-gray-200'
+                }`}
+              >
+                {item.name}
+              </span>
+            </button>
+          );
+        })}
 
-                    return (
-                        <div key={item.name} className="relative group">
-                            <button
-                                onClick={() => navigate(item.path)}
-                                className={`p-2.5 rounded-full transition-all duration-300 relative ${isActive
-                                        ? 'text-white'
-                                        : 'text-gray-400 hover:text-purple-300 hover:bg-white/5'
-                                    }`}
-                            >
-                                {isActive && (
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/60 to-pink-600/60 rounded-full blur-sm -z-10" />
-                                )}
-                                <div className={`relative z-10 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
-                                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                </div>
-                            </button>
-
-                            {/* Tooltip */}
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-brand-darker border border-white/10 text-white text-xs whitespace-nowrap rounded-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none shadow-xl">
-                                {item.name}
-                            </div>
-                        </div>
-                    );
-                })}
-
-                {/* Music Player Button */}
-                <div className="relative group">
-                    <button
-                        onClick={() => setIsPlayerOpen(true)}
-                        className={`p-2.5 rounded-full transition-all duration-300 relative ${
-                            isPlaying
-                                ? 'text-pink-400 bg-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.4)]'
-                                : 'text-gray-400 hover:text-pink-300 hover:bg-white/5'
-                        }`}
-                    >
-                        {isPlaying && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping" />
-                        )}
-                        <Headphones size={20} />
-                    </button>
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-brand-darker border border-purple-500/30 text-purple-200 text-xs whitespace-nowrap rounded-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none shadow-xl">
-                        Listen Together 🎵
-                    </div>
-                </div>
-
-                <div className="w-px h-7 bg-white/10 mx-1" />
-
-                <div className="relative group">
-                    <button
-                        onClick={handleLogout}
-                        className="p-2.5 rounded-full text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                        <LogOut size={20} />
-                    </button>
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-brand-darker border border-red-500/20 text-red-200 text-xs whitespace-nowrap rounded-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all pointer-events-none">
-                        Logout
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    );
+        {/* Music Player Quick Button */}
+        <div className="w-px h-5 bg-white/10 mx-1" />
+        <button
+          onClick={() => setIsPlayerOpen(true)}
+          title="Listen Together"
+          className={`relative p-2 rounded-full transition-all duration-300 ${
+            isPlaying
+              ? 'text-rose-400 bg-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+              : 'text-gray-400 hover:text-rose-300 hover:bg-white/5'
+          }`}
+        >
+          {isPlaying && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+          )}
+          <Headphones size={18} />
+        </button>
+      </nav>
+    </div>
+  );
 }

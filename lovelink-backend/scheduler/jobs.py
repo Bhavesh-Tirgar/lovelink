@@ -6,9 +6,6 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 
 from database import AsyncSessionLocal
-from crud.love_note import get_pending_scheduled, deliver_note
-from schemas.love_note import NoteResponse
-from models.love_note import LoveNote
 from models.couple import Couple
 from models.user import User
 from models.notification import Notification
@@ -16,44 +13,6 @@ from ws_manager.manager import manager
 from utils.firebase import send_push
 
 logger = logging.getLogger(__name__)
-
-
-async def deliver_scheduled_notes():
-    """Runs every 5 minutes — delivers any scheduled notes whose time has come."""
-    logger.info("Running deliver_scheduled_notes job...")
-    async with AsyncSessionLocal() as db:
-        try:
-            pending = await get_pending_scheduled(db)
-            for note in pending:
-                delivered = await deliver_note(db, note.id)
-                if delivered:
-                    # Build serialisable dict for WebSocket broadcast
-                    note_data = NoteResponse.model_validate(delivered).model_dump(mode="json")
-                    await manager.broadcast(str(delivered.couple_id), {
-                        "type": "new_note",
-                        "note": note_data,
-                    })
-                    
-                    # Send Push Notification
-                    try:
-                        recipient_user = await db.execute(select(User).where(User.id == delivered.recipient_id))
-                        recipient = recipient_user.scalar_one_or_none()
-                        
-                        if recipient and recipient.fcm_token:
-                            await send_push(
-                                fcm_token=recipient.fcm_token,
-                                title=f"Time Capsule Unlocked! 🕰️" if delivered.is_capsule else "New Love Note! 💌",
-                                body=delivered.title if delivered.title else "Open the app to read it now.",
-                                data={"type": "capsule" if delivered.is_capsule else "love_note", "note_id": str(delivered.id)}
-                            )
-                    except Exception as pe:
-                        logger.error(f"Failed sending FCM for note: {pe}")
-                        
-                    logger.info(f"Delivered scheduled note {delivered.id} to couple {delivered.couple_id}")
-                print(f"Scheduled note {note.id} delivered.")
-            await db.commit()
-        except Exception as e:
-            logger.error(f"Error in deliver_scheduled_notes: {e}", exc_info=True)
 
 async def check_milestones():
     print("Checking milestones...")

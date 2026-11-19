@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock, Lock, ShieldCheck } from 'lucide-react';
+import { Phone, Video, Paperclip, Mic, Send, ArrowLeft, Flame, WifiOff, Clock, Lock, ShieldCheck, Search, Smile, X } from 'lucide-react';
 import SafetyCodeModal from '../components/SafetyCodeModal';
 import { encryptText, decryptText, isE2EEMessage, initDeviceE2EEKey } from '../utils/crypto';
 import {
@@ -33,6 +33,25 @@ function Chat() {
     const [uploadError, setUploadError] = useState('');
     const [calling, setCalling] = useState(false);
     const [showSafetyCode, setShowSafetyCode] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
+    const [reactions, setReactions] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('lovelink_reactions') || '{}');
+        } catch {
+            return {};
+        }
+    });
+
+    const handleAddReaction = (msgId, emoji) => {
+        setReactions(prev => {
+            const next = { ...prev, [msgId]: emoji };
+            try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch {}
+            return next;
+        });
+        setActiveReactionMsgId(null);
+    };
 
     const messagesEndRef = useRef(null);
     const listRef = useRef(null);
@@ -417,8 +436,13 @@ function Chat() {
         }
     };
 
+    // Filter messages if search is active
+    const displayedMessages = isSearching && searchQuery.trim()
+        ? messages.filter(m => (m.text || '').toLowerCase().includes(searchQuery.toLowerCase()))
+        : messages;
+
     // Group messages logic (if < 2 min diff, group them)
-    const groupedMessages = messages.reduce((acc, msg) => {
+    const groupedMessages = displayedMessages.reduce((acc, msg) => {
         if (acc.length === 0) return [[msg]];
         const lastGroup = acc[acc.length - 1];
         const lastMsg = lastGroup[lastGroup.length - 1];
@@ -479,6 +503,13 @@ function Chat() {
                 {partner && (
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={() => { setIsSearching(!isSearching); if (isSearching) setSearchQuery(''); }}
+                            className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full border transition-all ${isSearching ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-white/5 text-gray-200 border-white/10 hover:bg-white/15'}`}
+                            title="Search Messages"
+                        >
+                            <Search size={18} />
+                        </button>
+                        <button
                             onClick={() => startCall('voice')}
                             disabled={calling}
                             className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white/5 text-gray-200 border border-white/10 hover:bg-white/15 hover:text-white transition-all disabled:opacity-50"
@@ -489,7 +520,7 @@ function Chat() {
                         <button
                             onClick={() => startCall('video')}
                             disabled={calling}
-                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-pink-300 border border-pink-500/20 hover:border-pink-500/50 hover:bg-pink-500/30 transition-all disabled:opacity-50 shadow-sm"
+                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/20 text-rose-300 border border-rose-500/20 hover:border-rose-500/50 hover:bg-rose-500/30 transition-all disabled:opacity-50 shadow-sm"
                             title="Video Call"
                         >
                             <Video size={18} />
@@ -497,6 +528,26 @@ function Chat() {
                     </div>
                 )}
             </header>
+
+            {/* In-Chat Search Bar */}
+            {isSearching && (
+                <div className="flex-none px-4 py-2 bg-black/70 border-b border-white/10 flex items-center gap-2 animate-in slide-in-from-top-2 z-10">
+                    <Search size={15} className="text-gray-400" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search romantic messages..."
+                        className="flex-1 bg-transparent border-none text-xs text-white placeholder-gray-500 focus:outline-none"
+                        autoFocus
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-white">
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Offline Connectivity Banner */}
             {!isOnline && (
@@ -552,10 +603,26 @@ function Chat() {
                                                 className={`relative group flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
                                                 title={formatTime(msg.created_at)}
                                             >
+                                                {/* Floating Emoji Reactions Drawer */}
+                                                {activeReactionMsgId === msg.id && (
+                                                    <div className="absolute -top-9 z-30 flex items-center gap-1.5 p-1 bg-black/90 backdrop-blur-md border border-white/20 rounded-full shadow-2xl animate-in zoom-in-75 duration-200">
+                                                        {['❤️', '😂', '🥺', '🔥', '😮', '💋'].map(em => (
+                                                            <button
+                                                                key={em}
+                                                                type="button"
+                                                                onClick={() => handleAddReaction(msg.id, em)}
+                                                                className="p-1 hover:scale-125 transition-transform text-sm"
+                                                            >
+                                                                {em}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 <div
-                                                    className={`px-4 py-3 shadow-md inline-block max-w-full backdrop-blur-md border ${isMine
-                                                        ? 'bg-gradient-to-br from-purple-600/90 to-pink-600/90 text-white border-pink-500/30'
-                                                        : 'glass-card text-gray-100 border-white/10'
+                                                    className={`px-4 py-3 shadow-md inline-block max-w-full backdrop-blur-md border relative ${isMine
+                                                        ? 'bg-rose-600 text-white border-rose-500/40 shadow-lg shadow-rose-950/30'
+                                                        : 'bg-[#161B26] text-gray-100 border-white/10 shadow-md'
                                                         } transition-transform hover:scale-[1.01]`}
                                                     style={{ borderRadius }}
                                                 >
@@ -583,7 +650,6 @@ function Chat() {
                                                             src={msg.file_url}
                                                             alt="Chat attachment"
                                                             className="max-w-[240px] max-h-[300px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                                        // Note: Fullscreen lightbox could be added here on click
                                                         />
                                                     )}
 
@@ -594,7 +660,7 @@ function Chat() {
                                                         </div>
                                                     )}
 
-                                                    {/* Messsage meta (time + status)  */}
+                                                    {/* Message meta (time + status)  */}
                                                     <div className={`flex items-center gap-1 justify-end mt-1 text-[10px] ${isMine ? 'text-white/70' : 'text-gray-400'}`}>
                                                         <span>{formatTime(msg.created_at)}</span>
                                                         {msg._isE2EE && (
@@ -613,7 +679,23 @@ function Chat() {
                                                                 )}
                                                             </span>
                                                         )}
+                                                        {/* Quick Reaction trigger */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id)}
+                                                            className="ml-1 opacity-0 group-hover:opacity-100 text-white/60 hover:text-white transition-opacity"
+                                                            title="React"
+                                                        >
+                                                            <Smile size={11} />
+                                                        </button>
                                                     </div>
+
+                                                    {/* Reaction Badge */}
+                                                    {reactions[msg.id] && (
+                                                        <span className="absolute -bottom-2 -right-1 px-1.5 py-0.5 rounded-full bg-[#1A202C] border border-white/20 text-xs shadow-md">
+                                                            {reactions[msg.id]}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

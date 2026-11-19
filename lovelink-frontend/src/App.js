@@ -6,24 +6,17 @@ import Signup from './pages/Signup';
 import Link from './pages/Link';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
-import Notes from './pages/Notes';
-import WriteNote from './pages/WriteNote';
 import Countdowns from './pages/Countdowns';
 import Album from './pages/Album';
 import Movies from './pages/Movies';
 import WatchRoom from './pages/WatchRoom';
 import VideoCall from './pages/VideoCall';
-import BucketList from './pages/BucketList';
-import ComfortBox from './pages/ComfortBox';
-import Coupons from './pages/Coupons';
-import CreateCoupon from './pages/CreateCoupon';
 import DoodleBoard from './pages/DoodleBoard';
 import Games from './pages/Games';
-import HeartbeatTouch from './pages/HeartbeatTouch';
-import OurUniverse from './pages/OurUniverse';
 import LiveMap from './pages/LiveMap';
 import CycleTracker from './pages/CycleTracker';
 import CozyRoom from './pages/CozyRoom';
+import Hub from './pages/Hub';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import { CallProvider } from './context/CallContext';
@@ -50,24 +43,17 @@ function App() {
                 <Route path="/link" element={<ProtectedRoute><Link /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-                <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-                <Route path="/notes/write" element={<ProtectedRoute><WriteNote /></ProtectedRoute>} />
                 <Route path="/countdowns" element={<ProtectedRoute><Countdowns /></ProtectedRoute>} />
                 <Route path="/album" element={<ProtectedRoute><Album /></ProtectedRoute>} />
                 <Route path="/movies" element={<ProtectedRoute><Movies /></ProtectedRoute>} />
                 <Route path="/watch/:movieId" element={<ProtectedRoute><WatchRoom /></ProtectedRoute>} />
                 <Route path="/call/:callId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
-                <Route path="/bucket-list" element={<ProtectedRoute><BucketList /></ProtectedRoute>} />
-                <Route path="/comfort" element={<ProtectedRoute><ComfortBox /></ProtectedRoute>} />
-                <Route path="/coupons" element={<ProtectedRoute><Coupons /></ProtectedRoute>} />
-                <Route path="/coupons/new" element={<ProtectedRoute><CreateCoupon /></ProtectedRoute>} />
                 <Route path="/doodle" element={<ProtectedRoute><DoodleBoard /></ProtectedRoute>} />
                 <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-                <Route path="/touch" element={<ProtectedRoute><HeartbeatTouch /></ProtectedRoute>} />
-                <Route path="/universe" element={<ProtectedRoute><OurUniverse /></ProtectedRoute>} />
                 <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
                 <Route path="/cycle" element={<ProtectedRoute><CycleTracker /></ProtectedRoute>} />
                 <Route path="/room" element={<ProtectedRoute><CozyRoom /></ProtectedRoute>} />
+                <Route path="/hub" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

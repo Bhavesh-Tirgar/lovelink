@@ -14,22 +14,16 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from routers import auth, couples, dashboard
 from routers.mood import router as mood_router
 from routers.chat import router as chat_router, ws_router as chat_ws_router
-from routers.notes import router as notes_router
 from routers.countdowns import router as countdowns_router
 from routers.games import router as games_router
-from routers.universe import router as universe_router
 from routers.cycle import router as cycle_router
 from routers.room import router as room_router
 from routers.media import router as media_router
 from routers.movies import router as movies_router
 from routers.calls import router as calls_router
-from routers.bucket_list import router as bucket_router
-from routers.questions import router as questions_router
-from routers.comfort import router as comfort_router
 from routers.notifications import router as notifs_router
-from routers.coupons import router as coupons_router
 from routers.music import router as music_router
-from scheduler.jobs import deliver_scheduled_notes, check_milestones, prune_stale_sessions, prune_stale_sensitive_data
+from scheduler.jobs import check_milestones, prune_stale_sessions, prune_stale_sensitive_data
 from starlette.middleware.gzip import GZipMiddleware
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
@@ -39,12 +33,6 @@ scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 async def lifespan(app: FastAPI):
     from utils.firebase import init_firebase
     init_firebase()
-    scheduler.add_job(
-        deliver_scheduled_notes,
-        "interval",
-        minutes=5,
-        id="deliver_notes",
-    )
     scheduler.add_job(check_milestones, "cron", hour=9, minute=0, timezone="Asia/Kolkata")
     scheduler.add_job(prune_stale_sessions, "interval", minutes=30, id="prune_sessions")
     scheduler.add_job(prune_stale_sensitive_data, "interval", hours=1, id="prune_sensitive_data")
@@ -52,14 +40,11 @@ async def lifespan(app: FastAPI):
     try:
         from database import engine, Base
         from sqlalchemy import text
-        import models.universe
         import models.cycle
         import models.room
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             try:
-                await conn.execute(text("ALTER TABLE memory_stars ADD COLUMN IF NOT EXISTS star_type VARCHAR(30) DEFAULT 'single'"))
-                await conn.execute(text("ALTER TABLE memory_stars ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS encrypted_private_key TEXT"))
                 await conn.execute(text("ALTER TABLE cycle_logs ADD COLUMN IF NOT EXISTS encrypted_payload TEXT"))
@@ -163,19 +148,13 @@ app.include_router(dashboard.router)
 app.include_router(mood_router, prefix="/mood", tags=["mood"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
 app.include_router(chat_ws_router, prefix="/ws/chat", tags=["ws_chat"])
-app.include_router(notes_router, prefix="/notes", tags=["notes"])
 app.include_router(countdowns_router, prefix="/countdowns", tags=["countdowns"])
 app.include_router(media_router, prefix="/media", tags=["media"])
 app.include_router(movies_router, prefix="/movies", tags=["movies"])
 app.include_router(calls_router, prefix="/calls", tags=["calls"])
-app.include_router(bucket_router, prefix="/bucket-list", tags=["bucket-list"])
-app.include_router(questions_router, prefix="/questions", tags=["questions"])
-app.include_router(comfort_router, prefix="/comfort", tags=["comfort"])
 app.include_router(notifs_router, prefix="/notifications", tags=["notifications"])
-app.include_router(coupons_router, prefix="/coupons", tags=["coupons"])
 app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
-app.include_router(universe_router, prefix="/universe", tags=["universe"])
 app.include_router(cycle_router, prefix="/cycle", tags=["cycle"])
 app.include_router(room_router, prefix="/room", tags=["room"])
 

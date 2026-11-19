@@ -101,6 +101,23 @@ api.interceptors.response.use(
         }
       }
     }
+
+    // Render Cold Start Guard (502 / 504 / Network Timeout auto-retry)
+    if (
+      originalRequest &&
+      (error.response?.status === 504 ||
+       error.response?.status === 502 ||
+       (!error.response && error.message?.includes('Network Error')))
+    ) {
+      originalRequest._coldRetryCount = (originalRequest._coldRetryCount || 0) + 1;
+      if (originalRequest._coldRetryCount <= 3) {
+        const delay = originalRequest._coldRetryCount * 3000;
+        console.log(`[API] Server waking up from cold start... Retrying in ${delay}ms`);
+        await new Promise((res) => setTimeout(res, delay));
+        return api(originalRequest);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

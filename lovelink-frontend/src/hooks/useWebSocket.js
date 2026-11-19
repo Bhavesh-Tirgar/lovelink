@@ -15,19 +15,14 @@ const useWebSocket = (url, onMessage) => {
         onMessageRef.current = onMessage;
     }, [onMessage]);
 
-    // Max 5 retries: 2s, 4s, 8s, 16s, 30s
+    // Backoff delay capped at 15s
     const getBackoffDelay = (attempt) => {
-        const delays = [2000, 4000, 8000, 16000, 30000];
+        const delays = [1500, 3000, 5000, 10000, 15000];
         return delays[Math.min(attempt, delays.length - 1)];
     };
 
     const connect = useCallback(async () => {
         if (!isMountedRef.current) return;
-
-        if (reconnectCountRef.current > 6) {
-            console.warn("[WS] Reached max reconnect attempts for:", url);
-            return;
-        }
 
         const token = localStorage.getItem('token');
         if (!token || !url) return;
@@ -119,7 +114,31 @@ const useWebSocket = (url, onMessage) => {
             connect();
         }
 
+        // Instant reconnection on phone unlock or tab focus
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && isMountedRef.current) {
+                if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+                    console.log("[WS] App visible — reconnecting immediately");
+                    reconnectCountRef.current = 0;
+                    connect();
+                }
+            }
+        };
+
+        const handleOnline = () => {
+            if (isMountedRef.current) {
+                console.log("[WS] Network restored — reconnecting immediately");
+                reconnectCountRef.current = 0;
+                connect();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('online', handleOnline);
+
         return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('online', handleOnline);
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }
