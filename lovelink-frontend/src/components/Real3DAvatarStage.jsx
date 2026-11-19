@@ -249,10 +249,10 @@ export default function Real3DAvatarStage({
         shoes: 'white_kicks',
         skin: 'fair_warm',
         hair: 'natural',
-        shades: false,
+        shades: true,
       };
     } catch {
-      return { top: 'street_hoodie_lavender', bottom: 'baggy_light_denim', shoes: 'white_kicks', skin: 'fair_warm', hair: 'natural', shades: false };
+      return { top: 'street_hoodie_lavender', bottom: 'baggy_light_denim', shoes: 'white_kicks', skin: 'fair_warm', hair: 'natural', shades: true };
     }
   });
 
@@ -614,7 +614,7 @@ export default function Real3DAvatarStage({
 
     // 2. PERSPECTIVE CAMERA
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(0, 1.05, 3.8);
+    camera.position.set(0, 1.05, 3.4);
     cameraRef.current = camera;
 
     // 3. WEBGL RENDERER
@@ -678,7 +678,7 @@ export default function Real3DAvatarStage({
     controls.dampingFactor = 0.08;
     controls.autoRotate = false;
     controls.autoRotateSpeed = 1.2;
-    controls.target.set(0, 1.0, 0);
+    controls.target.set(0, 0.95, 0);
     controls.minPolarAngle = Math.PI / 2.3;
     controls.maxPolarAngle = Math.PI / 1.85;
 
@@ -718,9 +718,9 @@ export default function Real3DAvatarStage({
     cleanSkinTex.wrapS = THREE.RepeatWrapping;
     cleanSkinTex.wrapT = THREE.RepeatWrapping;
 
-    const realisticEyeTex = texLoader.load('/models/female_eye_realistic.png');
-    realisticEyeTex.flipY = false;
-    realisticEyeTex.colorSpace = THREE.SRGBColorSpace;
+    const cuteEyeTex = texLoader.load('/models/cute_bitmoji_eye.png');
+    cuteEyeTex.flipY = false;
+    cuteEyeTex.colorSpace = THREE.SRGBColorSpace;
 
 
     // HELPER: CREATE 3D REALISTIC TAILORED PANT EXTENSIONS FOR BOY
@@ -808,8 +808,10 @@ export default function Real3DAvatarStage({
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(-0.43, 0.08, 0);
-        model.scale.set(1.14, 1.14, 1.14);
+        model.position.set(-0.24, 0.08, 0);
+        model.rotation.y = 0.14;
+        model.rotation.z = -0.02;
+        model.scale.set(1.05, 1.05, 1.05);
 
         model.traverse((child) => {
           if (child.isMesh) {
@@ -826,15 +828,15 @@ export default function Real3DAvatarStage({
             if (name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.map = cleanSkinTex;
-              sm.color.setHex(0xffe2d9); // Radiant youthful warm peach melanin tone harmonized with boy
-              sm.roughness = 0.55;
+              sm.color.setHex(0xfff0ea); // Radiant youthful warm peach melanin tone with rosy cheeks
+              sm.roughness = 0.50;
               sm.metalness = 0.0;
               sm.needsUpdate = true;
             }
-            // Upgrade female eyes to realistic depth
+            // Upgrade female eyes to cute cartoon Bitmoji eyes
             if (name.includes('eye') && !name.includes('eyebrow')) {
               const em = Array.isArray(child.material) ? child.material[0] : child.material;
-              em.map = realisticEyeTex;
+              em.map = cuteEyeTex;
               em.color.setHex(0xffffff);
               em.roughness = 0.15;
               em.metalness = 0.0;
@@ -844,6 +846,11 @@ export default function Real3DAvatarStage({
         });
 
         mapBones(model, leftBonesRef);
+
+        // Cute stylized cartoon head scaling (proportional cute couple look)
+        if (leftBonesRef.current.head) {
+          leftBonesRef.current.head.scale.set(1.15, 1.15, 1.15);
+        }
 
         if (leftBonesRef.current.leftArm) {
           leftBonesRef.current.leftArm.rotation.set(0.958, -1.592, 2.408);
@@ -908,8 +915,10 @@ export default function Real3DAvatarStage({
       maleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(0.43, 0.08, 0);
-        model.scale.set(0.96, 0.96, 0.96);
+        model.position.set(0.24, 0.08, 0);
+        model.rotation.y = -0.14;
+        model.rotation.z = 0.02;
+        model.scale.set(0.95, 0.95, 0.95);
 
         model.traverse((child) => {
           if (child.isMesh && child.material) {
@@ -924,8 +933,18 @@ export default function Real3DAvatarStage({
             if (name.includes('head') || name.includes('body')) {
               const sm = Array.isArray(child.material) ? child.material[0] : child.material;
               sm.color.setHex(0xffffff); // Display authentic photographic skin tone
-              sm.roughness = 0.68;
+              sm.roughness = 0.55;
               sm.metalness = 0.0;
+            }
+
+            // Upgrade male eyes with cute cartoon Bitmoji eyes!
+            if (name.includes('eye')) {
+              const em = Array.isArray(child.material) ? child.material[0] : child.material;
+              em.map = cuteEyeTex;
+              em.color.setHex(0xffffff);
+              em.roughness = 0.15;
+              em.metalness = 0.0;
+              em.needsUpdate = true;
             }
           }
 
@@ -973,6 +992,11 @@ export default function Real3DAvatarStage({
         boyPantExtensionsRef.current = pantsExt;
 
         mapBones(model, rightBonesRef);
+
+        // Cute stylized cartoon head scaling (proportional cute couple look)
+        if (rightBonesRef.current.head) {
+          rightBonesRef.current.head.scale.set(1.15, 1.15, 1.15);
+        }
         if (rightBonesRef.current.leftArm) {
           rightBonesRef.current.leftArm.rotation.set(1.350, -0.600, -0.100);
         }
@@ -1059,10 +1083,10 @@ export default function Real3DAvatarStage({
             : 0;
 
           // Both avatars step closer together to toast coffee
-          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.20, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.20, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.28, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.28, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.15, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.15, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.28, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.28, env);
 
           // Torso leans in warmly
           if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
@@ -1123,11 +1147,11 @@ export default function Real3DAvatarStage({
 
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
-          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.085)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.085, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.085, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.52, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.52, env);
+          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.065)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.065, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.065, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.52, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.52, env);
 
           // Romantic spine tilt toward partner
           if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
@@ -1171,11 +1195,11 @@ export default function Real3DAvatarStage({
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
           const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.008;
 
-          // Both avatars step into warm intimate couple embrace (+-0.075)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.075 + squeeze, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.075 - squeeze, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.32, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.32, env);
+          // Both avatars step into warm intimate couple embrace (+-0.060)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.060 + squeeze, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.060 - squeeze, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.35, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.35, env);
 
           // Heads rest lovingly on each other's shoulders
           if (leftBones.head) {
@@ -1226,12 +1250,12 @@ export default function Real3DAvatarStage({
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
           // Lean in close side-by-side into cozy couch cuddle
-          leftModel.position.x = THREE.MathUtils.lerp(-0.43, -0.16, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.43, 0.16, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.12, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.12, env);
           leftModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
           rightModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0, 0.22, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(0, -0.22, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.24, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.24, env);
 
           // Heads rest affectionately toward each other
           if (leftBones.head) leftBones.head.rotation.set(0.10 * env, 0.38 * env, 0.12 * env);
@@ -1247,6 +1271,8 @@ export default function Real3DAvatarStage({
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
           // Romantic rhythm in sync with lofi music
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
           const beat = Math.sin(elapsedTime * 8);
           const bounce = Math.abs(beat) * 0.035;
           const sway = Math.sin(elapsedTime * 4) * 0.08;
@@ -1289,6 +1315,8 @@ export default function Real3DAvatarStage({
           }
 
         } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
           const env = Math.sin(emoteProgress * Math.PI);
           const waveCycle = Math.sin(elapsedTime * 14);
 
@@ -1324,15 +1352,15 @@ export default function Real3DAvatarStage({
           if (boyCupRef.current) boyCupRef.current.visible = false;
 
           // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION, NO HAND CLIPPING)
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.43, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.43, 0.1);
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
           leftModel.position.y = 0.08 + idleBreathing;
           rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005;
 
-          leftModel.rotation.y = THREE.MathUtils.lerp(leftModel.rotation.y, 0, 0.1);
-          rightModel.rotation.y = THREE.MathUtils.lerp(rightModel.rotation.y, 0, 0.1);
-          leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, 0, 0.1);
-          rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0, 0.1);
+          leftModel.rotation.y = THREE.MathUtils.lerp(leftModel.rotation.y, 0.14, 0.1);
+          rightModel.rotation.y = THREE.MathUtils.lerp(rightModel.rotation.y, -0.14, 0.1);
+          leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, -0.02, 0.1);
+          rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0.02, 0.1);
 
           // Female resting arms and pronated forearms
           if (leftBones.leftArm) {
