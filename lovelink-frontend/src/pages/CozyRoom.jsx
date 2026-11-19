@@ -11,6 +11,7 @@ import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import FriendmojiCouple from '../components/FriendmojiCouple';
 import Real3DAvatarStage from '../components/Real3DAvatarStage';
+import SnapchatFriendshipProfile from '../components/SnapchatFriendshipProfile';
 import { FRIENDMOJI_TEMPLATES, WARDROBE_OUTFITS } from '../utils/libmoji';
 
 export default function CozyRoom() {
@@ -18,7 +19,7 @@ export default function CozyRoom() {
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [currentAction, setCurrentAction] = useState('couch');
-  const [stageMode, setStageMode] = useState('3d_real'); // '3d_real' | '2d_art'
+  const [stageMode, setStageMode] = useState('snap_profile'); // 'snap_profile' (Default Snapchat) | '3d_webgl' | 'studio_art'
   
   // Interactive Modals
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -265,42 +266,65 @@ export default function CozyRoom() {
       ) : (
         <div className="w-full flex flex-col items-center space-y-6">
           
-          {/* ── Couple Scene Canvas / 3D Real Stage ───────────────── */}
+          {/* ── Couple Scene Canvas / Snapchat Stage ───────────────── */}
           <div className="w-full max-w-lg flex flex-col items-center">
             {/* View Mode Switcher */}
             <div className="flex items-center justify-between w-full mb-3 px-1">
               <div className="flex items-center gap-1.5 bg-[#131722] p-1 rounded-full border border-white/10 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => setStageMode('3d_real')}
+                  onClick={() => setStageMode('snap_profile')}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-                    stageMode === '3d_real'
-                      ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-pink-500 text-white shadow-md'
+                    stageMode === 'snap_profile'
+                      ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-stone-950 shadow-md scale-[1.02]'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  <Sparkles size={13} className={stageMode === '3d_real' ? 'text-amber-200' : 'text-gray-400'} />
-                  <span>Real 3D Stage ✨</span>
+                  <span>💛</span>
+                  <span>Snapchat Profile</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStageMode('2d_art')}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    stageMode === '2d_art'
+                  onClick={() => setStageMode('3d_webgl')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    stageMode === '3d_webgl'
+                      ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles size={12} className={stageMode === '3d_webgl' ? 'text-amber-200' : 'text-gray-400'} />
+                  <span>3D WebGL</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStageMode('studio_art')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    stageMode === 'studio_art'
                       ? 'bg-white/20 text-white shadow-md'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  <span>🎨 Studio Art</span>
+                  <span>🎨 Art</span>
                 </button>
               </div>
 
               <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
-                {stageMode === '3d_real' ? '360° Real Humanoid WebGL' : 'Vector Couple Art'}
+                {stageMode === 'snap_profile' ? 'Official 3D Bitmojis 💛' : stageMode === '3d_webgl' ? '360° Humanoid WebGL' : 'Vector Couple Art'}
               </span>
             </div>
 
-            {stageMode === '3d_real' ? (
+            {stageMode === 'snap_profile' ? (
+              <SnapchatFriendshipProfile
+                action={currentAction}
+                myName={room?.my_name || 'You'}
+                partnerName={room?.partner_name || 'Partner'}
+                onActionTrigger={(act) => handleSelectScene(act)}
+                onOpenWardrobe={() => setShowWardrobeModal(true)}
+                onOpenCreator={() => setShowBitmojiModal(true)}
+                onOpen3DCanvas={() => setStageMode('3d_webgl')}
+                className="w-full"
+              />
+            ) : stageMode === '3d_webgl' ? (
               <Real3DAvatarStage
                 myName={room?.my_name || 'You'}
                 partnerName={room?.partner_name || 'Partner'}
