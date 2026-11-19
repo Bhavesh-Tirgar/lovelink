@@ -148,7 +148,7 @@ export default function RomanticCoupleScene({
   const outfitId = myAvatar?.outfit || 'varsity_jacket';
   const outfit = OUTFIT_THEMES[outfitId] || OUTFIT_THEMES.varsity_jacket;
 
-  // Normalize actions
+  // Normalize legacy/new action names
   let activeScene = action;
   if (action === 'sitting_on_couch' || action === 'watching_movie' || action === 'idle') activeScene = 'couch';
   if (action === 'eating') activeScene = 'toast';
@@ -175,151 +175,231 @@ export default function RomanticCoupleScene({
       />
 
       {/* ============================================================= */}
-      {/* 1. COUCH SCENE (Lounge Velvet Sofa Cuddle) */}
+      {/* 1. COUCH SCENE (Snapchat 3D Lounge Velvet Sofa Cuddle) */}
       {/* ============================================================= */}
       {activeScene === 'couch' && (
         <svg viewBox="0 0 400 320" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(0,0,0,0.6)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="sofaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1C212E" />
-              <stop offset="60%" stopColor="#141824" />
+            {/* Sofa 3D Gradients */}
+            <linearGradient id="c-sofaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#252B3B" />
+              <stop offset="50%" stopColor="#171C27" />
               <stop offset="100%" stopColor="#0B0E14" />
             </linearGradient>
-            <linearGradient id="sofaCushion" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#252C3D" />
-              <stop offset="100%" stopColor="#171C28" />
+            <linearGradient id="c-sofaCushion" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#2D3547" />
+              <stop offset="100%" stopColor="#1B202D" />
             </linearGradient>
-            <linearGradient id="throwPillowRose" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#F43F5E" />
+            <linearGradient id="c-throwPillowRose" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#FB7185" />
               <stop offset="100%" stopColor="#9F1239" />
             </linearGradient>
-            <linearGradient id="throwBlanket" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#D97706" />
+            <linearGradient id="c-throwBlanket" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F59E0B" />
               <stop offset="100%" stopColor="#78350F" />
             </linearGradient>
-            <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#FBBF24" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#FBBF24" stopOpacity="0" />
+
+            {/* 3D Bitmoji Skin Gradients */}
+            <linearGradient id="c-mSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={mSkin.base} />
+              <stop offset="100%" stopColor={mSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="c-fSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={fSkin.base} />
+              <stop offset="100%" stopColor={fSkin.shadow} />
+            </linearGradient>
+
+            {/* 3D Hair Sheen Gradients */}
+            <linearGradient id="c-mHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mHair.highlight || '#4B5563'} />
+              <stop offset="50%" stopColor={mHair.base} />
+              <stop offset="100%" stopColor={mHair.shadow || '#111827'} />
+            </linearGradient>
+            <linearGradient id="c-fHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fHair.highlight || '#78350F'} />
+              <stop offset="50%" stopColor={fHair.base} />
+              <stop offset="100%" stopColor={fHair.shadow || '#22150E'} />
+            </linearGradient>
+
+            {/* 3D Iris Radial Gradient */}
+            <radialGradient id="c-mIris" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#854D0E" />
+              <stop offset="70%" stopColor="#451A03" />
+              <stop offset="100%" stopColor="#0F0F12" />
+            </radialGradient>
+            <radialGradient id="c-fIris" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#9A3412" />
+              <stop offset="70%" stopColor="#431407" />
+              <stop offset="100%" stopColor="#0F0F12" />
             </radialGradient>
           </defs>
 
-          {/* Ambient Floor Shadow */}
-          <ellipse cx="200" cy="290" rx="170" ry="16" fill="#000000" fillOpacity="0.45" />
+          {/* Ambient Ground Shadow */}
+          <ellipse cx="200" cy="290" rx="170" ry="16" fill="#000000" fillOpacity="0.5" />
 
           {/* Luxury Velvet Sofa Backrest */}
-          <rect x="50" y="110" width="300" height="130" rx="36" fill="url(#sofaGrad)" stroke="#2B3244" strokeWidth="2" />
+          <rect x="50" y="110" width="300" height="130" rx="36" fill="url(#c-sofaGrad)" stroke="#374151" strokeWidth="2" />
           
-          {/* Tufted Sofa Seams */}
-          <line x1="120" y1="130" x2="120" y2="210" stroke="#2B3244" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="200" y1="130" x2="200" y2="210" stroke="#2B3244" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-          <line x1="280" y1="130" x2="280" y2="210" stroke="#2B3244" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+          {/* Tufted Sofa Vertical Seams */}
+          <line x1="120" y1="130" x2="120" y2="210" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+          <line x1="200" y1="130" x2="200" y2="210" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+          <line x1="280" y1="130" x2="280" y2="210" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
 
           {/* Sofa Left & Right Rounded Armrests */}
-          <rect x="36" y="160" width="40" height="95" rx="20" fill="#202738" stroke="#2E374A" strokeWidth="2" />
-          <rect x="324" y="160" width="40" height="95" rx="20" fill="#202738" stroke="#2E374A" strokeWidth="2" />
+          <rect x="36" y="160" width="40" height="95" rx="20" fill="#1F2636" stroke="#374151" strokeWidth="2" />
+          <rect x="324" y="160" width="40" height="95" rx="20" fill="#1F2636" stroke="#374151" strokeWidth="2" />
 
-          {/* Warm Throw Blanket Draped on Left Arm */}
-          <path d="M42 180 Q 56 185 58 225 Q 52 250 44 245 Z" fill="url(#throwBlanket)" />
+          {/* Textured Throw Blanket on Left Arm */}
+          <path d="M42 180 Q 56 185 58 225 Q 52 250 44 245 Z" fill="url(#c-throwBlanket)" />
           <line x1="44" y1="242" x2="56" y2="242" stroke="#FEF3C7" strokeWidth="1" strokeDasharray="2 2" />
 
-          {/* Rose-Gold Throw Pillow on Right */}
-          <rect x="300" y="180" width="34" height="42" rx="10" transform="rotate(-12 300 180)" fill="url(#throwPillowRose)" stroke="#FDA4AF" strokeWidth="1" opacity="0.9" />
+          {/* Rose-Gold Velvet Throw Pillow on Right */}
+          <rect x="300" y="180" width="34" height="42" rx="10" transform="rotate(-12 300 180)" fill="url(#c-throwPillowRose)" stroke="#FDA4AF" strokeWidth="1" opacity="0.9" />
 
           {/* Sofa Seat Cushions */}
-          <rect x="68" y="215" width="128" height="50" rx="16" fill="url(#sofaCushion)" stroke="#2B3244" strokeWidth="1.5" />
-          <rect x="204" y="215" width="128" height="50" rx="16" fill="url(#sofaCushion)" stroke="#2B3244" strokeWidth="1.5" />
+          <rect x="68" y="215" width="128" height="50" rx="16" fill="url(#c-sofaCushion)" stroke="#374151" strokeWidth="1.5" />
+          <rect x="204" y="215" width="128" height="50" rx="16" fill="url(#c-sofaCushion)" stroke="#374151" strokeWidth="1.5" />
 
-          {/* Sofa Wooden / Metal Angled Feet */}
-          <path d="M70 265 L 62 292" stroke="#D97706" strokeWidth="4" strokeLinecap="round" />
-          <path d="M330 265 L 338 292" stroke="#D97706" strokeWidth="4" strokeLinecap="round" />
-          <path d="M195 265 L 195 292" stroke="#D97706" strokeWidth="3" strokeLinecap="round" />
+          {/* Sofa Solid Tapered Feet */}
+          <path d="M70 265 L 62 292" stroke="#B45309" strokeWidth="4.5" strokeLinecap="round" />
+          <path d="M330 265 L 338 292" stroke="#B45309" strokeWidth="4.5" strokeLinecap="round" />
+          <path d="M195 265 L 195 292" stroke="#B45309" strokeWidth="3.5" strokeLinecap="round" />
 
-          {/* ── CHARACTERS SEATED TOGETHER ── */}
-
-          {/* GUY (Right Side, Arm Draped Behind Girl) */}
+          {/* ── GUY (Right Side, Arm Draped Behind Partner) ── */}
           <g id="guy-seated">
             {/* Guy Arm resting along top of sofa behind partner */}
             <path d="M250 145 C 220 135, 175 145, 155 160" stroke={mOutfit.sleeves} strokeWidth="14" strokeLinecap="round" />
             <circle cx="152" cy="162" r="7" fill={mSkin.base} />
 
-            {/* Guy Legs in street denim/pants */}
+            {/* Guy Seated Legs & Sneakers */}
             <rect x="235" y="225" width="22" height="55" rx="10" fill={mOutfit.pants} />
             <rect x="265" y="225" width="22" height="55" rx="10" fill={mOutfit.pants} />
-            {/* Guy Shoes */}
-            <ellipse cx="246" cy="282" rx="13" ry="7" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
-            <ellipse cx="276" cy="282" rx="13" ry="7" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+            {/* High-detail modeled sneakers (Nike/Jordan style) */}
+            <g id="guy-sneakers">
+              <ellipse cx="246" cy="282" rx="13" ry="7" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+              <path d="M236 280 L 256 280" stroke="#DC2626" strokeWidth="1.5" />
+              <ellipse cx="276" cy="282" rx="13" ry="7" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+              <path d="M266 280 L 286 280" stroke="#DC2626" strokeWidth="1.5" />
+            </g>
 
-            {/* Guy Torso (Jacket / Outfit) */}
+            {/* Guy Torso (Jacket / Outfit with 3D Depth) */}
             <path d="M225 155 C 225 145, 285 145, 285 155 L 288 230 C 288 235, 222 235, 222 230 Z" fill={mOutfit.jacket} />
-            {/* Guy Outfit Accent / Collar */}
             <path d="M245 155 L 255 185 L 265 155" stroke={mOutfit.accent} strokeWidth="3" fill="none" strokeLinecap="round" />
 
-            {/* Guy Right Arm in lap */}
+            {/* Guy Right Arm resting naturally on knee */}
             <path d="M285 165 C 298 185, 295 205, 280 220" stroke={mOutfit.sleeves} strokeWidth="12" strokeLinecap="round" />
             <circle cx="278" cy="222" r="6" fill={mSkin.base} />
 
             {/* Guy Neck */}
             <rect x="248" y="138" width="14" height="18" rx="4" fill={mSkin.shadow} />
 
-            {/* Guy Head */}
-            <circle cx="255" cy="120" r="22" fill={mSkin.base} />
-            {/* Guy Hair (Styled short fade / textured) */}
-            <path d="M233 118 C 233 96, 277 96, 277 118 C 277 106, 268 100, 255 100 C 242 100, 233 106, 233 118 Z" fill={mHair.base} />
-            <path d="M238 108 Q 255 98 272 108" stroke={mHair.highlight} strokeWidth="2" strokeLinecap="round" />
-            {/* Guy Facial Expression (Affectionate smile looking at partner) */}
-            <circle cx="248" cy="118" r="2.5" fill="#1E293B" />
-            <circle cx="262" cy="118" r="2.5" fill="#1E293B" />
-            <path d="M246 114 Q 250 112 254 114" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
-            <path d="M260 114 Q 264 112 268 114" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
-            <path d="M250 128 Q 255 133 260 128" stroke="#991B1B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-            {/* Subtle Blush */}
-            <circle cx="244" cy="123" r="3.5" fill={mSkin.blush} opacity="0.6" />
+            {/* ── 3D BITMOJI SCULPTED HEAD & FACE (Guy) ── */}
+            <g id="guy-head">
+              {/* Volumetric 3D Jawline */}
+              <path
+                d="M233 118 C 233 96, 277 96, 277 118 C 277 132, 270 144, 255 147 C 240 144, 233 132, 233 118 Z"
+                fill="url(#c-mSkin)"
+              />
+
+              {/* Ears with inner shadow */}
+              <ellipse cx="232" cy="120" rx="3" ry="5" fill={mSkin.base} />
+              <ellipse cx="232" cy="120" rx="1.5" ry="2.5" fill={mSkin.shadow} />
+              <ellipse cx="278" cy="120" rx="3" ry="5" fill={mSkin.base} />
+              <ellipse cx="278" cy="120" rx="1.5" ry="2.5" fill={mSkin.shadow} />
+
+              {/* Sculpted Hair with Sheen Band */}
+              <path d="M232 115 C 232 94, 278 94, 278 115 C 278 102, 268 96, 255 96 C 242 96, 232 102, 232 115 Z" fill="url(#c-mHair)" />
+              <path d="M236 106 Q 255 96 274 106" stroke={mHair.highlight || '#9CA3AF'} strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+
+              {/* Cheekbone 3D Blush */}
+              <ellipse cx="243" cy="125" rx="4" ry="2.5" fill={mSkin.blush} opacity="0.55" />
+              <ellipse cx="267" cy="125" rx="4" ry="2.5" fill={mSkin.blush} opacity="0.55" />
+
+              {/* Sculpted 3D Nose */}
+              <path d="M254 116 L 254 123 C 254 125, 257 125, 257 123" stroke={mSkin.shadow} strokeWidth="1.2" strokeLinecap="round" fill="none" />
+              <circle cx="255" cy="123" r="0.8" fill={mSkin.highlight || '#FFFFFF'} opacity="0.8" />
+
+              {/* 3D Almond Eyes Looking at Partner (With Specular Catchlights) */}
+              <ellipse cx="247" cy="116" rx="4" ry="3" fill="#FFFFFF" />
+              <circle cx="246" cy="116" r="2.3" fill="url(#c-mIris)" />
+              <circle cx="246" cy="116" r="1.1" fill="#0A0A0C" />
+              <circle cx="245.2" cy="115.2" r="0.7" fill="#FFFFFF" />
+              <path d="M243 115 C 244.5 113, 249 113, 250.5 115" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+
+              <ellipse cx="263" cy="116" rx="4" ry="3" fill="#FFFFFF" />
+              <circle cx="262" cy="116" r="2.3" fill="url(#c-mIris)" />
+              <circle cx="262" cy="116" r="1.1" fill="#0A0A0C" />
+              <circle cx="261.2" cy="115.2" r="0.7" fill="#FFFFFF" />
+              <path d="M259 115 C 260.5 113, 265 113, 266.5 115" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+
+              {/* Eyebrows with Tapered Arch */}
+              <path d="M243 112 Q 247 110 251 112" stroke="#1F2937" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M259 112 Q 263 110 267 112" stroke="#1F2937" strokeWidth="1.5" strokeLinecap="round" />
+
+              {/* Soulful Affectionate Smile */}
+              <path d="M249 130 Q 255 135 261 130" stroke="#881337" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <path d="M251 130 Q 255 133 259 130" fill="#FFFFFF" />
+            </g>
           </g>
 
-          {/* GIRL (Left Side, Nestled Against Guy) */}
+          {/* ── GIRL (Left Side, Nestled Against Guy) ── */}
           <g id="girl-seated">
-            {/* Girl Back Hair (Flowing waves) */}
-            <path d="M125 125 C 115 150, 115 190, 130 215 C 138 215, 142 195, 140 165 Z" fill={fHair.base} />
+            {/* Girl Back Hair (Flowing waves behind body) */}
+            <path d="M125 125 C 115 150, 115 190, 130 215 C 138 215, 142 195, 140 165 Z" fill="url(#c-fHair)" />
 
-            {/* Girl Legs tucked comfortably on sofa */}
+            {/* Girl Seated Legs on sofa */}
             <path d="M145 225 Q 165 240 185 245 Q 205 242 225 240" stroke={fOutfit.pants} strokeWidth="20" strokeLinecap="round" />
-            {/* Girl Shoes */}
             <ellipse cx="225" cy="240" rx="9" ry="6" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
             {/* Girl Torso (Dress / Outfit) */}
             <path d="M142 165 C 145 155, 195 155, 198 165 L 202 235 C 202 238, 140 238, 140 235 Z" fill={fOutfit.jacket} />
-            {/* Girl Collar / Accent */}
             <path d="M160 165 Q 170 178 180 165" stroke={fOutfit.accent} strokeWidth="2.5" fill="none" strokeLinecap="round" />
 
-            {/* Girl Hand resting on Guy's chest / lap */}
+            {/* Girl Hand resting on Guy's chest */}
             <path d="M185 185 C 205 195, 218 200, 230 205" stroke={fOutfit.sleeves} strokeWidth="10" strokeLinecap="round" />
             <circle cx="232" cy="206" r="5" fill={fSkin.base} />
 
             {/* Girl Neck */}
             <rect x="162" y="145" width="12" height="16" rx="4" fill={fSkin.shadow} />
 
-            {/* Girl Head (Resting slightly against Guy) */}
+            {/* ── 3D BITMOJI SCULPTED HEAD & FACE (Girl Nestled Close) ── */}
             <g transform="rotate(8 168 130)">
-              <circle cx="168" cy="130" r="20" fill={fSkin.base} />
-              {/* Girl Hair Front / Bangs */}
-              <path d="M148 126 C 148 106, 188 106, 188 126 C 188 112, 178 108, 168 108 C 158 108, 148 112, 148 126 Z" fill={fHair.base} />
-              <path d="M152 115 Q 168 106 184 115" stroke={fHair.highlight} strokeWidth="2" strokeLinecap="round" />
-              
-              {/* Girl Eyes (Gently closed with sweet eyelashes) */}
-              <path d="M158 128 Q 163 133 167 128" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-              <path d="M172 128 Q 177 133 181 128" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-              <line x1="166" y1="129" x2="169" y2="126" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
-              <line x1="180" y1="129" x2="183" y2="126" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
-              
-              {/* Sweet smile */}
-              <path d="M165 137 Q 170 142 175 137" stroke="#BE123C" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-              {/* Romantic Cheerful Blush */}
-              <ellipse cx="156" cy="133" rx="4.5" ry="3" fill={fSkin.blush} opacity="0.75" />
-              <ellipse cx="182" cy="133" rx="4.5" ry="3" fill={fSkin.blush} opacity="0.75" />
+              {/* Volumetric Jawline */}
+              <path
+                d="M148 126 C 148 106, 188 106, 188 126 C 188 138, 180 148, 168 152 C 156 148, 148 138, 148 126 Z"
+                fill="url(#c-fSkin)"
+              />
+
+              {/* Ears */}
+              <ellipse cx="147" cy="128" rx="2.5" ry="4" fill={fSkin.base} />
+              <ellipse cx="189" cy="128" rx="2.5" ry="4" fill={fSkin.base} />
+
+              {/* Sculpted Hair Front with Curved Sheen */}
+              <path d="M148 126 C 148 106, 188 106, 188 126 C 188 112, 178 106, 168 106 C 158 106, 148 112, 148 126 Z" fill="url(#c-fHair)" />
+              <path d="M152 114 Q 168 104 184 114" stroke={fHair.highlight || '#D97706'} strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+
+              {/* Soft Cheerful Cheek Blush */}
+              <ellipse cx="156" cy="133" rx="4.5" ry="2.8" fill={fSkin.blush} opacity="0.75" />
+              <ellipse cx="180" cy="133" rx="4.5" ry="2.8" fill={fSkin.blush} opacity="0.75" />
+
+              {/* Sculpted 3D Nose */}
+              <path d="M167 127 L 167 132 C 167 134, 169 134, 169 132" stroke={fSkin.shadow} strokeWidth="1" strokeLinecap="round" fill="none" />
+
+              {/* Peaceful Eyes (Closed with delicate curved eyelashes) */}
+              <path d="M158 127 Q 163 132 167 127" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <path d="M171 127 Q 176 132 180 127" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <line x1="166" y1="128" x2="169" y2="125" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="179" y1="128" x2="182" y2="125" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" />
+
+              {/* Sweet Affectionate Lips */}
+              <path d="M164 139 Q 169 144 174 139" stroke="#BE123C" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <circle cx="169" cy="141" r="1.5" fill={fSkin.lips || '#E11D48'} opacity="0.8" />
             </g>
           </g>
 
-          {/* Floating Warm Heart */}
+          {/* Floating Heart Shower on Tap */}
           <g className="animate-bounce" style={{ transformOrigin: '200px 90px' }}>
             <path d="M200 85 C 195 75, 180 75, 180 90 C 180 102, 200 112, 200 115 C 200 112, 220 102, 220 90 C 220 75, 205 75, 200 85 Z" fill="#F43F5E" />
             <circle cx="190" cy="83" r="2" fill="#FFE4E6" />
@@ -328,30 +408,53 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ============================================================= */}
-      {/* 2. WARM HUG SCENE (Intimate Loving Full Embrace) */}
+      {/* 2. WARM HUG SCENE (Snapchat 3D Intimate Full Embrace) */}
       {/* ============================================================= */}
       {activeScene === 'hug' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(244,63,94,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Ground Contact Shadow */}
-          <ellipse cx="180" cy="315" rx="90" ry="14" fill="#000000" fillOpacity="0.5" />
+          <defs>
+            <linearGradient id="h-mSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={mSkin.base} />
+              <stop offset="100%" stopColor={mSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="h-fSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={fSkin.base} />
+              <stop offset="100%" stopColor={fSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="h-mHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mHair.highlight || '#4B5563'} />
+              <stop offset="50%" stopColor={mHair.base} />
+              <stop offset="100%" stopColor={mHair.shadow || '#111827'} />
+            </linearGradient>
+            <linearGradient id="h-fHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fHair.highlight || '#78350F'} />
+              <stop offset="50%" stopColor={fHair.base} />
+              <stop offset="100%" stopColor={fHair.shadow || '#22150E'} />
+            </linearGradient>
+          </defs>
 
-          {/* Pulsing Love Glow */}
+          {/* Realistic Ground Contact Shadow */}
+          <ellipse cx="180" cy="315" rx="95" ry="14" fill="#000000" fillOpacity="0.55" />
+
+          {/* Romantic Pulsing Aura */}
           <circle cx="180" cy="160" r="110" fill="#F43F5E" fillOpacity="0.12" className="animate-pulse" />
 
-          {/* Floating Heart Particles */}
+          {/* Floating Heart Burst */}
           <g className="animate-bounce">
             <path d="M180 35 C 175 25, 160 25, 160 40 C 160 52, 180 62, 180 65 C 180 62, 200 52, 200 40 C 200 25, 185 25, 180 35 Z" fill="#F43F5E" />
             <path d="M130 65 C 127 58, 116 58, 116 68 C 116 76, 130 83, 130 85 C 130 83, 144 76, 144 68 C 144 58, 133 58, 130 65 Z" fill="#FB7185" />
             <path d="M230 65 C 227 58, 216 58, 216 68 C 216 76, 230 83, 230 85 C 230 83, 244 76, 244 68 C 244 58, 233 58, 230 65 Z" fill="#FB7185" />
           </g>
 
-          {/* Lower Bodies & Legs (Naturally Interlaced Standing) */}
+          {/* Lower Bodies & Modeled Street Sneakers */}
           <rect x="145" y="225" width="20" height="75" rx="8" fill={mOutfit.pants} />
           <rect x="175" y="225" width="20" height="75" rx="8" fill={fOutfit.pants} />
           <rect x="195" y="225" width="20" height="75" rx="8" fill={mOutfit.pants} />
-          <ellipse cx="155" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
-          <ellipse cx="185" cy="305" rx="11" ry="6" fill={fOutfit.shoes} />
-          <ellipse cx="205" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
+          <ellipse cx="155" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+          <ellipse cx="185" cy="305" rx="11" ry="6" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+          <ellipse cx="205" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
           {/* Guy Body (Turned slightly inward) */}
           <path d="M130 145 C 130 135, 185 135, 185 145 L 180 230 C 180 235, 130 235, 130 230 Z" fill={mOutfit.jacket} />
@@ -359,21 +462,28 @@ export default function RomanticCoupleScene({
           {/* Girl Body (Held close against Guy) */}
           <path d="M165 148 C 165 138, 220 138, 220 148 L 215 230 C 215 235, 165 235, 165 230 Z" fill={fOutfit.jacket} />
 
-          {/* Guy Head (Tilted against her hair) */}
-          <circle cx="152" cy="115" r="24" fill={mSkin.base} />
-          <path d="M128 112 C 128 90, 174 90, 174 112 C 174 100, 165 94, 152 94 C 139 94, 128 100, 128 112 Z" fill={mHair.base} />
-          {/* Guy Eyes Closed in Tender Hug */}
-          <path d="M144 116 Q 148 120 152 116" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-          <path d="M143 124 Q 148 128 153 124" stroke="#991B1B" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-          <circle cx="140" cy="120" r="3.5" fill={mSkin.blush} opacity="0.6" />
+          {/* Guy 3D Head (Tilted against her hair) */}
+          <g id="guy-hug-head">
+            <path
+              d="M130 115 C 130 95, 174 95, 174 115 C 174 128, 165 138, 152 142 C 139 138, 130 128, 130 115 Z"
+              fill="url(#h-mSkin)"
+            />
+            <path d="M128 112 C 128 90, 174 90, 174 112 C 174 100, 165 94, 152 94 C 139 94, 128 100, 128 112 Z" fill="url(#h-mHair)" />
+            <path d="M144 116 Q 148 120 152 116" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <path d="M143 124 Q 148 128 153 124" stroke="#881337" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            <circle cx="140" cy="120" r="3.5" fill={mSkin.blush} opacity="0.6" />
+          </g>
 
-          {/* Girl Head (Nestled comfortably on Guy's shoulder) */}
+          {/* Girl 3D Head (Nestled comfortably on Guy's shoulder) */}
           <g transform="rotate(-8 198 120)">
-            <circle cx="198" cy="120" r="23" fill={fSkin.base} />
+            <path
+              d="M178 120 C 178 100, 218 100, 218 120 C 218 132, 210 142, 198 145 C 186 142, 178 132, 178 120 Z"
+              fill="url(#h-fSkin)"
+            />
             {/* Long Hair Flowing Down Her Back */}
-            <path d="M178 115 C 178 94, 220 94, 220 115 C 228 140, 232 185, 215 210 C 205 205, 205 170, 205 135 Z" fill={fHair.base} />
+            <path d="M178 115 C 178 94, 220 94, 220 115 C 228 140, 232 185, 215 210 C 205 205, 205 170, 205 135 Z" fill="url(#h-fHair)" />
             {/* Girl Face Features */}
-            <path d="M188 121 Q 193 125 197 121" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <path d="M188 121 Q 193 125 197 121" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
             <path d="M186 128 Q 191 133 196 128" stroke="#BE123C" strokeWidth="1.8" strokeLinecap="round" fill="none" />
             <circle cx="183" cy="123" r="4" fill={fSkin.blush} opacity="0.75" />
           </g>
@@ -394,12 +504,35 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ============================================================= */}
-      {/* 3. SWEET KISS SCENE (Tender Forehead & Lip Kiss) */}
+      {/* 3. SWEET KISS SCENE (Snapchat 3D Tender Kiss) */}
       {/* ============================================================= */}
       {activeScene === 'kiss' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(244,63,94,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Ground Shadow */}
-          <ellipse cx="180" cy="315" rx="85" ry="14" fill="#000000" fillOpacity="0.5" />
+          <defs>
+            <linearGradient id="k-mSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={mSkin.base} />
+              <stop offset="100%" stopColor={mSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="k-fSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={fSkin.base} />
+              <stop offset="100%" stopColor={fSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="k-mHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mHair.highlight || '#4B5563'} />
+              <stop offset="50%" stopColor={mHair.base} />
+              <stop offset="100%" stopColor={mHair.shadow || '#111827'} />
+            </linearGradient>
+            <linearGradient id="k-fHair" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fHair.highlight || '#78350F'} />
+              <stop offset="50%" stopColor={fHair.base} />
+              <stop offset="100%" stopColor={fHair.shadow || '#22150E'} />
+            </linearGradient>
+          </defs>
+
+          {/* Ground Contact Shadow */}
+          <ellipse cx="180" cy="315" rx="88" ry="14" fill="#000000" fillOpacity="0.55" />
 
           {/* Kiss Aura Halo */}
           <circle cx="180" cy="130" r="90" fill="#F43F5E" fillOpacity="0.15" className="animate-pulse" />
@@ -416,10 +549,10 @@ export default function RomanticCoupleScene({
           <rect x="155" y="220" width="20" height="80" rx="8" fill={mOutfit.pants} />
           <rect x="185" y="220" width="20" height="80" rx="8" fill={fOutfit.pants} />
           <rect x="215" y="220" width="20" height="80" rx="8" fill={fOutfit.pants} />
-          <ellipse cx="136" cy="305" rx="13" ry="6" fill={mOutfit.shoes} />
-          <ellipse cx="165" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
-          <ellipse cx="195" cy="305" rx="11" ry="6" fill={fOutfit.shoes} />
-          <ellipse cx="225" cy="305" rx="11" ry="6" fill={fOutfit.shoes} />
+          <ellipse cx="136" cy="305" rx="13" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+          <ellipse cx="165" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+          <ellipse cx="195" cy="305" rx="11" ry="6" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+          <ellipse cx="225" cy="305" rx="11" ry="6" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
           {/* Guy Torso (Leaning forward toward girl) */}
           <path d="M120 145 C 120 135, 175 135, 175 145 L 175 225 C 175 230, 120 230, 120 225 Z" fill={mOutfit.jacket} />
@@ -437,23 +570,26 @@ export default function RomanticCoupleScene({
           <path d="M230 165 C 215 185, 185 185, 165 175" stroke={fOutfit.sleeves} strokeWidth="11" strokeLinecap="round" />
           <circle cx="163" cy="174" r="5" fill={fSkin.base} />
 
-          {/* Guy Head Leaning In */}
+          {/* Guy 3D Head Leaning In */}
           <g transform="rotate(10 155 115)">
-            <circle cx="155" cy="115" r="23" fill={mSkin.base} />
-            <path d="M132 112 C 132 90, 178 90, 178 112 C 178 100, 169 94, 155 94 C 141 94, 132 100, 132 112 Z" fill={mHair.base} />
-            {/* Guy closed eyes & blush */}
-            <path d="M152 116 Q 157 121 162 116" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <path
+              d="M133 115 C 133 95, 177 95, 177 115 C 177 128, 168 138, 155 142 C 142 138, 133 128, 133 115 Z"
+              fill="url(#k-mSkin)"
+            />
+            <path d="M132 112 C 132 90, 178 90, 178 112 C 178 100, 169 94, 155 94 C 141 94, 132 100, 132 112 Z" fill="url(#k-mHair)" />
+            <path d="M152 116 Q 157 121 162 116" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
             <circle cx="148" cy="121" r="3.5" fill={mSkin.blush} opacity="0.65" />
           </g>
 
-          {/* Girl Head Leaning In (Lips Meeting) */}
+          {/* Girl 3D Head Leaning In (Lips Meeting) */}
           <g transform="rotate(-10 205 115)">
-            <circle cx="205" cy="115" r="22" fill={fSkin.base} />
-            {/* Flowing Hair */}
-            <path d="M185 110 C 185 90, 227 90, 227 110 C 235 135, 238 175, 225 195 C 215 190, 212 160, 212 130 Z" fill={fHair.base} />
-            {/* Girl closed eyes with eyelashes & blush */}
-            <path d="M198 116 Q 203 121 207 116" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-            <line x1="206" y1="117" x2="209" y2="114" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+            <path
+              d="M185 115 C 185 95, 225 95, 225 115 C 225 128, 218 138, 205 142 C 192 138, 185 128, 185 115 Z"
+              fill="url(#k-fSkin)"
+            />
+            <path d="M185 110 C 185 90, 227 90, 227 110 C 235 135, 238 175, 225 195 C 215 190, 212 160, 212 130 Z" fill="url(#k-fHair)" />
+            <path d="M198 116 Q 203 121 207 116" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <line x1="206" y1="117" x2="209" y2="114" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" />
             <circle cx="212" cy="120" r="4" fill={fSkin.blush} opacity="0.8" />
           </g>
 
@@ -463,25 +599,48 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ============================================================= */}
-      {/* 4. HOLDING HANDS SCENE (Gentle Walk Together) */}
+      {/* 4. HOLDING HANDS SCENE (Snapchat 3D Gentle Walk Together) */}
       {/* ============================================================= */}
       {activeScene === 'hand_hold' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(0,0,0,0.5)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="hh-mSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={mSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={mSkin.base} />
+              <stop offset="100%" stopColor={mSkin.shadow} />
+            </linearGradient>
+            <linearGradient id="hh-fSkin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fSkin.highlight || '#FFEFE6'} />
+              <stop offset="60%" stopColor={fSkin.base} />
+              <stop offset="100%" stopColor={fSkin.shadow} />
+            </linearGradient>
+            <radialGradient id="hh-mIris" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#854D0E" />
+              <stop offset="70%" stopColor="#451A03" />
+              <stop offset="100%" stopColor="#0F0F12" />
+            </radialGradient>
+            <radialGradient id="hh-fIris" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#9A3412" />
+              <stop offset="70%" stopColor="#431407" />
+              <stop offset="100%" stopColor="#0F0F12" />
+            </radialGradient>
+          </defs>
+
           {/* Ground Shadows */}
-          <ellipse cx="130" cy="315" rx="35" ry="10" fill="#000000" fillOpacity="0.4" />
-          <ellipse cx="230" cy="315" rx="35" ry="10" fill="#000000" fillOpacity="0.4" />
+          <ellipse cx="130" cy="315" rx="35" ry="10" fill="#000000" fillOpacity="0.45" />
+          <ellipse cx="230" cy="315" rx="35" ry="10" fill="#000000" fillOpacity="0.45" />
 
           {/* Floating Affection Heart */}
           <g className="animate-bounce">
             <path d="M180 50 C 175 40, 160 40, 160 55 C 160 67, 180 77, 180 80 C 180 77, 200 67, 200 55 C 200 40, 185 40, 180 50 Z" fill="#F43F5E" />
           </g>
 
-          {/* Guy Left Side */}
+          {/* Guy Standing Left */}
           <g id="guy-standing">
             <rect x="115" y="215" width="18" height="85" rx="7" fill={mOutfit.pants} />
             <rect x="138" y="215" width="18" height="85" rx="7" fill={mOutfit.pants} />
-            <ellipse cx="124" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
-            <ellipse cx="147" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
+            <ellipse cx="124" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+            <ellipse cx="147" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
             <path d="M105 135 C 105 125, 165 125, 165 135 L 160 220 C 160 225, 110 225, 110 220 Z" fill={mOutfit.jacket} />
             <path d="M125 135 L 135 165 L 145 135" stroke={mOutfit.accent} strokeWidth="2.5" fill="none" />
@@ -494,21 +653,31 @@ export default function RomanticCoupleScene({
             <path d="M162 145 C 168 175, 172 195, 176 210" stroke={mOutfit.sleeves} strokeWidth="11" strokeLinecap="round" />
             <circle cx="177" cy="212" r="5.5" fill={mSkin.base} />
 
-            {/* Guy Head */}
-            <circle cx="135" cy="100" r="22" fill={mSkin.base} />
+            {/* Guy 3D Head */}
+            <path
+              d="M115 100 C 115 80, 155 80, 155 100 C 155 112, 148 122, 135 125 C 122 122, 115 112, 115 100 Z"
+              fill="url(#hh-mSkin)"
+            />
             <path d="M113 98 C 113 76, 157 76, 157 98 C 157 86, 148 80, 135 80 C 122 80, 113 86, 113 98 Z" fill={mHair.base} />
-            <circle cx="130" cy="98" r="2.5" fill="#1E293B" />
-            <circle cx="144" cy="98" r="2.5" fill="#1E293B" />
-            <path d="M132 108 Q 137 113 142 108" stroke="#991B1B" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            {/* 3D Eyes with Specular Catchlights */}
+            <ellipse cx="129" cy="98" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="130" cy="98" r="2" fill="url(#hh-mIris)" />
+            <circle cx="129.3" cy="97.3" r="0.6" fill="#FFFFFF" />
+
+            <ellipse cx="143" cy="98" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="144" cy="98" r="2" fill="url(#hh-mIris)" />
+            <circle cx="143.3" cy="97.3" r="0.6" fill="#FFFFFF" />
+
+            <path d="M132 108 Q 137 113 142 108" stroke="#881337" strokeWidth="1.6" strokeLinecap="round" fill="none" />
             <circle cx="126" cy="103" r="3" fill={mSkin.blush} opacity="0.6" />
           </g>
 
-          {/* Girl Right Side */}
+          {/* Girl Standing Right */}
           <g id="girl-standing">
             <rect x="205" y="215" width="16" height="85" rx="7" fill={fOutfit.pants} />
             <rect x="226" y="215" width="16" height="85" rx="7" fill={fOutfit.pants} />
-            <ellipse cx="213" cy="305" rx="10" ry="5" fill={fOutfit.shoes} />
-            <ellipse cx="234" cy="305" rx="10" ry="5" fill={fOutfit.shoes} />
+            <ellipse cx="213" cy="305" rx="10" ry="5" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+            <ellipse cx="234" cy="305" rx="10" ry="5" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
             <path d="M195 138 C 195 128, 250 128, 250 138 L 245 220 C 245 225, 200 225, 200 220 Z" fill={fOutfit.jacket} />
             <path d="M215 138 Q 222 152 230 138" stroke={fOutfit.accent} strokeWidth="2" fill="none" />
@@ -521,20 +690,29 @@ export default function RomanticCoupleScene({
             <path d="M248 148 L 256 198" stroke={fOutfit.sleeves} strokeWidth="10" strokeLinecap="round" />
             <circle cx="257" cy="201" r="5" fill={fSkin.base} />
 
-            {/* Girl Head */}
-            <circle cx="225" cy="104" r="20" fill={fSkin.base} />
+            {/* Girl 3D Head */}
+            <path
+              d="M207 104 C 207 84, 243 84, 243 104 C 243 116, 236 125, 225 128 C 214 125, 207 116, 207 104 Z"
+              fill="url(#hh-fSkin)"
+            />
             <path d="M205 100 C 205 80, 245 80, 245 100 C 252 125, 255 160, 245 180 C 238 175, 235 150, 235 125 Z" fill={fHair.base} />
-            <circle cx="220" cy="102" r="2.2" fill="#1E293B" />
-            <circle cx="232" cy="102" r="2.2" fill="#1E293B" />
+            
+            {/* 3D Eyes with Specular Catchlights */}
+            <ellipse cx="219" cy="102" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="218" cy="102" r="2" fill="url(#hh-fIris)" />
+            <circle cx="217.3" cy="101.3" r="0.6" fill="#FFFFFF" />
+
+            <ellipse cx="231" cy="102" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="230" cy="102" r="2" fill="url(#hh-fIris)" />
+            <circle cx="229.3" cy="101.3" r="0.6" fill="#FFFFFF" />
+
             <path d="M222 111 Q 226 115 230 111" stroke="#BE123C" strokeWidth="1.6" strokeLinecap="round" fill="none" />
             <circle cx="216" cy="106" r="3.5" fill={fSkin.blush} opacity="0.7" />
           </g>
 
           {/* ── INTERTWINED HANDS CONNECTION POINT ── */}
           <g id="clasped-hands">
-            {/* Glowing Connection aura */}
             <circle cx="180" cy="212" r="10" fill="#F43F5E" fillOpacity="0.25" className="animate-ping" />
-            {/* Clasping fingers */}
             <ellipse cx="180" cy="212" rx="7" ry="5" fill={mSkin.shadow} />
             <path d="M176 210 Q 180 216 184 210" stroke="#F43F5E" strokeWidth="1.5" />
             <text x="174" y="200" fontSize="11">💖</text>
@@ -543,16 +721,16 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ============================================================= */}
-      {/* 5. BED SPOON SCENE (Luxury Bed Cuddle & Sleep) */}
+      {/* 5. BED SPOON SCENE (Snapchat 3D Luxury Bed Cuddle) */}
       {/* ============================================================= */}
       {activeScene === 'spoon' && (
         <svg viewBox="0 0 400 320" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(99,102,241,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="headboardGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="s-headboard" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#252A38" />
               <stop offset="100%" stopColor="#141722" />
             </linearGradient>
-            <linearGradient id="duvetGrad" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="s-duvet" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#312E81" />
               <stop offset="50%" stopColor="#1E1B4B" />
               <stop offset="100%" stopColor="#0F101A" />
@@ -563,7 +741,7 @@ export default function RomanticCoupleScene({
           <ellipse cx="200" cy="295" rx="160" ry="14" fill="#000000" fillOpacity="0.5" />
 
           {/* Luxury Padded Headboard */}
-          <rect x="50" y="80" width="300" height="110" rx="24" fill="url(#headboardGrad)" stroke="#374151" strokeWidth="2" />
+          <rect x="50" y="80" width="300" height="110" rx="24" fill="url(#s-headboard)" stroke="#374151" strokeWidth="2" />
           <line x1="125" y1="85" x2="125" y2="185" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
           <line x1="200" y1="85" x2="200" y2="185" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
           <line x1="275" y1="85" x2="275" y2="185" stroke="#374151" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
@@ -577,26 +755,21 @@ export default function RomanticCoupleScene({
           <g transform="rotate(8 245 160)">
             <circle cx="245" cy="155" r="22" fill={mSkin.base} />
             <path d="M225 152 C 225 130, 267 130, 267 152 C 267 140, 258 134, 245 134 C 232 134, 225 140, 225 152 Z" fill={mHair.base} />
-            {/* Peaceful Sleeping Eye */}
-            <path d="M236 158 Q 242 163 248 158" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <path d="M236 158 Q 242 163 248 158" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
             <circle cx="234" cy="163" r="3" fill={mSkin.blush} opacity="0.5" />
           </g>
 
           {/* Girl (Nestled in Front) */}
           <g transform="rotate(12 185 168)">
             <circle cx="185" cy="165" r="21" fill={fSkin.base} />
-            {/* Long Hair spread on pillow */}
             <path d="M155 160 C 155 140, 205 140, 205 160 C 215 185, 215 210, 195 215 C 180 215, 175 190, 175 175 Z" fill={fHair.base} />
-            {/* Girl Sleeping Eye with Eyelashes */}
-            <path d="M176 168 Q 182 173 188 168" stroke="#0F172A" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-            <line x1="187" y1="169" x2="190" y2="166" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+            <path d="M176 168 Q 182 173 188 168" stroke="#18181B" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+            <line x1="187" y1="169" x2="190" y2="166" stroke="#18181B" strokeWidth="1.2" strokeLinecap="round" />
             <circle cx="174" cy="172" r="3.5" fill={fSkin.blush} opacity="0.7" />
           </g>
 
           {/* Soft Textured Bed Quilt / Duvet covering their bodies */}
-          <path d="M55 190 Q 200 178 345 190 L 355 285 C 355 292, 45 292, 45 285 Z" fill="url(#duvetGrad)" stroke="#3730A3" strokeWidth="1.5" />
-
-          {/* Folded Top Sheet Hem (Satin trim) */}
+          <path d="M55 190 Q 200 178 345 190 L 355 285 C 355 292, 45 292, 45 285 Z" fill="url(#s-duvet)" stroke="#3730A3" strokeWidth="1.5" />
           <path d="M55 190 Q 200 178 345 190 L 343 205 Q 200 193 57 205 Z" fill={fOutfit.collar || '#E0E7FF'} opacity="0.9" />
 
           {/* Guy Arm resting affectionately over the duvet holding her close */}
@@ -613,7 +786,7 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ============================================================= */}
-      {/* 6. COFFEE TOAST SCENE (Morning Toast Cheers) */}
+      {/* 6. COFFEE TOAST SCENE (Snapchat 3D Morning Toast Cheers) */}
       {/* ============================================================= */}
       {activeScene === 'toast' && (
         <svg viewBox="0 0 360 340" className="w-full h-auto drop-shadow-[0_20px_45px_rgba(245,158,11,0.4)]" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -631,8 +804,8 @@ export default function RomanticCoupleScene({
           <g id="guy-toast">
             <rect x="110" y="215" width="18" height="85" rx="7" fill={mOutfit.pants} />
             <rect x="132" y="215" width="18" height="85" rx="7" fill={mOutfit.pants} />
-            <ellipse cx="119" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
-            <ellipse cx="141" cy="305" rx="12" ry="6" fill={mOutfit.shoes} />
+            <ellipse cx="119" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+            <ellipse cx="141" cy="305" rx="12" ry="6" fill={mOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
             <path d="M100 135 C 100 125, 155 125, 155 135 L 150 220 C 150 225, 105 225, 105 220 Z" fill={mOutfit.jacket} />
             
@@ -644,12 +817,16 @@ export default function RomanticCoupleScene({
             <path d="M168 169 C 163 169, 163 179, 168 179" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
             <text x="171" y="177" fontSize="7" fill="#FFFFFF" fontWeight="bold">H</text>
 
-            {/* Guy Head */}
+            {/* Guy 3D Head */}
             <circle cx="128" cy="100" r="22" fill={mSkin.base} />
             <path d="M106 98 C 106 76, 150 76, 150 98 C 150 86, 141 80, 128 80 C 115 80, 106 86, 106 98 Z" fill={mHair.base} />
-            <circle cx="124" cy="98" r="2.5" fill="#1E293B" />
-            <circle cx="138" cy="98" r="2.5" fill="#1E293B" />
-            <path d="M126 108 Q 131 113 136 108" stroke="#991B1B" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            <ellipse cx="124" cy="98" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="125" cy="98" r="2" fill="#451A03" />
+            <circle cx="124.3" cy="97.3" r="0.6" fill="#FFFFFF" />
+            <ellipse cx="138" cy="98" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="139" cy="98" r="2" fill="#451A03" />
+            <circle cx="138.3" cy="97.3" r="0.6" fill="#FFFFFF" />
+            <path d="M126 108 Q 131 113 136 108" stroke="#881337" strokeWidth="1.6" strokeLinecap="round" fill="none" />
             <circle cx="120" cy="103" r="3" fill={mSkin.blush} opacity="0.6" />
           </g>
 
@@ -657,8 +834,8 @@ export default function RomanticCoupleScene({
           <g id="girl-toast">
             <rect x="210" y="215" width="16" height="85" rx="7" fill={fOutfit.pants} />
             <rect x="232" y="215" width="16" height="85" rx="7" fill={fOutfit.pants} />
-            <ellipse cx="218" cy="305" rx="10" ry="5" fill={fOutfit.shoes} />
-            <ellipse cx="240" cy="305" rx="10" ry="5" fill={fOutfit.shoes} />
+            <ellipse cx="218" cy="305" rx="10" ry="5" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
+            <ellipse cx="240" cy="305" rx="10" ry="5" fill={fOutfit.shoes} stroke="#E2E8F0" strokeWidth="1" />
 
             <path d="M205 138 C 205 128, 260 128, 260 138 L 255 220 C 255 225, 210 225, 210 220 Z" fill={fOutfit.jacket} />
             
@@ -670,11 +847,15 @@ export default function RomanticCoupleScene({
             <path d="M192 169 C 197 169, 197 179, 192 179" stroke="#FFFFFF" strokeWidth="1.5" fill="none" />
             <text x="182" y="177" fontSize="7" fill="#FFFFFF" fontWeight="bold">S</text>
 
-            {/* Girl Head */}
+            {/* Girl 3D Head */}
             <circle cx="232" cy="104" r="20" fill={fSkin.base} />
             <path d="M212 100 C 212 80, 252 80, 252 100 C 259 125, 262 160, 252 180 C 245 175, 242 150, 242 125 Z" fill={fHair.base} />
-            <circle cx="227" cy="102" r="2.2" fill="#1E293B" />
-            <circle cx="239" cy="102" r="2.2" fill="#1E293B" />
+            <ellipse cx="227" cy="102" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="226" cy="102" r="2" fill="#431407" />
+            <circle cx="225.3" cy="101.3" r="0.6" fill="#FFFFFF" />
+            <ellipse cx="239" cy="102" rx="3.5" ry="2.6" fill="#FFFFFF" />
+            <circle cx="238" cy="102" r="2" fill="#431407" />
+            <circle cx="237.3" cy="101.3" r="0.6" fill="#FFFFFF" />
             <path d="M229 111 Q 233 115 237 111" stroke="#BE123C" strokeWidth="1.6" strokeLinecap="round" fill="none" />
             <circle cx="223" cy="106" r="3.5" fill={fSkin.blush} opacity="0.7" />
           </g>
@@ -688,7 +869,7 @@ export default function RomanticCoupleScene({
       )}
 
       {/* ── Ground Perspective Surface Shadow ── */}
-      <div className="w-56 sm:w-72 h-3 bg-black/40 blur-md rounded-full mx-auto -mt-1 mb-2" />
+      <div className="w-56 sm:w-72 h-3.5 bg-black/45 blur-md rounded-full mx-auto -mt-1 mb-2" />
     </div>
   );
 }
