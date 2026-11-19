@@ -343,6 +343,14 @@ async def websocket_chat(
                     "reader_id": user_id
                 })
 
+            elif msg_type == "message_reaction":
+                await manager.broadcast(couple_id, {
+                    "type": "message_reaction",
+                    "message_id": data.get("message_id"),
+                    "emoji": data.get("emoji"),
+                    "user_id": user_id
+                })
+
             # ── REAL-TIME HEARTBEAT TOUCH / THUMBKISS ───────────────────────
             elif msg_type == "touch_move":
                 await manager.broadcast(couple_id, {

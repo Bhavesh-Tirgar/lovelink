@@ -42,31 +42,6 @@ export default function CozyRoom() {
   const coupleId = room?.couple_id || localStorage.getItem('couple_id') || null;
   const WS_URL = getWsBaseUrl();
 
-  // WebSocket live synchronizer for instant scene swap & reaction
-  const handleWSMessage = useCallback((data) => {
-    if (!data) return;
-
-    if (data.type === 'room_update') {
-      if (data.action === 'couple_interaction') {
-        const nextAction = data.interaction_action || data.sub_action || 'couch';
-        setCurrentAction(nextAction);
-        
-        confetti({
-          particleCount: 45,
-          spread: 65,
-          origin: { y: 0.55 },
-          colors: ['#F43F5E', '#EC4899', '#FB7185', '#FBBF24']
-        });
-        toast.success(data.message || `Partner switched to ${nextAction}! 💖`);
-      }
-    }
-  }, []);
-
-  useWebSocket(
-    coupleId ? `${WS_URL}/ws/chat/${coupleId}` : null,
-    handleWSMessage
-  );
-
   const fetchRoom = useCallback(async () => {
     try {
       setLoading(true);
@@ -81,6 +56,45 @@ export default function CozyRoom() {
       setLoading(false);
     }
   }, []);
+
+  // WebSocket live synchronizer for instant scene swap, notes & reaction
+  const handleWSMessage = useCallback((data) => {
+    if (!data) return;
+
+    if (data.type === 'room_update') {
+      if (data.action === 'couple_interaction') {
+        const nextAction = data.interaction || data.interaction_action || data.sub_action || 'couch';
+        setCurrentAction(nextAction);
+        
+        confetti({
+          particleCount: 45,
+          spread: 65,
+          origin: { y: 0.55 },
+          colors: ['#F43F5E', '#EC4899', '#FB7185', '#FBBF24']
+        });
+        toast.success(data.message || `Partner switched to ${nextAction}! 💖`);
+      } else if (data.action === 'new_sticky_note' && data.note) {
+        setRoom(prev => prev ? ({
+          ...prev,
+          sticky_notes: [data.note, ...(prev.sticky_notes || []).filter(n => n.id !== data.note.id)]
+        }) : prev);
+        toast.success(data.message || 'Partner posted a new love note! 📌');
+      } else if (data.action === 'delete_sticky_note' && data.note_id) {
+        setRoom(prev => prev ? ({
+          ...prev,
+          sticky_notes: (prev.sticky_notes || []).filter(n => n.id !== data.note_id)
+        }) : prev);
+      } else if (data.action === 'avatar_customized') {
+        fetchRoom();
+        toast.success(data.message || 'Partner updated their avatar style! ✨');
+      }
+    }
+  }, [fetchRoom]);
+
+  useWebSocket(
+    coupleId ? `${WS_URL}/ws/chat/${coupleId}` : null,
+    handleWSMessage
+  );
 
   useEffect(() => {
     fetchRoom();

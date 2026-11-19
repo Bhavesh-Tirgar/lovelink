@@ -44,6 +44,8 @@ function Chat() {
         }
     });
 
+    const sendMessageRef = useRef(null);
+
     const handleAddReaction = (msgId, emoji) => {
         setReactions(prev => {
             const next = { ...prev, [msgId]: emoji };
@@ -51,6 +53,11 @@ function Chat() {
             return next;
         });
         setActiveReactionMsgId(null);
+        sendMessageRef.current?.({
+            type: "message_reaction",
+            message_id: msgId,
+            emoji
+        });
     };
 
     const messagesEndRef = useRef(null);
@@ -166,6 +173,14 @@ function Chat() {
                     ? { ...msg, read_at: new Date().toISOString() }
                     : msg
             ));
+        } else if (data.type === 'message_reaction') {
+            if (data.message_id && data.emoji) {
+                setReactions(prev => {
+                    const next = { ...prev, [data.message_id]: data.emoji };
+                    try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch {}
+                    return next;
+                });
+            }
         } else if (data.type === 'nudge') {
             // Heart-shaped confetti!
             import('canvas-confetti').then((confettiLib) => {
@@ -193,6 +208,7 @@ function Chat() {
         coupleId ? `${WS_URL}/ws/chat/${coupleId}` : null,
         onWSMessage
     );
+    sendMessageRef.current = sendMessage;
 
     // Initial load
     useEffect(() => {
