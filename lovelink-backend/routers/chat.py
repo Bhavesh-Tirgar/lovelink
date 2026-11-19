@@ -238,7 +238,7 @@ async def websocket_chat(
     import time
     MAX_FRAME_SIZE = 65536
     RATE_LIMIT_WINDOW = 1.0
-    MAX_MSGS_PER_SEC = 30
+    MAX_MSGS_PER_SEC = 100
     msg_timestamps = []
 
     try:

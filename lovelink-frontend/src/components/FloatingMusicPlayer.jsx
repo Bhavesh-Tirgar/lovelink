@@ -81,15 +81,15 @@ export default function FloatingMusicPlayer() {
 
     return (
         <>
-            {/* ── HIDDEN / EMBEDDED YOUTUBE ENGINE WHEN YOUTUBE TRACK IS ACTIVE ── */}
+            {/* ── EMBEDDED YOUTUBE ENGINE WHEN YOUTUBE TRACK IS ACTIVE ── */}
             {isYouTube && currentTrack.videoId && (
-                <div className="fixed -bottom-96 -left-96 w-10 h-10 opacity-0 pointer-events-none">
+                <div className="fixed bottom-1 right-1 w-4 h-4 opacity-[0.02] pointer-events-none z-[-1] overflow-hidden">
                     <iframe
                         id="yt-music-iframe"
                         title="YouTube Music Player"
-                        width="200"
-                        height="200"
-                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0`}
+                        width="100"
+                        height="100"
+                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=${isPlaying ? 1 : 0}&enablejsapi=1&controls=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                         allow="autoplay"
                     />
                 </div>

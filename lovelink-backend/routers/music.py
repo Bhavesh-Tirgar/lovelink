@@ -122,8 +122,72 @@ class TrackCreate(BaseModel):
     duration: Optional[int] = 180
     type: Optional[str] = "youtube"
 
+async def search_youtube_full_tracks(query: str, limit: int = 15):
+    """Searches YouTube to provide complete, full-duration songs without 30-second limitations."""
+    tracks = []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9"
+    }
+    url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query + ' audio')}"
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            res = await client.get(url, headers=headers)
+            html = res.text
+            match = re.search(r'var ytInitialData = ({.*?});</script>', html)
+            if match:
+                raw_data = json.loads(match.group(1))
+                contents = (
+                    raw_data.get("contents", {})
+                    .get("twoColumnSearchResultsRenderer", {})
+                    .get("primaryContents", {})
+                    .get("sectionListRenderer", {})
+                    .get("contents", [])
+                )
+                for section in contents:
+                    items = section.get("itemSectionRenderer", {}).get("contents", [])
+                    for item in items:
+                        v = item.get("videoRenderer")
+                        if v and "videoId" in v:
+                            title = v.get("title", {}).get("runs", [{}])[0].get("text", "Unknown Song")
+                            artist = v.get("ownerText", {}).get("runs", [{}])[0].get("text", "Artist")
+                            duration_text = v.get("lengthText", {}).get("simpleText", "3:30")
+                            video_id = v["videoId"]
+                            thumbnails = v.get("thumbnail", {}).get("thumbnails", [{}])
+                            cover = thumbnails[-1].get("url") if thumbnails else f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+                            
+                            parts = duration_text.split(":")
+                            dur_sec = 0
+                            for p in parts:
+                                if p.isdigit():
+                                    dur_sec = dur_sec * 60 + int(p)
+
+                            tracks.append({
+                                "id": f"yt-{video_id}",
+                                "title": title,
+                                "artist": artist,
+                                "videoId": video_id,
+                                "cover": cover,
+                                "duration": dur_sec,
+                                "duration_text": duration_text,
+                                "type": "youtube",
+                                "url": f"https://www.youtube.com/watch?v={video_id}"
+                            })
+                            if len(tracks) >= limit:
+                                return tracks
+    except Exception as e:
+        print("YouTube search error:", e)
+    return tracks
+
+
 async def fetch_music_search(query: str, limit: int = 15):
-    """Searches official music catalog and returns instant streaming audio tracks."""
+    """Searches music catalog: prefers full YouTube songs, falls back to catalog preview."""
+    # 1. First attempt full YouTube songs
+    yt_tracks = await search_youtube_full_tracks(query, limit=limit)
+    if yt_tracks and len(yt_tracks) > 0:
+        return yt_tracks
+
+    # 2. Fallback to iTunes catalog
     results = []
     try:
         url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=song&limit={limit}"

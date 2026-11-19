@@ -28,6 +28,20 @@ export const MusicProvider = ({ children }) => {
     const reconnectTimeoutRef = useRef(null);
     const isLocalAction = useRef(true);
 
+    // Cross-frame YouTube Player control bridge
+    const controlYouTube = (action, param = null) => {
+        const iframe = document.getElementById('yt-music-iframe');
+        if (iframe && iframe.contentWindow) {
+            let command = null;
+            if (action === 'play') command = { event: 'command', func: 'playVideo', args: [] };
+            else if (action === 'pause') command = { event: 'command', func: 'pauseVideo', args: [] };
+            else if (action === 'seek') command = { event: 'command', func: 'seekTo', args: [param, true] };
+            if (command) {
+                iframe.contentWindow.postMessage(JSON.stringify(command), '*');
+            }
+        }
+    };
+
     // Keep token & coupleId in sync on navigation / state changes
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -84,6 +98,26 @@ export const MusicProvider = ({ children }) => {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack]);
+
+    // 2b. YouTube simulated progress & auto-advance ticker
+    useEffect(() => {
+        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+        if (!isYt || !isPlaying) return;
+
+        const interval = setInterval(() => {
+            setCurrentTime(prev => {
+                const next = prev + 1;
+                if (currentTrack.duration && next >= currentTrack.duration) {
+                    playNext();
+                    return 0;
+                }
+                return next;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentTrack, isPlaying]);
 
     // 3. WebSockets for partner synchronization
     useEffect(() => {
@@ -170,7 +204,15 @@ export const MusicProvider = ({ children }) => {
                 } else {
                     audio.pause();
                     audio.src = '';
+                    setCurrentTime(data.position || 0);
+                    setDuration(data.track.duration || 210);
                     setIsPlaying(Boolean(data.is_playing));
+                    if (data.is_playing) {
+                        controlYouTube('play');
+                        if (data.position) controlYouTube('seek', data.position);
+                    } else {
+                        controlYouTube('pause');
+                    }
                 }
             }
             if (data.dj_name) setDjName(data.dj_name);
@@ -181,20 +223,27 @@ export const MusicProvider = ({ children }) => {
                     audio.currentTime = data.position;
                 }
                 audio.play().catch(() => {});
+            } else if (isYt) {
+                controlYouTube('play');
+                if (data.position) controlYouTube('seek', data.position);
             }
+            if (data.position !== undefined) setCurrentTime(data.position);
             setIsPlaying(true);
             if (data.dj_name) setDjName(data.dj_name);
         } else if (data.type === 'pause') {
             const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
             if (!isYt) audio.pause();
+            else controlYouTube('pause');
             setIsPlaying(false);
             if (data.position) {
-                audio.currentTime = data.position;
+                if (!isYt) audio.currentTime = data.position;
                 setCurrentTime(data.position);
             }
         } else if (data.type === 'seek') {
+            const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
             if (data.position !== undefined) {
-                audio.currentTime = data.position;
+                if (!isYt) audio.currentTime = data.position;
+                else controlYouTube('seek', data.position);
                 setCurrentTime(data.position);
             }
         }
@@ -215,10 +264,11 @@ export const MusicProvider = ({ children }) => {
     // Broadcast event to partner
     const sendEvent = (type, payload = {}) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
         wsRef.current.send(JSON.stringify({
             type,
             track: currentTrack,
-            position: audioRef.current.currentTime,
+            position: isYt ? currentTime : audioRef.current.currentTime,
             dj_name: getCurrentUserName(),
             ...payload
         }));
@@ -233,7 +283,10 @@ export const MusicProvider = ({ children }) => {
         if (isYt) {
             audio.pause();
             audio.src = '';
+            setCurrentTime(0);
+            setDuration(track.duration || 210);
             setIsPlaying(true);
+            controlYouTube('play');
             sendEvent('change_track', { track, is_playing: true, position: 0 });
         } else if (track.url) {
             audio.src = track.url;
@@ -257,20 +310,27 @@ export const MusicProvider = ({ children }) => {
 
         if (isPlaying) {
             if (!isYt) audio.pause();
+            else controlYouTube('pause');
             setIsPlaying(false);
-            sendEvent('pause', { position: audio.currentTime });
+            sendEvent('pause', { position: isYt ? currentTime : audio.currentTime });
         } else {
             if (!isYt && audio.src) {
                 audio.play().catch(console.warn);
+            } else if (isYt) {
+                controlYouTube('play');
             }
             setIsPlaying(true);
-            sendEvent('play', { position: audio.currentTime });
+            sendEvent('play', { position: isYt ? currentTime : audio.currentTime });
         }
     };
 
     const seek = (time) => {
-        const audio = audioRef.current;
-        audio.currentTime = time;
+        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+        if (isYt) {
+            controlYouTube('seek', time);
+        } else {
+            audioRef.current.currentTime = time;
+        }
         setCurrentTime(time);
         sendEvent('seek', { position: time });
     };
