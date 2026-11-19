@@ -5,12 +5,12 @@ import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, RefreshCw, Sparkles, 
-  Settings, StickyNote, Image, Send, Trash2, X
+  Settings, StickyNote, Image, Send, Trash2, X, Shirt, Check
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import FriendmojiCouple from '../components/FriendmojiCouple';
-import { FRIENDMOJI_TEMPLATES } from '../utils/libmoji';
+import { FRIENDMOJI_TEMPLATES, WARDROBE_OUTFITS } from '../utils/libmoji';
 
 export default function CozyRoom() {
   const navigate = useNavigate();
@@ -22,6 +22,8 @@ export default function CozyRoom() {
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showBitmojiModal, setShowBitmojiModal] = useState(false);
+  const [showWardrobeModal, setShowWardrobeModal] = useState(false);
+  const [selectedOutfit, setSelectedOutfit] = useState('varsity_jacket');
 
   // Sticky Note Input
   const [newNoteText, setNewNoteText] = useState('');
@@ -49,6 +51,9 @@ export default function CozyRoom() {
       setRoom(res.data);
       if (res.data?.couple_action) {
         setCurrentAction(res.data.couple_action);
+      }
+      if (res.data?.my_avatar?.outfit) {
+        setSelectedOutfit(res.data.my_avatar.outfit);
       }
     } catch (err) {
       console.error('Failed to load room:', err);
@@ -186,6 +191,27 @@ export default function CozyRoom() {
     toast.success('Bitmoji Avatar ID saved! ✨');
   };
 
+  const handleSelectOutfit = async (outfitId) => {
+    setSelectedOutfit(outfitId);
+    confetti({
+      particleCount: 35,
+      spread: 60,
+      origin: { y: 0.6 },
+      colors: ['#F43F5E', '#EC4899', '#A855F7', '#FBBF24']
+    });
+    try {
+      await api.post('/room/avatar/customize', { outfit: outfitId });
+      setRoom(prev => prev ? ({
+        ...prev,
+        my_avatar: { ...(prev.my_avatar || {}), outfit: outfitId }
+      }) : prev);
+      const outfitObj = WARDROBE_OUTFITS.find(o => o.id === outfitId);
+      toast.success(`Dressed in ${outfitObj?.name || 'new outfit'}! ✨`);
+    } catch (err) {
+      console.warn("Failed to sync outfit:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0B0E14] text-gray-100 pb-28 pt-4 sm:pt-6 px-4 sm:px-6 max-w-4xl mx-auto flex flex-col items-center select-none animate-in fade-in duration-500">
       
@@ -207,14 +233,25 @@ export default function CozyRoom() {
           <p className="text-[11px] text-gray-400 font-medium">Libmoji Interactive Couple Space</p>
         </div>
 
-        <button
-          onClick={() => setShowBitmojiModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all shadow-md"
-          title="Bitmoji Settings"
-        >
-          <Settings size={14} className="text-pink-400" />
-          <span className="hidden sm:inline">Avatar ID</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowWardrobeModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-950/60 to-purple-950/60 hover:from-rose-900 hover:to-purple-900 border border-rose-500/30 text-rose-200 hover:text-white text-xs font-bold transition-all shadow-md"
+            title="Wardrobe Closet & Outfits"
+          >
+            <Shirt size={14} className="text-rose-400" />
+            <span className="hidden sm:inline">Wardrobe</span>
+          </button>
+
+          <button
+            onClick={() => setShowBitmojiModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-bold transition-all shadow-md"
+            title="Bitmoji Settings"
+          >
+            <Settings size={14} className="text-pink-400" />
+            <span className="hidden sm:inline">Avatar ID</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -231,10 +268,11 @@ export default function CozyRoom() {
             
             <FriendmojiCouple
               action={currentAction}
-              myAvatar={room?.my_avatar}
+              myAvatar={{ ...(room?.my_avatar || {}), outfit: selectedOutfit }}
               partnerAvatar={room?.partner_avatar}
               myName={room?.my_name || 'You'}
               partnerName={room?.partner_name || 'Partner'}
+              onWardrobeClick={() => setShowWardrobeModal(true)}
             />
           </div>
 
@@ -493,6 +531,84 @@ export default function CozyRoom() {
                 Save & Update
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal 4: Wardrobe Closet & Avatar Clothes ────────────── */}
+      {showWardrobeModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-b from-[#161B26] to-[#0B0E14] text-white border border-rose-500/25 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Shirt size={18} className="text-rose-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">Wardrobe Closet</h3>
+                  <p className="text-[10px] text-gray-400">Choose outfits & clothes for your avatar</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowWardrobeModal(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {WARDROBE_OUTFITS.map((outfit) => {
+                const isEquipped = selectedOutfit === outfit.id;
+                return (
+                  <button
+                    key={outfit.id}
+                    type="button"
+                    onClick={() => handleSelectOutfit(outfit.id)}
+                    className={`p-3.5 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between relative group ${
+                      isEquipped 
+                        ? 'bg-rose-500/15 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/50' 
+                        : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${outfit.previewColor} border border-white/20 flex items-center justify-center text-lg shadow-md`}>
+                          {outfit.emoji}
+                        </div>
+                        <div>
+                          <p className={`text-xs font-bold ${isEquipped ? 'text-rose-200' : 'text-white'}`}>
+                            {outfit.name}
+                          </p>
+                          <span className="text-[10px] text-gray-400 font-semibold">{outfit.category}</span>
+                        </div>
+                      </div>
+                      {isEquipped && (
+                        <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center text-white">
+                          <Check size={12} strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 leading-relaxed mt-1">
+                      {outfit.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+              <span className="text-[11px] text-rose-300/80">
+                ✨ Syncs clothes instantly to partner's screen
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowWardrobeModal(false)}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30"
+              >
+                Done
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -63,6 +63,64 @@ export const FRIENDMOJI_TEMPLATES = {
   }
 };
 
+// Curated Wardrobe Outfits & Clothes for Avatars
+export const WARDROBE_OUTFITS = [
+  {
+    id: 'varsity_jacket',
+    name: 'College Varsity & Denim',
+    category: 'Casual',
+    emoji: '🧥',
+    previewColor: 'from-amber-600 to-amber-950',
+    description: 'Classic embroidered varsity jacket with relaxed street denim',
+    accentColor: '#F59E0B'
+  },
+  {
+    id: 'date_night_velvet',
+    name: 'Rose-Gold Velvet & Tuxedo',
+    category: 'Date Night',
+    emoji: '✨',
+    previewColor: 'from-rose-600 to-rose-950',
+    description: 'Midnight black velvet suit & shimmering rose-gold cocktail gown',
+    accentColor: '#F43F5E'
+  },
+  {
+    id: 'silk_sleepwear',
+    name: 'Midnight Silk Pajamas',
+    category: 'Sleepwear',
+    emoji: '🛌',
+    previewColor: 'from-indigo-600 to-indigo-950',
+    description: 'Matching satin pajama set with plush cozy slippers',
+    accentColor: '#6366F1'
+  },
+  {
+    id: 'traditional_royal',
+    name: 'Royal Silk Kurta & Lehenga',
+    category: 'Festive',
+    emoji: '🥻',
+    previewColor: 'from-red-600 via-amber-600 to-yellow-950',
+    description: 'Royal zari silk kurta & pastel embroidered celebratory lehenga',
+    accentColor: '#E11D48'
+  },
+  {
+    id: 'summer_resort',
+    name: 'Breezy Linen & Floral Sundress',
+    category: 'Vacation',
+    emoji: '🏖️',
+    previewColor: 'from-teal-600 to-cyan-950',
+    description: 'Crisp white resort linen shirt with pastel floral summer dress',
+    accentColor: '#0D9488'
+  },
+  {
+    id: 'obsidian_cyber',
+    name: 'Dark Luxury Obsidian Stealth',
+    category: 'Signature',
+    emoji: '🖤',
+    previewColor: 'from-zinc-700 to-black',
+    description: 'Ultra-clean matte black cyber coat & fitted minimalist streetwear',
+    accentColor: '#71717A'
+  }
+];
+
 /**
  * Builds the official Bitmoji / Friendmoji CDN URL
  * If custom avatar IDs exist, uses live dynamic comic rendering.

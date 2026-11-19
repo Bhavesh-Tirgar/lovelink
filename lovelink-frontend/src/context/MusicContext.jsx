@@ -57,7 +57,7 @@ export const MusicProvider = ({ children }) => {
                     setCoupleId(res.data.couple_id);
                     window.localStorage.setItem('couple_id', res.data.couple_id);
                 }
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }, [location.pathname, token, coupleId]);
 
@@ -76,7 +76,7 @@ export const MusicProvider = ({ children }) => {
 
         api.get('/music/playlist')
             .then(res => setCustomPlaylist(res.data))
-            .catch(() => {});
+            .catch(() => { });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
@@ -195,7 +195,7 @@ export const MusicProvider = ({ children }) => {
                         setCurrentTime(data.position);
                     }
                     if (data.is_playing) {
-                        audio.play().catch(() => {});
+                        audio.play().catch(() => { });
                         setIsPlaying(true);
                     } else {
                         audio.pause();
@@ -222,7 +222,7 @@ export const MusicProvider = ({ children }) => {
                 if (data.position && Math.abs(audio.currentTime - data.position) > 1.5) {
                     audio.currentTime = data.position;
                 }
-                audio.play().catch(() => {});
+                audio.play().catch(() => { });
             } else if (isYt) {
                 controlYouTube('play');
                 if (data.position) controlYouTube('seek', data.position);
@@ -279,7 +279,7 @@ export const MusicProvider = ({ children }) => {
         const audio = audioRef.current;
         setCurrentTrack(track);
         const isYt = track.type === 'youtube' || Boolean(track.videoId);
-        
+
         if (isYt) {
             audio.pause();
             audio.src = '';
