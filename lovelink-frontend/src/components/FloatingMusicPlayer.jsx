@@ -357,19 +357,21 @@ export default function FloatingMusicPlayer() {
 
             {/* ── MINIMIZED FLOATING PILL (Docked right above bottom navigation, or top-right on /room to avoid wardrobe collision) ── */}
             {!isPlayerOpen && (
-                <div className={`fixed z-40 w-auto min-w-[260px] transition-all duration-300 animate-slide-up ${
+                <div className={`fixed z-40 w-auto min-w-[270px] transition-all duration-300 animate-slide-up ${
                     location.pathname === '/room'
-                        ? 'top-20 right-4 md:right-8 max-w-xs scale-90 md:scale-100 shadow-[0_4px_25px_rgba(168,85,247,0.35)]'
+                        ? 'top-20 right-4 md:right-8 max-w-xs scale-90 md:scale-100'
                         : 'bottom-24 left-1/2 -translate-x-1/2 max-w-md'
                 }`}>
-                    <div className="flex items-center justify-between gap-3 px-4 py-2 bg-black/70 hover:bg-black/85 backdrop-blur-2xl border border-purple-500/30 hover:border-pink-500/40 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.7)] transition-all group">
+                    <div className={`flex items-center justify-between gap-3 px-4 py-2.5 bg-[#08090d]/85 hover:bg-[#0c0d14]/95 backdrop-blur-md border rounded-full transition-all group ${
+                        isPlaying ? 'shadow-[0_8px_30px_rgba(244,63,94,0.35)] border-rose-500/40' : 'shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-white/10 hover:border-rose-500/30'
+                    }`}>
                         
                         {/* Mini Spinning Album Art */}
                         <div
                             onClick={() => setIsPlayerOpen(true)}
                             className="cursor-pointer flex items-center gap-3 overflow-hidden flex-1"
                         >
-                            <div className={`relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-purple-950 border border-purple-400/40 ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}>
+                            <div className={`relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-purple-950 border border-rose-400/40 ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}>
                                 <img
                                     src={currentTrack.cover}
                                     alt={currentTrack.title}
@@ -379,20 +381,20 @@ export default function FloatingMusicPlayer() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-white truncate">{currentTrack.title}</p>
-                                <div className="flex items-center gap-1.5 text-[10px] text-purple-300/80">
+                                <p className="text-xs font-bold text-white tracking-tight truncate">{currentTrack.title}</p>
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-300 font-medium">
                                     <span className="truncate">{currentTrack.artist}</span>
-                                    {isSynced && <span className="text-green-400 text-[8px]">● Live Sync</span>}
+                                    {isSynced && <span className="text-emerald-400 text-[8px] font-bold">● Live Sync</span>}
                                 </div>
                             </div>
                         </div>
 
                         {/* Equalizer Bars Animation when playing */}
                         {isPlaying && (
-                            <div className="flex items-end gap-0.5 h-3.5 px-1">
-                                <span className="w-0.5 bg-pink-500 animate-[bounce_0.8s_infinite] rounded-full h-3" />
-                                <span className="w-0.5 bg-purple-400 animate-[bounce_1.1s_infinite] rounded-full h-3.5" />
-                                <span className="w-0.5 bg-pink-400 animate-[bounce_0.6s_infinite] rounded-full h-2" />
+                            <div className="flex items-end gap-1 h-3.5 px-1">
+                                <span className="w-0.5 bg-gradient-to-t from-rose-500 to-pink-400 animate-[bounce_0.8s_infinite] rounded-full h-3" />
+                                <span className="w-0.5 bg-gradient-to-t from-purple-500 to-indigo-400 animate-[bounce_1.1s_infinite] rounded-full h-3.5" />
+                                <span className="w-0.5 bg-gradient-to-t from-rose-400 to-amber-300 animate-[bounce_0.6s_infinite] rounded-full h-2" />
                             </div>
                         )}
 
@@ -400,7 +402,7 @@ export default function FloatingMusicPlayer() {
                         <div className="flex items-center gap-1 flex-shrink-0">
                             <button
                                 onClick={togglePlay}
-                                className="p-1.5 text-white hover:text-pink-300 transition active:scale-90"
+                                className="p-1.5 text-white hover:text-rose-400 transition active:scale-90"
                             >
                                 {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
                             </button>

@@ -212,12 +212,18 @@ export default function Real3DAvatarStage({
   onEmoteTrigger,
   onOpenCreator,
   className = '',
+  isPlayingMusic = false,
 }) {
   const mountRef = useRef(null);
 
   // State: Emotes & Stage
   const [activeEmote, setActiveEmote] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isPlayingMusicRef = useRef(isPlayingMusic);
+
+  useEffect(() => {
+    isPlayingMusicRef.current = isPlayingMusic;
+  }, [isPlayingMusic]);
 
   // Dynamic handle for partner if not provided
   const displayPartnerHandle = partnerHandle || (partnerName ? `@${partnerName.toLowerCase().replace(/\s+/g, '_')}` : '@partner');
@@ -290,6 +296,7 @@ export default function Real3DAvatarStage({
   const girlCupRef = useRef(null);
   const boyCupRef = useRef(null);
   const boyPantExtensionsRef = useRef(null);
+  const toonGradientRef = useRef(null);
 
   // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
@@ -350,9 +357,39 @@ export default function Real3DAvatarStage({
   }, []);
 
   // -------------------------------------------------------------
-  // DYNAMIC THREE.JS PBR MATERIAL APPLIER (INDEPENDENT BOY & GIRL)
+  // DYNAMIC THREE.JS CEL-SHADED TOON MATERIAL APPLIER (SNAPCHAT BITMOJI AESTHETIC)
   // -------------------------------------------------------------
   const applyAllWardrobe = useCallback((boyState, girlState) => {
+    const toonGrad = toonGradientRef.current;
+
+    const setMeshToon = (mesh, colorHex, mapTex = null) => {
+      if (!mesh || !mesh.material) return;
+      const isEye = mesh.name.toLowerCase().includes('eye') && !mesh.name.toLowerCase().includes('eyebrow');
+      if (isEye) {
+        // Keep sparkling Pixar eye catchlights
+        const eyeMat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        eyeMat.roughness = 0.12;
+        eyeMat.metalness = 0.0;
+        eyeMat.needsUpdate = true;
+        return;
+      }
+
+      if (!(mesh.material instanceof THREE.MeshToonMaterial)) {
+        const baseMap = mapTex || (mesh.material.map || null);
+        const prevColor = colorHex !== undefined ? colorHex : (mesh.material.color ? mesh.material.color.getHex() : 0xffffff);
+        mesh.material = new THREE.MeshToonMaterial({
+          color: prevColor,
+          map: baseMap,
+          gradientMap: toonGrad,
+        });
+      } else {
+        if (colorHex !== undefined) mesh.material.color.setHex(colorHex);
+        if (mapTex !== null) mesh.material.map = mapTex;
+        if (toonGrad) mesh.material.gradientMap = toonGrad;
+      }
+      mesh.material.needsUpdate = true;
+    };
+
     // 1. Apply Girl (Left Model)
     if (leftModelRef.current) {
       const jacketItem = GIRL_JACKETS.find(j => j.id === girlState.jacket) || GIRL_JACKETS[0];
@@ -373,28 +410,18 @@ export default function Real3DAvatarStage({
           else child.visible = true;
 
           if (child.material) {
-            const mat = Array.isArray(child.material) ? child.material[0] : child.material;
             if (name.includes('body')) {
-              mat.color.setHex(skinItem.girlHex);
-              mat.roughness = 0.55; // youthful radiant glow
-              mat.metalness = 0.0;
-              mat.needsUpdate = true;
+              setMeshToon(child, skinItem.girlHex);
             } else if (name.includes('suit')) {
-              mat.color.setHex(jacketItem.color);
-              mat.roughness = jacketItem.rough;
-              mat.metalness = jacketItem.metal || 0.1;
+              setMeshToon(child, jacketItem.color);
             } else if (name.includes('shirt')) {
-              mat.color.setHex(topItem.color);
-              mat.roughness = topItem.rough;
+              setMeshToon(child, topItem.color);
             } else if (name.includes('pants')) {
-              mat.color.setHex(pantsItem.color);
-              mat.roughness = pantsItem.rough;
+              setMeshToon(child, pantsItem.color);
             } else if (name.includes('shoes')) {
-              mat.color.setHex(shoesItem.color);
-              mat.roughness = shoesItem.rough;
+              setMeshToon(child, shoesItem.color);
             } else if (name.includes('hair') || name.includes('nurbspath')) {
-              mat.color.setHex(hairItem.hex);
-              mat.roughness = 0.5;
+              setMeshToon(child, hairItem.hex);
             }
           }
         }
@@ -412,24 +439,16 @@ export default function Real3DAvatarStage({
       rightModelRef.current.traverse((child) => {
         if (child.isMesh && child.material) {
           const name = child.name.toLowerCase();
-          const mat = Array.isArray(child.material) ? child.material[0] : child.material;
           if (name.includes('head') || name.includes('body')) {
-            mat.color.setHex(skinItem.boyHex);
-            mat.roughness = 0.72; // soft natural skin (no plastic glare)
-            mat.metalness = 0.0;
+            setMeshToon(child, skinItem.boyHex);
           } else if (name.includes('top')) {
-            mat.color.setHex(topItem.color);
-            mat.roughness = topItem.rough;
-            mat.metalness = topItem.metal || 0.1;
+            setMeshToon(child, topItem.color);
           } else if (name.includes('bottom')) {
-            mat.color.setHex(bottomItem.color);
-            mat.roughness = bottomItem.rough;
+            setMeshToon(child, bottomItem.color);
           } else if (name.includes('footwear')) {
-            mat.color.setHex(shoesItem.color);
-            mat.roughness = shoesItem.rough;
+            setMeshToon(child, shoesItem.color);
           } else if (name.includes('hair')) {
-            mat.color.setHex(hairItem.hex);
-            mat.roughness = 0.55;
+            setMeshToon(child, hairItem.hex);
           }
         }
       });
@@ -439,10 +458,8 @@ export default function Real3DAvatarStage({
       if (boyPantExtensionsRef.current) {
         boyPantExtensionsRef.current.visible = isPants;
         boyPantExtensionsRef.current.traverse((child) => {
-          if (child.isMesh && child.material) {
-            child.material.color.setHex(bottomItem.color);
-            child.material.roughness = bottomItem.rough;
-            child.material.needsUpdate = true;
+          if (child.isMesh) {
+            setMeshToon(child, bottomItem.color);
           }
         });
       }
@@ -634,20 +651,20 @@ export default function Real3DAvatarStage({
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
-    // 4. BALANCED SOFT PORTRAIT STUDIO LIGHTING (WARM NATURAL HUMAN SKIN)
-    const ambientLight = new THREE.AmbientLight(0xfff8f4, 0.95);
+    // 4. CRISP CEL/TOON STUDIO LIGHTING (SNAPCHAT/PIXAR AESTHETIC)
+    const ambientLight = new THREE.AmbientLight(0xfff8f2, 1.15);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5eb, 1.0);
-    keyLight.position.set(1.8, 3.2, 2.2);
+    const keyLight = new THREE.DirectionalLight(0xfff5ea, 1.25);
+    keyLight.position.set(1.6, 3.2, 2.2);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xe4edf8, 0.55);
+    const fillLight = new THREE.DirectionalLight(0xe4edf8, 0.65);
     fillLight.position.set(-2.0, 2.0, 1.8);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.45);
-    rimLight.position.set(0, 2.5, -2.0);
+    const rimLight = new THREE.DirectionalLight(0xdbeafe, 0.90);
+    rimLight.position.set(0, 3.2, -2.5);
     scene.add(rimLight);
 
     // 5. LUXURY STUDIO CIRCULAR PODIUM & NEON ACCENT RING
@@ -722,6 +739,22 @@ export default function Real3DAvatarStage({
     cuteEyeTex.flipY = false;
     cuteEyeTex.colorSpace = THREE.SRGBColorSpace;
 
+    // 3-TONE DISCRETE GRADIENT RAMP FOR CRISP CEL/TOON SHADING (SNAPCHAT/PIXAR AESTHETIC)
+    const createGradientMap = () => {
+      const colors = new Uint8Array([
+        105, 105, 125, 255, // Soft shadow tone
+        195, 195, 210, 255, // Crisp mid tone
+        255, 255, 255, 255  // Bright highlight tone
+      ]);
+      const tex = new THREE.DataTexture(colors, 3, 1, THREE.RGBAFormat);
+      tex.minFilter = THREE.NearestFilter;
+      tex.magFilter = THREE.NearestFilter;
+      tex.needsUpdate = true;
+      return tex;
+    };
+    const toonGradient = createGradientMap();
+    toonGradientRef.current = toonGradient;
+
 
     // HELPER: CREATE 3D REALISTIC TAILORED PANT EXTENSIONS FOR BOY
     const createBoyPantExtensions = (bottomMaterial) => {
@@ -741,7 +774,7 @@ export default function Real3DAvatarStage({
         }
         legGeom.computeVertexNormals();
 
-        const mat = bottomMaterial ? bottomMaterial.clone() : new THREE.MeshStandardMaterial({ color: 0x24324a, roughness: 0.7 });
+        const mat = bottomMaterial ? bottomMaterial.clone() : new THREE.MeshToonMaterial({ color: 0x24324a, gradientMap: toonGradient });
         const legMesh = new THREE.Mesh(legGeom, mat);
         const sign = isLeft ? 1 : -1;
         legMesh.position.set(sign * 0.134, 0.395, -0.022);
@@ -808,8 +841,8 @@ export default function Real3DAvatarStage({
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(-0.24, 0.08, 0);
-        model.rotation.y = 0.14;
+        model.position.set(-0.22, 0.08, 0);
+        model.rotation.y = 0.16;
         model.rotation.z = -0.02;
         model.scale.set(1.05, 1.05, 1.05);
 
@@ -849,7 +882,7 @@ export default function Real3DAvatarStage({
 
         // Cute stylized cartoon head scaling (proportional cute couple look)
         if (leftBonesRef.current.head) {
-          leftBonesRef.current.head.scale.set(1.15, 1.15, 1.15);
+          leftBonesRef.current.head.scale.set(1.18, 1.18, 1.18);
         }
 
         if (leftBonesRef.current.leftArm) {
@@ -915,8 +948,8 @@ export default function Real3DAvatarStage({
       maleGlb,
       (gltf) => {
         const model = gltf.scene;
-        model.position.set(0.24, 0.08, 0);
-        model.rotation.y = -0.14;
+        model.position.set(0.22, 0.08, 0);
+        model.rotation.y = -0.16;
         model.rotation.z = 0.02;
         model.scale.set(0.95, 0.95, 0.95);
 
@@ -995,7 +1028,7 @@ export default function Real3DAvatarStage({
 
         // Cute stylized cartoon head scaling (proportional cute couple look)
         if (rightBonesRef.current.head) {
-          rightBonesRef.current.head.scale.set(1.15, 1.15, 1.15);
+          rightBonesRef.current.head.scale.set(1.18, 1.18, 1.18);
         }
         if (rightBonesRef.current.leftArm) {
           rightBonesRef.current.leftArm.rotation.set(1.350, -0.600, -0.100);
@@ -1083,10 +1116,10 @@ export default function Real3DAvatarStage({
             : 0;
 
           // Both avatars step closer together to toast coffee
-          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.15, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.15, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.28, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.28, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.22, -0.14, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.22, 0.14, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.16, 0.28, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.16, -0.28, env);
 
           // Torso leans in warmly
           if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
@@ -1147,11 +1180,11 @@ export default function Real3DAvatarStage({
 
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
-          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.065)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.065, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.065, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.52, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.52, env);
+          // Romantic touching step-in for true lip-to-lip kiss proximity (+-0.060)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.22, -0.060, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.22, 0.060, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.16, 0.52, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.16, -0.52, env);
 
           // Romantic spine tilt toward partner
           if (leftBones.spine) leftBones.spine.rotation.z = -0.05 * env;
@@ -1195,11 +1228,11 @@ export default function Real3DAvatarStage({
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.10 * Math.sin(emoteProgress * Math.PI * 2));
           const squeeze = Math.sin((emoteProgress - 0.5) * 8) * 0.008;
 
-          // Both avatars step into warm intimate couple embrace (+-0.060)
-          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.060 + squeeze, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.060 - squeeze, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.35, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.35, env);
+          // Both avatars step into warm intimate couple embrace (+-0.055)
+          leftModel.position.x = THREE.MathUtils.lerp(-0.22, -0.055 + squeeze, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.22, 0.055 - squeeze, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.16, 0.35, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.16, -0.35, env);
 
           // Heads rest lovingly on each other's shoulders
           if (leftBones.head) {
@@ -1250,12 +1283,12 @@ export default function Real3DAvatarStage({
           const env = Math.sin(emoteProgress * Math.PI) * (1 - 0.08 * Math.sin(emoteProgress * Math.PI * 2));
 
           // Lean in close side-by-side into cozy couch cuddle
-          leftModel.position.x = THREE.MathUtils.lerp(-0.24, -0.12, env);
-          rightModel.position.x = THREE.MathUtils.lerp(0.24, 0.12, env);
+          leftModel.position.x = THREE.MathUtils.lerp(-0.22, -0.11, env);
+          rightModel.position.x = THREE.MathUtils.lerp(0.22, 0.11, env);
           leftModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
           rightModel.position.y = THREE.MathUtils.lerp(0.08, 0.02, env);
-          leftModel.rotation.y = THREE.MathUtils.lerp(0.14, 0.24, env);
-          rightModel.rotation.y = THREE.MathUtils.lerp(-0.14, -0.24, env);
+          leftModel.rotation.y = THREE.MathUtils.lerp(0.16, 0.24, env);
+          rightModel.rotation.y = THREE.MathUtils.lerp(-0.16, -0.24, env);
 
           // Heads rest affectionately toward each other
           if (leftBones.head) leftBones.head.rotation.set(0.10 * env, 0.38 * env, 0.12 * env);
@@ -1271,8 +1304,8 @@ export default function Real3DAvatarStage({
 
         } else if (currentEmote === 'dance' && emoteProgress < 1.0) {
           // Romantic rhythm in sync with lofi music
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.22, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.22, 0.1);
           const beat = Math.sin(elapsedTime * 8);
           const bounce = Math.abs(beat) * 0.035;
           const sway = Math.sin(elapsedTime * 4) * 0.08;
@@ -1315,8 +1348,8 @@ export default function Real3DAvatarStage({
           }
 
         } else if (currentEmote === 'wave' && emoteProgress < 1.0) {
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.22, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.22, 0.1);
           const env = Math.sin(emoteProgress * Math.PI);
           const waveCycle = Math.sin(elapsedTime * 14);
 
@@ -1351,16 +1384,27 @@ export default function Real3DAvatarStage({
           if (girlCupRef.current) girlCupRef.current.visible = false;
           if (boyCupRef.current) boyCupRef.current.visible = false;
 
-          // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION, NO HAND CLIPPING)
-          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.24, 0.1);
-          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.24, 0.1);
-          leftModel.position.y = 0.08 + idleBreathing;
-          rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005;
+          const isMusicActive = isPlayingMusicRef.current;
+          const musicBeat = isMusicActive ? Math.sin(elapsedTime * 7.5) * 0.03 : 0;
+          const musicHeadBob = isMusicActive ? Math.abs(Math.sin(elapsedTime * 7.5)) * 0.04 : 0;
 
-          leftModel.rotation.y = THREE.MathUtils.lerp(leftModel.rotation.y, 0.14, 0.1);
-          rightModel.rotation.y = THREE.MathUtils.lerp(rightModel.rotation.y, -0.14, 0.1);
-          leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, -0.02, 0.1);
-          rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0.02, 0.1);
+          // NATURAL RELAXED IDLE POSTURE (PALMS RESTING INWARD, ZERO HYPEREXTENSION, NO HAND CLIPPING)
+          leftModel.position.x = THREE.MathUtils.lerp(leftModel.position.x, -0.22, 0.1);
+          rightModel.position.x = THREE.MathUtils.lerp(rightModel.position.x, 0.22, 0.1);
+          leftModel.position.y = 0.08 + idleBreathing + (isMusicActive ? Math.abs(musicBeat) * 0.3 : 0);
+          rightModel.position.y = 0.08 + Math.sin(elapsedTime * 2.2 + 0.4) * 0.005 + (isMusicActive ? Math.abs(musicBeat) * 0.3 : 0);
+
+          leftModel.rotation.y = THREE.MathUtils.lerp(leftModel.rotation.y, 0.16, 0.1);
+          rightModel.rotation.y = THREE.MathUtils.lerp(rightModel.rotation.y, -0.16, 0.1);
+          leftModel.rotation.z = THREE.MathUtils.lerp(leftModel.rotation.z, -0.02 + musicBeat * 0.3, 0.1);
+          rightModel.rotation.z = THREE.MathUtils.lerp(rightModel.rotation.z, 0.02 - musicBeat * 0.3, 0.1);
+
+          if (leftBones.head && isMusicActive) {
+            leftBones.head.rotation.x = 0.04 + musicHeadBob;
+          }
+          if (rightBones.head && isMusicActive) {
+            rightBones.head.rotation.x = 0.04 + musicHeadBob;
+          }
 
           // Female resting arms and pronated forearms
           if (leftBones.leftArm) {
@@ -1518,8 +1562,8 @@ export default function Real3DAvatarStage({
             <button
               onClick={() => setShowWardrobe(!showWardrobe)}
               className={`px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${showWardrobe
-                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300'
-                  : 'bg-black/60 hover:bg-black/80 text-white'
+                ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300'
+                : 'bg-black/60 hover:bg-black/80 text-white'
                 }`}
               title="Change Clothes, Pants, Jackets & Style"
             >
@@ -1560,8 +1604,8 @@ export default function Real3DAvatarStage({
                 <button
                   onClick={() => setWardrobeTarget('boy')}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'boy'
-                      ? 'bg-sky-500 text-stone-950 font-black shadow-md ring-2 ring-sky-300'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'bg-sky-500 text-stone-950 font-black shadow-md ring-2 ring-sky-300'
+                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                 >
                   <User size={13} />
@@ -1572,8 +1616,8 @@ export default function Real3DAvatarStage({
                 <button
                   onClick={() => setWardrobeTarget('girl')}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'girl'
-                      ? 'bg-rose-500 text-white font-black shadow-md ring-2 ring-rose-300'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'bg-rose-500 text-white font-black shadow-md ring-2 ring-rose-300'
+                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                 >
                   <Heart size={13} className="fill-white" />
@@ -1584,8 +1628,8 @@ export default function Real3DAvatarStage({
                 <button
                   onClick={() => setWardrobeTarget('sets')}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'sets'
-                      ? 'bg-amber-400 text-stone-950 font-black shadow-md ring-2 ring-amber-300'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    ? 'bg-amber-400 text-stone-950 font-black shadow-md ring-2 ring-amber-300'
+                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
                     }`}
                 >
                   <Sparkles size={13} />
@@ -1625,8 +1669,8 @@ export default function Real3DAvatarStage({
                       key={tab.id}
                       onClick={() => setBoySubTab(tab.id)}
                       className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${boySubTab === tab.id
-                          ? 'bg-white/20 text-sky-400 border border-sky-400/40'
-                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                        ? 'bg-white/20 text-sky-400 border border-sky-400/40'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10'
                         }`}
                     >
                       {tab.label}
@@ -1636,101 +1680,101 @@ export default function Real3DAvatarStage({
 
                 {/* Boy Items Content */}
                 <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
-                      {boySubTab === 'tops' && BOY_TOPS.map((item) => {
-                        const isSelected = boyWardrobe.top === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateBoy('top', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-sky-400" />}
-                          </button>
-                        );
-                      })}
+                  {boySubTab === 'tops' && BOY_TOPS.map((item) => {
+                    const isSelected = boyWardrobe.top === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('top', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
 
-                      {boySubTab === 'pants' && BOY_BOTTOMS.map((item) => {
-                        const isSelected = boyWardrobe.bottom === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateBoy('bottom', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-sky-400" />}
-                          </button>
-                        );
-                      })}
+                  {boySubTab === 'pants' && BOY_BOTTOMS.map((item) => {
+                    const isSelected = boyWardrobe.bottom === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('bottom', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
 
-                      {boySubTab === 'shoes' && BOY_SHOES.map((item) => {
-                        const isSelected = boyWardrobe.shoes === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateBoy('shoes', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-sky-400" />}
-                          </button>
-                        );
-                      })}
+                  {boySubTab === 'shoes' && BOY_SHOES.map((item) => {
+                    const isSelected = boyWardrobe.shoes === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateBoy('shoes', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
 
-                      {boySubTab === 'skin' && SKIN_TONES.map((tone) => {
-                        const isSelected = (boyWardrobe.skin || 'fair_warm') === tone.id;
-                        return (
-                          <button
-                            key={tone.id}
-                            onClick={() => handleUpdateBoy('skin', tone.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
-                            <span className="text-xs font-bold text-white">{tone.name}</span>
-                            {isSelected && <Check size={12} className="text-sky-400" />}
-                          </button>
-                        );
-                      })}
+                  {boySubTab === 'skin' && SKIN_TONES.map((tone) => {
+                    const isSelected = (boyWardrobe.skin || 'fair_warm') === tone.id;
+                    return (
+                      <button
+                        key={tone.id}
+                        onClick={() => handleUpdateBoy('skin', tone.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
+                        <span className="text-xs font-bold text-white">{tone.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
 
-                      {boySubTab === 'hair' && HAIR_COLORS.map((hair) => {
-                        const isSelected = boyWardrobe.hair === hair.id;
-                        return (
-                          <button
-                            key={hair.id}
-                            onClick={() => handleUpdateBoy('hair', hair.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
-                            <span className="text-xs font-bold text-white">{hair.name}</span>
-                            {isSelected && <Check size={12} className="text-sky-400" />}
-                          </button>
-                        );
-                      })}
+                  {boySubTab === 'hair' && HAIR_COLORS.map((hair) => {
+                    const isSelected = boyWardrobe.hair === hair.id;
+                    return (
+                      <button
+                        key={hair.id}
+                        onClick={() => handleUpdateBoy('hair', hair.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
+                        <span className="text-xs font-bold text-white">{hair.name}</span>
+                        {isSelected && <Check size={12} className="text-sky-400" />}
+                      </button>
+                    );
+                  })}
 
-                      {boySubTab === 'shades' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleUpdateBoy('shades', !boyWardrobe.shades)}
-                            className={`px-4 py-2 rounded-xl border font-bold text-xs flex items-center gap-2 transition-all ${boyWardrobe.shades
-                                ? 'bg-sky-500 text-stone-950 border-sky-400 ring-2 ring-sky-300'
-                                : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                              }`}
-                          >
-                            <span>🕶️ Designer Shades</span>
-                            <span className="text-[10px] opacity-80">{boyWardrobe.shades ? 'ENABLED' : 'DISABLED'}</span>
-                          </button>
-                        </div>
-                      )}
+                  {boySubTab === 'shades' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdateBoy('shades', !boyWardrobe.shades)}
+                        className={`px-4 py-2 rounded-xl border font-bold text-xs flex items-center gap-2 transition-all ${boyWardrobe.shades
+                          ? 'bg-sky-500 text-stone-950 border-sky-400 ring-2 ring-sky-300'
+                          : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                          }`}
+                      >
+                        <span>🕶️ Designer Shades</span>
+                        <span className="text-[10px] opacity-80">{boyWardrobe.shades ? 'ENABLED' : 'DISABLED'}</span>
+                      </button>
                     </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1740,153 +1784,153 @@ export default function Real3DAvatarStage({
             {wardrobeTarget === 'girl' && (
               <div className="flex flex-col gap-2">
                 {/* Girl Sub-Tabs */}
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
-                      {[
-                        { id: 'jackets', label: `Jackets (${GIRL_JACKETS.length})`, icon: '🧥' },
-                        { id: 'tops', label: `Tops (${GIRL_TOPS.length})`, icon: '👚' },
-                        { id: 'pants', label: `Pants (${GIRL_PANTS.length})`, icon: '👖' },
-                        { id: 'shoes', label: `Shoes (${GIRL_SHOES.length})`, icon: '👢' },
-                        { id: 'skin', label: `Skin Tone (${SKIN_TONES.length})`, icon: '🌸' },
-                        { id: 'hair', label: `Hair (${HAIR_COLORS.length})`, icon: '💇' },
-                        { id: 'accessories', label: 'Glasses / Tie', icon: '✨' },
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setGirlSubTab(tab.id)}
-                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${girlSubTab === tab.id
-                              ? 'bg-white/20 text-rose-400 border border-rose-400/40'
-                              : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                            }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+                  {[
+                    { id: 'jackets', label: `Jackets (${GIRL_JACKETS.length})`, icon: '🧥' },
+                    { id: 'tops', label: `Tops (${GIRL_TOPS.length})`, icon: '👚' },
+                    { id: 'pants', label: `Pants (${GIRL_PANTS.length})`, icon: '👖' },
+                    { id: 'shoes', label: `Shoes (${GIRL_SHOES.length})`, icon: '👢' },
+                    { id: 'skin', label: `Skin Tone (${SKIN_TONES.length})`, icon: '🌸' },
+                    { id: 'hair', label: `Hair (${HAIR_COLORS.length})`, icon: '💇' },
+                    { id: 'accessories', label: 'Glasses / Tie', icon: '✨' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setGirlSubTab(tab.id)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${girlSubTab === tab.id
+                        ? 'bg-white/20 text-rose-400 border border-rose-400/40'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                        }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Girl Items Content */}
+                <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
+                  {girlSubTab === 'jackets' && GIRL_JACKETS.map((item) => {
+                    const isSelected = girlWardrobe.jacket === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('jacket', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'tops' && GIRL_TOPS.map((item) => {
+                    const isSelected = girlWardrobe.top === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('top', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'pants' && GIRL_PANTS.map((item) => {
+                    const isSelected = girlWardrobe.pants === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('pants', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'shoes' && GIRL_SHOES.map((item) => {
+                    const isSelected = girlWardrobe.shoes === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleUpdateGirl('shoes', item.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'skin' && SKIN_TONES.map((tone) => {
+                    const isSelected = (girlWardrobe.skin || 'fair_warm') === tone.id;
+                    return (
+                      <button
+                        key={tone.id}
+                        onClick={() => handleUpdateGirl('skin', tone.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
+                        <span className="text-xs font-bold text-white">{tone.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'hair' && HAIR_COLORS.map((hair) => {
+                    const isSelected = girlWardrobe.hair === hair.id;
+                    return (
+                      <button
+                        key={hair.id}
+                        onClick={() => handleUpdateGirl('hair', hair.id)}
+                        className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                          }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
+                        <span className="text-xs font-bold text-white">{hair.name}</span>
+                        {isSelected && <Check size={12} className="text-rose-400" />}
+                      </button>
+                    );
+                  })}
+
+                  {girlSubTab === 'accessories' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleUpdateGirl('glasses', !girlWardrobe.glasses)}
+                        className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.glasses
+                          ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
+                          : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                          }`}
+                      >
+                        <span>👓 Glasses</span>
+                        <span className="text-[10px] opacity-80">{girlWardrobe.glasses ? 'ON' : 'OFF'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleUpdateGirl('tie', !girlWardrobe.tie)}
+                        className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.tie
+                          ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
+                          : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
+                          }`}
+                      >
+                        <span>👔 Silk Tie</span>
+                        <span className="text-[10px] opacity-80">{girlWardrobe.tie ? 'ON' : 'OFF'}</span>
+                      </button>
                     </div>
-
-                    {/* Girl Items Content */}
-                    <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-white/20">
-                      {girlSubTab === 'jackets' && GIRL_JACKETS.map((item) => {
-                        const isSelected = girlWardrobe.jacket === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateGirl('jacket', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'tops' && GIRL_TOPS.map((item) => {
-                        const isSelected = girlWardrobe.top === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateGirl('top', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'pants' && GIRL_PANTS.map((item) => {
-                        const isSelected = girlWardrobe.pants === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateGirl('pants', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'shoes' && GIRL_SHOES.map((item) => {
-                        const isSelected = girlWardrobe.shoes === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleUpdateGirl('shoes', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
-                            <span className="text-xs font-bold text-white">{item.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'skin' && SKIN_TONES.map((tone) => {
-                        const isSelected = (girlWardrobe.skin || 'fair_warm') === tone.id;
-                        return (
-                          <button
-                            key={tone.id}
-                            onClick={() => handleUpdateGirl('skin', tone.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
-                            <span className="text-xs font-bold text-white">{tone.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'hair' && HAIR_COLORS.map((hair) => {
-                        const isSelected = girlWardrobe.hair === hair.id;
-                        return (
-                          <button
-                            key={hair.id}
-                            onClick={() => handleUpdateGirl('hair', hair.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                              }`}
-                          >
-                            <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
-                            <span className="text-xs font-bold text-white">{hair.name}</span>
-                            {isSelected && <Check size={12} className="text-rose-400" />}
-                          </button>
-                        );
-                      })}
-
-                      {girlSubTab === 'accessories' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleUpdateGirl('glasses', !girlWardrobe.glasses)}
-                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.glasses
-                                ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
-                                : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                              }`}
-                          >
-                            <span>👓 Glasses</span>
-                            <span className="text-[10px] opacity-80">{girlWardrobe.glasses ? 'ON' : 'OFF'}</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleUpdateGirl('tie', !girlWardrobe.tie)}
-                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.tie
-                                ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
-                                : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                              }`}
-                          >
-                            <span>👔 Silk Tie</span>
-                            <span className="text-[10px] opacity-80">{girlWardrobe.tie ? 'ON' : 'OFF'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1921,8 +1965,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('clink')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'clink'
-              ? 'bg-amber-400 text-stone-950 scale-105 ring-2 ring-amber-300'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-amber-400 text-stone-950 scale-105 ring-2 ring-amber-300'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <Coffee size={15} className="text-amber-400" />
@@ -1932,8 +1976,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('kiss')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'kiss'
-              ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <Heart size={15} className="fill-rose-400 text-rose-400" />
@@ -1943,8 +1987,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('hug')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'hug'
-              ? 'bg-pink-500 text-white scale-105 ring-2 ring-pink-300'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-pink-500 text-white scale-105 ring-2 ring-pink-300'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <span className="text-sm">🤗</span>
@@ -1954,8 +1998,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('couch')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'couch'
-              ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <span className="text-sm">🛋️</span>
@@ -1965,8 +2009,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('dance')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'dance'
-              ? 'bg-purple-500 text-white scale-105 ring-2 ring-purple-400'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-purple-500 text-white scale-105 ring-2 ring-purple-400'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <Music size={15} className="text-purple-400" />
@@ -1976,8 +2020,8 @@ export default function Real3DAvatarStage({
         <button
           onClick={() => triggerEmote('wave')}
           className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'wave'
-              ? 'bg-sky-400 text-stone-950 scale-105 ring-2 ring-sky-300'
-              : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
+            ? 'bg-sky-400 text-stone-950 scale-105 ring-2 ring-sky-300'
+            : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
             }`}
         >
           <span className="text-sm">👋</span>

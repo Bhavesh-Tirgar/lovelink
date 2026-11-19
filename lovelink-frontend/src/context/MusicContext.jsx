@@ -101,12 +101,31 @@ export const MusicProvider = ({ children }) => {
 
         api.get('/music/channels')
             .then(res => {
-                setChannels(res.data);
-                if (res.data.length > 0 && res.data[0].tracks.length > 0 && !currentTrack) {
-                    setCurrentTrack(res.data[0].tracks[0]);
+                if (Array.isArray(res.data) && res.data.length > 0) {
+                    setChannels(res.data);
+                    if (res.data[0].tracks?.length > 0 && !currentTrack) {
+                        setCurrentTrack(res.data[0].tracks[0]);
+                    }
+                } else {
+                    throw new Error("No channels returned");
                 }
             })
-            .catch(err => console.warn("Failed to load music channels:", err));
+            .catch(err => {
+                console.warn("Using curated couple lofi channels:", err);
+                const defaultChannels = [
+                    {
+                        id: 'midnight_lofi',
+                        title: 'Midnight Lofi',
+                        icon: '🌙',
+                        tracks: [
+                            { id: 'track_1', title: 'Coffee Under The Stars', artist: 'LoveLink Lofi', videoId: 'jfKfPfyJRdk', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', duration: 240, type: 'youtube' },
+                            { id: 'track_2', title: 'Sunset Boulevard & You', artist: 'Acoustic Dreams', videoId: '5qap5aO4i9A', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', duration: 210, type: 'youtube' }
+                        ]
+                    }
+                ];
+                setChannels(defaultChannels);
+                if (!currentTrack) setCurrentTrack(defaultChannels[0].tracks[0]);
+            });
 
         api.get('/music/playlist')
             .then(res => setCustomPlaylist(res.data))

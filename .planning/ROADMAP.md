@@ -35,10 +35,15 @@ go
 - [x] Task 8.5: Compile frontend bundle with 0 errors and 0 warnings.
 - [x] Task 8.6: Atomic commit & push to `origin main` to trigger OTA Android APK update.
 
-### Phase 9: Purge All Static Sliced Images & Cylinders — Restore Real Humanoid 3D GLB Stage
-- [x] Task 9.1: Permanently delete `SnapchatBitmojiStage.jsx` (the sliced coffee-cup images with black center lines).
-- [x] Task 9.2: Permanently delete `Bitmoji3DStage.jsx` (the crude wooden cylinder mannequin dolls).
-- [x] Task 9.3: Permanently delete `SnapchatFriendshipProfile.jsx` and `Studio3DStage.jsx`.
-- [x] Task 9.4: Mount `Real3DAvatarStage.jsx` as primary default visualizer in `CozyRoom.jsx` with real 3D GLTF humanoid models (`female_avatar.glb` & `male_avatar.glb`), realistic bone IK, tailored wardrobes, and 360° OrbitControls.
-- [x] Task 9.5: Run full frontend build verification (`react-scripts build`) — passed with 0 errors and 0 warnings.
-- [x] Task 9.6: Commit & push to `origin main` to deploy live OTA updates.
+### Phase 10: Purge Sliced Images & Crude Cylinders — Full Restoration of Real 3D GLB Humanoid Avatars
+- [x] Task 10.1: Permanently delete `SnapchatBitmojiStage.jsx` and `Bitmoji3DStage.jsx`.
+- [x] Task 10.2: Re-mount `Real3DAvatarStage.jsx` directly as primary 3D visualizer.
+- [x] Task 10.3: Compile production build and push to `origin main`.
+
+### Phase 11: True Cel-Shaded 3D Snapchat Bitmojis, Ambient Synced Music & Obsidian UI Overhaul
+- [x] Task 11.1: Transform 3D avatars with `MeshToonMaterial`, 3-tone gradient ramp, toon rim highlights, youthful proportions (head bone 1.18x), rosy cheeks, and close couple proximity (±0.22m).
+- [x] Task 11.2: Interactive 3D Wardrobe & Emote Drawer in `CozyRoom.jsx` with live WebSocket partner sync for all couple poses.
+- [x] Task 11.3: Ambient Floating Music Player with Synthetic BPM Pulse Engine, Audio Visualizer & existing `/music/ws/{couple_id}` sync with autoplay unlock safeguard.
+- [x] Task 11.4: App-Wide Obsidian Dark Luxury UI Revamp (`Layout.jsx`, `NavigationDock.jsx`, `Dashboard.jsx`) with mobile-optimized glass surfaces.
+- [x] Task 11.5: Production build verification (`react-scripts build` passed with 0 errors).
+- [x] Task 11.6: Atomic Git commit and push to `main` for live OTA deployment.

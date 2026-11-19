@@ -12,9 +12,11 @@ import { getWsBaseUrl } from '../utils/wsUrl';
 import Real3DAvatarStage from '../components/Real3DAvatarStage';
 import FriendmojiCouple from '../components/FriendmojiCouple';
 import { FRIENDMOJI_TEMPLATES, WARDROBE_OUTFITS } from '../utils/libmoji';
+import { useMusic } from '../context/MusicContext';
 
 export default function CozyRoom() {
   const navigate = useNavigate();
+  const { isPlaying: isPlayingMusic } = useMusic();
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [currentAction, setCurrentAction] = useState('toast');
@@ -312,6 +314,7 @@ export default function CozyRoom() {
                 actionNonce={actionNonce}
                 onEmoteTrigger={(emote) => handleSelectScene(emote)}
                 onOpenCreator={() => setShowBitmojiModal(true)}
+                isPlayingMusic={isPlayingMusic}
                 className="w-full"
               />
             ) : (
