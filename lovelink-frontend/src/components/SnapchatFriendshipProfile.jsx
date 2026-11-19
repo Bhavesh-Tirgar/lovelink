@@ -10,7 +10,8 @@ import api from '../api';
 
 export default function SnapchatFriendshipProfile({
   myName = 'Me',
-  partnerName = 'Neha',
+  partnerName = 'Partner',
+  partnerHandle = '',
   onOpenCreator,
   onOpen3DCanvas,
   onBack,
@@ -57,7 +58,7 @@ export default function SnapchatFriendshipProfile({
   const cardRef = useRef(null);
 
   // Tap Reaction & Speech Bubble State
-  const [activeBubble, setActiveBubble] = useState(null); // 'neha', 'me', 'toast', null
+  const [activeBubble, setActiveBubble] = useState(null); // 'partner', 'me', 'toast', null
   const bubbleTimerRef = useRef(null);
 
   // Synthesized Web Audio Sound Effects
@@ -151,10 +152,10 @@ export default function SnapchatFriendshipProfile({
     }
   };
 
-  // Tap Neha
+  // Tap Partner
   const handleTapPartner = () => {
     playSfx('pop');
-    setActiveBubble('neha');
+    setActiveBubble('partner');
     clearTimeout(bubbleTimerRef.current);
     bubbleTimerRef.current = setTimeout(() => setActiveBubble(null), 3200);
 
@@ -291,7 +292,7 @@ export default function SnapchatFriendshipProfile({
         {/* B. SPEECH BUBBLES ON INTERACTIVE TAP */}
         {/* ------------------------------------------------------------- */}
         <div className="relative z-30 w-full flex justify-center -mb-2 pointer-events-none">
-          {activeBubble === 'neha' && (
+          {activeBubble === 'partner' && (
             <div className="bg-white/95 text-stone-900 px-3.5 py-1.5 rounded-2xl rounded-bl-sm shadow-xl border border-amber-300 text-xs font-bold animate-bounce flex items-center gap-1.5 max-w-[85%] text-center">
               <span>☕</span>
               <span>"Coffee date with you is my favorite time! ✨"</span>
@@ -349,10 +350,10 @@ export default function SnapchatFriendshipProfile({
             <div 
               onClick={handleTapPartner}
               className="absolute left-0 bottom-12 w-[46%] h-[78%] cursor-pointer group z-20"
-              title="Tap Neha to react! ☕"
+              title={`Tap ${partnerName} to react! ☕`}
             >
               <div className="absolute top-1/4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm text-pink-300 text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
-                Tap Neha 💕
+                Tap {partnerName} 💕
               </div>
             </div>
 
@@ -379,16 +380,16 @@ export default function SnapchatFriendshipProfile({
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* D. SNAPCHAT FRIENDSHIP CAPSULE PILL (AUTHENTIC @neha_xmusic TAG) */}
+        {/* D. SNAPCHAT FRIENDSHIP CAPSULE PILL */}
         {/* ------------------------------------------------------------- */}
         <div className="relative z-20 flex flex-col items-center w-full mt-1">
           <div className={`flex items-center gap-2 ${themeConfig.pillBg} backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg`}>
             <span className="text-xs font-black tracking-wide">
-              @ neha_xmusic
+              {partnerHandle ? `@${partnerHandle.replace(/^@/, '')}` : `@${(partnerName || 'partner').toLowerCase().replace(/\s+/g, '_')}`}
             </span>
             <span className="text-xs opacity-60">•</span>
             <span className="text-xs font-black tracking-wide">
-              @ {myName.toLowerCase().replace(/\s+/g, '_')}
+              @{myName ? myName.toLowerCase().replace(/\s+/g, '_') : 'me'}
             </span>
             <Heart size={13} className="fill-rose-400 text-rose-400 ml-1 inline animate-pulse" />
           </div>

@@ -10,6 +10,7 @@ import {
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import FriendmojiCouple from '../components/FriendmojiCouple';
+import Real3DAvatarStage from '../components/Real3DAvatarStage';
 import { FRIENDMOJI_TEMPLATES, WARDROBE_OUTFITS } from '../utils/libmoji';
 
 export default function CozyRoom() {
@@ -17,6 +18,7 @@ export default function CozyRoom() {
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState(null);
   const [currentAction, setCurrentAction] = useState('couch');
+  const [stageMode, setStageMode] = useState('3d_real'); // '3d_real' | '2d_art'
   
   // Interactive Modals
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -263,20 +265,67 @@ export default function CozyRoom() {
       ) : (
         <div className="w-full flex flex-col items-center space-y-6">
           
-          {/* ── Couple Scene Canvas ───────────────────────────────── */}
-          <div className="w-full max-w-lg p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#131722] via-[#0E111A] to-black border border-white/10 shadow-2xl flex flex-col items-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-rose-500/10 via-transparent to-pink-500/10 pointer-events-none" />
-            
-            <FriendmojiCouple
-              action={currentAction}
-              myAvatar={{ ...(room?.my_avatar || {}), outfit: selectedOutfit }}
-              partnerAvatar={room?.partner_avatar}
-              myName={room?.my_name || 'You'}
-              partnerName={room?.partner_name || 'Partner'}
-              isNightMode={isNightMode}
-              onToggleNightMode={() => setIsNightMode(prev => !prev)}
-              onWardrobeClick={() => setShowWardrobeModal(true)}
-            />
+          {/* ── Couple Scene Canvas / 3D Real Stage ───────────────── */}
+          <div className="w-full max-w-lg flex flex-col items-center">
+            {/* View Mode Switcher */}
+            <div className="flex items-center justify-between w-full mb-3 px-1">
+              <div className="flex items-center gap-1.5 bg-[#131722] p-1 rounded-full border border-white/10 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setStageMode('3d_real')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
+                    stageMode === '3d_real'
+                      ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-pink-500 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles size={13} className={stageMode === '3d_real' ? 'text-amber-200' : 'text-gray-400'} />
+                  <span>Real 3D Stage ✨</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStageMode('2d_art')}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    stageMode === '2d_art'
+                      ? 'bg-white/20 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>🎨 Studio Art</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
+                {stageMode === '3d_real' ? '360° Real Humanoid WebGL' : 'Vector Couple Art'}
+              </span>
+            </div>
+
+            {stageMode === '3d_real' ? (
+              <Real3DAvatarStage
+                myName={room?.my_name || 'You'}
+                partnerName={room?.partner_name || 'Partner'}
+                myGlbUrl={room?.my_avatar?.glb_url}
+                partnerGlbUrl={room?.partner_avatar?.glb_url}
+                externalAction={currentAction}
+                onEmoteTrigger={(emote) => handleSelectScene(emote)}
+                onOpenCreator={() => setShowBitmojiModal(true)}
+                className="w-full"
+              />
+            ) : (
+              <div className="w-full p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[#131722] via-[#0E111A] to-black border border-white/10 shadow-2xl flex flex-col items-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-rose-500/10 via-transparent to-pink-500/10 pointer-events-none" />
+                <FriendmojiCouple
+                  action={currentAction}
+                  myAvatar={{ ...(room?.my_avatar || {}), outfit: selectedOutfit }}
+                  partnerAvatar={room?.partner_avatar}
+                  myName={room?.my_name || 'You'}
+                  partnerName={room?.partner_name || 'Partner'}
+                  isNightMode={isNightMode}
+                  onToggleNightMode={() => setIsNightMode(prev => !prev)}
+                  onWardrobeClick={() => setShowWardrobeModal(true)}
+                />
+              </div>
+            )}
           </div>
 
           {/* ── Interactive Scene Picker ──────────────────────────── */}

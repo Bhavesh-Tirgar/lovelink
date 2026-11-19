@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { 
-  Sparkles, Heart, Coffee, 
-  Music, RefreshCw, Box, Shirt, 
+import {
+  Sparkles, Heart, Coffee,
+  Music, RefreshCw, Box, Shirt,
   Check, X, User, Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -185,26 +185,31 @@ export const COUPLE_PRESETS = [
 export default function Real3DAvatarStage({
   myGlbUrl,
   partnerGlbUrl,
-  myName = 'Me',
-  partnerName = 'Neha',
-  partnerHandle = '@ neha_xmusic',
+  myName = 'You',
+  partnerName = 'Partner',
+  partnerHandle = '',
+  externalAction = null,
+  onEmoteTrigger,
   onOpenCreator,
   className = '',
 }) {
   const mountRef = useRef(null);
-  
+
   // State: Emotes & Stage
   const [activeEmote, setActiveEmote] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Dynamic handle for partner if not provided
+  const displayPartnerHandle = partnerHandle || (partnerName ? `@${partnerName.toLowerCase().replace(/\s+/g, '_')}` : '@partner');
 
   // Role Enforcement: Boy only control by boy, Girl only by girl
   const detectedRole = (() => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.gender === 'female' || (user.name && user.name.toLowerCase().includes('neha'))) {
+      if (user.gender === 'female') {
         return 'girl';
       }
-    } catch {}
+    } catch { }
     return 'boy';
   })();
 
@@ -271,13 +276,13 @@ export default function Real3DAvatarStage({
   // Character Models and Skeletal Bones
   const leftModelRef = useRef(null);
   const rightModelRef = useRef(null);
-  const leftBonesRef = useRef({ 
-    head: null, neck: null, leftArm: null, rightArm: null, 
-    leftForeArm: null, rightForeArm: null, spine: null, hips: null 
+  const leftBonesRef = useRef({
+    head: null, neck: null, leftArm: null, rightArm: null,
+    leftForeArm: null, rightForeArm: null, spine: null, hips: null
   });
-  const rightBonesRef = useRef({ 
-    head: null, neck: null, leftArm: null, rightArm: null, 
-    leftForeArm: null, rightForeArm: null, spine: null, hips: null 
+  const rightBonesRef = useRef({
+    head: null, neck: null, leftArm: null, rightArm: null,
+    leftForeArm: null, rightForeArm: null, spine: null, hips: null
   });
 
   // Mouse & Animation Timing
@@ -434,7 +439,7 @@ export default function Real3DAvatarStage({
   const handleUpdateBoy = (slot, value) => {
     const updated = { ...boyWardrobe, [slot]: value };
     setBoyWardrobe(updated);
-    try { localStorage.setItem('lovelink_3d_boy_wardrobe', JSON.stringify(updated)); } catch {}
+    try { localStorage.setItem('lovelink_3d_boy_wardrobe', JSON.stringify(updated)); } catch { }
     applyAllWardrobe(updated, girlWardrobe);
     playSfx('chime');
   };
@@ -443,7 +448,7 @@ export default function Real3DAvatarStage({
   const handleUpdateGirl = (slot, value) => {
     const updated = { ...girlWardrobe, [slot]: value };
     setGirlWardrobe(updated);
-    try { localStorage.setItem('lovelink_3d_girl_wardrobe', JSON.stringify(updated)); } catch {}
+    try { localStorage.setItem('lovelink_3d_girl_wardrobe', JSON.stringify(updated)); } catch { }
     applyAllWardrobe(boyWardrobe, updated);
     playSfx('chime');
   };
@@ -461,7 +466,7 @@ export default function Real3DAvatarStage({
     try {
       localStorage.setItem('lovelink_3d_boy_wardrobe', JSON.stringify(newBoy));
       localStorage.setItem('lovelink_3d_girl_wardrobe', JSON.stringify(newGirl));
-    } catch {}
+    } catch { }
 
     applyAllWardrobe(newBoy, newGirl);
 
@@ -480,13 +485,17 @@ export default function Real3DAvatarStage({
   };
 
   // Trigger Reaction Emote
-  const triggerEmote = useCallback((type = 'clink') => {
+  const triggerEmote = useCallback((type = 'clink', notifyParent = true) => {
     emoteStateRef.current = {
       current: type,
       startTime: performance.now(),
       duration: type === 'dance' ? 4500 : type === 'hug' ? 4200 : 3400,
     };
     setActiveEmote(type);
+
+    if (notifyParent && onEmoteTrigger) {
+      onEmoteTrigger(type);
+    }
 
     if (type === 'clink') {
       playSfx('clink');
@@ -535,7 +544,25 @@ export default function Real3DAvatarStage({
         setActiveEmote(null);
       }
     }, emoteStateRef.current.duration);
-  }, [partnerName, playSfx]);
+  }, [partnerName, playSfx, onEmoteTrigger]);
+
+  // Synchronize incoming external action (e.g. from CozyRoom action pills or WebSocket)
+  useEffect(() => {
+    if (!externalAction) return;
+    const actionMap = {
+      kiss: 'kiss',
+      hug: 'hug',
+      toast: 'clink',
+      clink: 'clink',
+      couch: 'clink',
+      dance: 'dance',
+      wave: 'wave',
+      hand_hold: 'wave',
+      high_five: 'wave',
+    };
+    const target = actionMap[externalAction] || 'clink';
+    triggerEmote(target, false);
+  }, [externalAction, triggerEmote]);
 
 
 
@@ -732,7 +759,7 @@ export default function Real3DAvatarStage({
       return cupGroup;
     };
 
-        // 9. LOAD REAL 3D HUMANOID MODELS (.GLB)
+    // 9. LOAD REAL 3D HUMANOID MODELS (.GLB)
     const loader = new GLTFLoader();
     let loadedCount = 0;
     const checkAllLoaded = () => {
@@ -746,14 +773,14 @@ export default function Real3DAvatarStage({
     const femaleGlb = localPartnerGlb || partnerGlbUrl || '/models/female_avatar.glb';
     const maleGlb = localMyGlb || myGlbUrl || '/models/male_avatar.glb';
 
-    // Load Left Model (Female Avatar / Neha)
+    // Load Left Model (Female Avatar)
     loader.load(
       femaleGlb,
       (gltf) => {
         const model = gltf.scene;
         model.position.set(-0.43, 0.08, 0);
         model.scale.set(1.14, 1.14, 1.14);
-        
+
         model.traverse((child) => {
           if (child.isMesh) {
             child.visible = true;
@@ -875,15 +902,15 @@ export default function Real3DAvatarStage({
           // Attach 3D Designer Sunglasses to Male Head Bone
           if (child.isBone && child.name.toLowerCase() === 'head') {
             const glassesGroup = new THREE.Group();
-            const glassMat = new THREE.MeshStandardMaterial({ 
-              color: 0x0a0c12, 
-              roughness: 0.1, 
-              metalness: 0.9 
+            const glassMat = new THREE.MeshStandardMaterial({
+              color: 0x0a0c12,
+              roughness: 0.1,
+              metalness: 0.9
             });
-            const frameMat = new THREE.MeshStandardMaterial({ 
-              color: 0x181920, 
-              roughness: 0.25, 
-              metalness: 0.5 
+            const frameMat = new THREE.MeshStandardMaterial({
+              color: 0x181920,
+              roughness: 0.25,
+              metalness: 0.5
             });
 
             const leftLens = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.038, 0.008), glassMat);
@@ -1356,12 +1383,12 @@ export default function Real3DAvatarStage({
 
   return (
     <div className={`relative w-full flex flex-col items-center select-none ${className}`}>
-      
+
 
 
       {/* 1. REAL 3D WEBGL STAGE VIEWPORT (Sleek Dark Luxury Studio Atmosphere) */}
       <div className="relative w-full aspect-[9/14] sm:aspect-[9/13] min-h-[520px] sm:min-h-[580px] max-h-[660px] rounded-[38px] overflow-hidden bg-gradient-to-b from-[#141a29] via-[#0d121f] to-[#07090e] border-2 border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col justify-between">
-        
+
         {/* Three.js WebGL Canvas Mount */}
         <div
           ref={mountRef}
@@ -1382,7 +1409,7 @@ export default function Real3DAvatarStage({
 
         {/* Top Floating Controls Dock */}
         <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none z-20">
-          
+
           {/* Badge & Active Wardrobe Toggle */}
           <div className="flex items-center gap-1.5 pointer-events-auto">
             <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-white shadow-xl">
@@ -1391,24 +1418,24 @@ export default function Real3DAvatarStage({
             </div>
 
             {/* Quick Character Indicator */}
-            <div className="hidden sm:flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 text-[11px] font-bold text-slate-200">
+            <div className="hidden sm:flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 text-[11px] font-bold text-slate-200">
               <span>{myName}</span>
               <span className="text-rose-400">♥</span>
               <span>{partnerName}</span>
+              <span className="text-[10px] text-amber-300 font-normal">({displayPartnerHandle})</span>
             </div>
           </div>
 
           {/* Action Buttons (Clean & Sleek Studio) */}
           <div className="flex items-center gap-2 pointer-events-auto">
-            
+
             {/* Wardrobe Toggle */}
             <button
               onClick={() => setShowWardrobe(!showWardrobe)}
-              className={`px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${
-                showWardrobe 
-                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300' 
+              className={`px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold ${showWardrobe
+                  ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black ring-2 ring-amber-300'
                   : 'bg-black/60 hover:bg-black/80 text-white'
-              }`}
+                }`}
               title="Change Clothes, Pants, Jackets & Style"
             >
               <Shirt size={14} className={showWardrobe ? 'text-stone-950' : 'text-amber-400'} />
@@ -1436,22 +1463,21 @@ export default function Real3DAvatarStage({
 
         {/* ------------------------------------------------------------- */}
         {/* INDEPENDENT BOY & GIRL WARDROBE DRAWER */}
-        {/* ------------------------------------------------------------- */}
+        {/* ----------------------------------------l--------------------- */}
         {showWardrobe && (
           <div className="absolute inset-x-2.5 bottom-2.5 z-30 bg-[#10141f]/95 backdrop-blur-xl border border-white/15 rounded-3xl p-3 shadow-2xl animate-fadeIn flex flex-col gap-2">
-            
+
             {/* Top Bar: Target Selector: [ 🙋‍♂️ Boy's Closet ] [ 🙋‍♀️ Girl's Closet ] [ ⚡ Matching Sets ] */}
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <div className="flex items-center gap-1 sm:gap-1.5">
-                
+
                 {/* Boy Closet */}
                 <button
                   onClick={() => setWardrobeTarget('boy')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    wardrobeTarget === 'boy'
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'boy'
                       ? 'bg-sky-500 text-stone-950 font-black shadow-md ring-2 ring-sky-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <User size={13} />
                   <span>Boy (Me)</span>
@@ -1461,11 +1487,10 @@ export default function Real3DAvatarStage({
                 {/* Girl Closet */}
                 <button
                   onClick={() => setWardrobeTarget('girl')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    wardrobeTarget === 'girl'
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'girl'
                       ? 'bg-rose-500 text-white font-black shadow-md ring-2 ring-rose-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <Heart size={13} className="fill-white" />
                   <span>Girl ({partnerName})</span>
@@ -1475,11 +1500,10 @@ export default function Real3DAvatarStage({
                 {/* Couple Matching Sets */}
                 <button
                   onClick={() => setWardrobeTarget('sets')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    wardrobeTarget === 'sets'
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${wardrobeTarget === 'sets'
                       ? 'bg-amber-400 text-stone-950 font-black shadow-md ring-2 ring-amber-300'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <Sparkles size={13} />
                   <span className="hidden sm:inline">Couple</span>
@@ -1548,11 +1572,10 @@ export default function Real3DAvatarStage({
                         <button
                           key={tab.id}
                           onClick={() => setBoySubTab(tab.id)}
-                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
-                            boySubTab === tab.id
+                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${boySubTab === tab.id
                               ? 'bg-white/20 text-sky-400 border border-sky-400/40'
                               : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                          }`}
+                            }`}
                         >
                           {tab.label}
                         </button>
@@ -1567,9 +1590,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateBoy('top', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1584,9 +1606,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateBoy('bottom', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1601,9 +1622,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateBoy('shoes', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1618,9 +1638,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={tone.id}
                             onClick={() => handleUpdateBoy('skin', tone.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
                             <span className="text-xs font-bold text-white">{tone.name}</span>
@@ -1635,9 +1654,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={hair.id}
                             onClick={() => handleUpdateBoy('hair', hair.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-sky-500/20 border-sky-400 shadow-md ring-1 ring-sky-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
                             <span className="text-xs font-bold text-white">{hair.name}</span>
@@ -1650,11 +1668,10 @@ export default function Real3DAvatarStage({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleUpdateBoy('shades', !boyWardrobe.shades)}
-                            className={`px-4 py-2 rounded-xl border font-bold text-xs flex items-center gap-2 transition-all ${
-                              boyWardrobe.shades
+                            className={`px-4 py-2 rounded-xl border font-bold text-xs flex items-center gap-2 transition-all ${boyWardrobe.shades
                                 ? 'bg-sky-500 text-stone-950 border-sky-400 ring-2 ring-sky-300'
                                 : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                            }`}
+                              }`}
                           >
                             <span>🕶️ Designer Shades</span>
                             <span className="text-[10px] opacity-80">{boyWardrobe.shades ? 'ENABLED' : 'DISABLED'}</span>
@@ -1701,11 +1718,10 @@ export default function Real3DAvatarStage({
                         <button
                           key={tab.id}
                           onClick={() => setGirlSubTab(tab.id)}
-                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
-                            girlSubTab === tab.id
+                          className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${girlSubTab === tab.id
                               ? 'bg-white/20 text-rose-400 border border-rose-400/40'
                               : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                          }`}
+                            }`}
                         >
                           {tab.label}
                         </button>
@@ -1720,9 +1736,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateGirl('jacket', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1737,9 +1752,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateGirl('top', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1754,9 +1768,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateGirl('pants', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1771,9 +1784,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={item.id}
                             onClick={() => handleUpdateGirl('shoes', item.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: item.swatch }} />
                             <span className="text-xs font-bold text-white">{item.name}</span>
@@ -1788,9 +1800,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={tone.id}
                             onClick={() => handleUpdateGirl('skin', tone.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-4 h-4 rounded-full border border-white/30 shadow-sm" style={{ backgroundColor: tone.swatch }} />
                             <span className="text-xs font-bold text-white">{tone.name}</span>
@@ -1805,9 +1816,8 @@ export default function Real3DAvatarStage({
                           <button
                             key={hair.id}
                             onClick={() => handleUpdateGirl('hair', hair.id)}
-                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                              isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                            }`}
+                            className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${isSelected ? 'bg-rose-500/20 border-rose-400 shadow-md ring-1 ring-rose-400' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                              }`}
                           >
                             <span className="w-3.5 h-3.5 rounded-full border border-white/30" style={{ backgroundColor: hair.swatch }} />
                             <span className="text-xs font-bold text-white">{hair.name}</span>
@@ -1820,11 +1830,10 @@ export default function Real3DAvatarStage({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleUpdateGirl('glasses', !girlWardrobe.glasses)}
-                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
-                              girlWardrobe.glasses
+                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.glasses
                                 ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
                                 : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                            }`}
+                              }`}
                           >
                             <span>👓 Glasses</span>
                             <span className="text-[10px] opacity-80">{girlWardrobe.glasses ? 'ON' : 'OFF'}</span>
@@ -1832,11 +1841,10 @@ export default function Real3DAvatarStage({
 
                           <button
                             onClick={() => handleUpdateGirl('tie', !girlWardrobe.tie)}
-                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
-                              girlWardrobe.tie
+                            className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${girlWardrobe.tie
                                 ? 'bg-rose-500 text-white border-rose-400 ring-2 ring-rose-300'
                                 : 'bg-white/5 border-white/15 text-slate-300 hover:bg-white/10'
-                            }`}
+                              }`}
                           >
                             <span>👔 Silk Tie</span>
                             <span className="text-[10px] opacity-80">{girlWardrobe.tie ? 'ON' : 'OFF'}</span>
@@ -1879,11 +1887,10 @@ export default function Real3DAvatarStage({
       <div className="flex items-center gap-2 mt-4 flex-wrap justify-center w-full">
         <button
           onClick={() => triggerEmote('clink')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            activeEmote === 'clink'
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'clink'
               ? 'bg-amber-400 text-stone-950 scale-105 ring-2 ring-amber-300'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Coffee size={15} className="text-amber-400" />
           <span>Toast Coffee ☕</span>
@@ -1891,11 +1898,10 @@ export default function Real3DAvatarStage({
 
         <button
           onClick={() => triggerEmote('kiss')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            activeEmote === 'kiss'
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'kiss'
               ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Heart size={15} className="fill-rose-400 text-rose-400" />
           <span>Kiss 💕</span>
@@ -1903,11 +1909,10 @@ export default function Real3DAvatarStage({
 
         <button
           onClick={() => triggerEmote('hug')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            activeEmote === 'hug'
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'hug'
               ? 'bg-pink-500 text-white scale-105 ring-2 ring-pink-300'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <span className="text-sm">🤗</span>
           <span>Warm Hug</span>
@@ -1915,11 +1920,10 @@ export default function Real3DAvatarStage({
 
         <button
           onClick={() => triggerEmote('dance')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            activeEmote === 'dance'
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'dance'
               ? 'bg-purple-500 text-white scale-105 ring-2 ring-purple-400'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Music size={15} className="text-purple-400" />
           <span>Dance Party 💃</span>
@@ -1927,11 +1931,10 @@ export default function Real3DAvatarStage({
 
         <button
           onClick={() => triggerEmote('wave')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            activeEmote === 'wave'
+          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${activeEmote === 'wave'
               ? 'bg-sky-400 text-stone-950 scale-105 ring-2 ring-sky-300'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <span className="text-sm">👋</span>
           <span>Wave Hello</span>

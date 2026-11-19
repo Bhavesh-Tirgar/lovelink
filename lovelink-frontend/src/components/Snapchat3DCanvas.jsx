@@ -8,8 +8,8 @@ import confetti from 'canvas-confetti';
 export default function Snapchat3DCanvas({
   myGlb,
   partnerGlb,
-  myName = 'Me',
-  partnerName = 'Neha',
+  myName = 'You',
+  partnerName = 'Partner',
   onOpenCreator,
   className = '',
 }) {
@@ -165,7 +165,7 @@ export default function Snapchat3DCanvas({
       group.position.set(posX, 0.05, 0);
 
       // Body (Jacket / Outfit)
-      const jacketColor = isPartner ? 0x8d5b4c : 0x18181b; // Neha's brown Carhartt vs User's black varsity
+      const jacketColor = isPartner ? 0x8d5b4c : 0x18181b; // Partner's warm Carhartt vs User's black varsity
       const bodyGeo = new THREE.CylinderGeometry(0.22, 0.25, 0.65, 24);
       const bodyMat = new THREE.MeshStandardMaterial({ color: jacketColor, roughness: 0.4 });
       const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -173,7 +173,7 @@ export default function Snapchat3DCanvas({
       group.add(body);
 
       // Legs (Pants / Shorts)
-      const pantsColor = isPartner ? 0x18181b : 0x93c5fd; // Neha black shorts vs User light blue jeans
+      const pantsColor = isPartner ? 0x18181b : 0x93c5fd; // Partner black shorts vs User light blue jeans
       const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.6, 16), new THREE.MeshStandardMaterial({ color: pantsColor }));
       legL.position.set(-0.11, 0.38, 0);
       group.add(legL);
@@ -183,7 +183,7 @@ export default function Snapchat3DCanvas({
       group.add(legR);
 
       // Shoes / Boots
-      const shoeColor = isPartner ? 0x111111 : 0xffffff; // Neha black boots vs User Nike dunks
+      const shoeColor = isPartner ? 0x111111 : 0xffffff; // Partner black boots vs User Nike kicks
       const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.2), new THREE.MeshStandardMaterial({ color: shoeColor }));
       shoeL.position.set(-0.11, 0.08, 0.03);
       group.add(shoeL);
@@ -202,7 +202,7 @@ export default function Snapchat3DCanvas({
 
       // Hair / Hat
       if (isPartner) {
-        // Neha's long wavy brown hair
+        // Partner's wavy brown hair
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.8 });
         const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 24), hairMat);
         hairTop.position.set(0, 0.04, -0.02);

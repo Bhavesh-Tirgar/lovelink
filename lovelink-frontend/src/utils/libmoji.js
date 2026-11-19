@@ -60,6 +60,14 @@ export const FRIENDMOJI_TEMPLATES = {
     emoji: '✋',
     description: 'Playful partner celebration',
     fallbackUrl: '/assets/avatars/snap_couple_hd.png'
+  },
+  dance: {
+    id: 'dance',
+    name: 'Slow Dance',
+    comicId: '10223791',
+    emoji: '💃',
+    description: 'Romantic slow dance in sync',
+    fallbackUrl: '/assets/avatars/snap_couple_hd.png'
   }
 };
 
