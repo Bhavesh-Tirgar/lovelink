@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import NotificationBell from '../components/NotificationBell';
 import confetti from 'canvas-confetti';
-import { 
-  Heart, MessageCircle, Sparkles, Compass, 
-  MapPin, Film, Gamepad2, Camera, 
+import {
+  Heart, MessageCircle, Sparkles, Compass,
+  MapPin, Film, Gamepad2, Camera,
   Settings, LogOut, Copy, Check, QrCode, Volume2, VolumeX, X
 } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [nextCountdown, setNextCountdown] = useState(null);
   const [cdNow, setCdNow] = useState(Date.now());
   const [recentMemories, setRecentMemories] = useState([]);
-  
+
   // Settings Modal State
   const [showSettings, setShowSettings] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -71,7 +71,7 @@ export default function Dashboard() {
           .sort((a, b) => new Date(a.target_date) - new Date(b.target_date));
         setNextCountdown(upcoming[0] || null);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Tick for countdown timer
@@ -92,7 +92,7 @@ export default function Dashboard() {
           setRecentMemories(flat.slice(0, 6));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Partner Clock Tick
@@ -186,7 +186,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-28 pt-4 sm:pt-6 px-4 sm:px-6 md:px-10 max-w-5xl mx-auto text-gray-100">
-      
+
       {/* ── Top Header Bar ────────────────────────────────────────── */}
       <header className="flex items-center justify-between py-3 mb-6 border-b border-white/[0.08]">
         <div className="flex items-center gap-3">
@@ -277,18 +277,18 @@ export default function Dashboard() {
       {/* ── Main Connected Dashboard ──────────────────────────────── */}
       {linked && (
         <main className="space-y-6">
-          
+
           {/* Hero Card: Journey Milestone */}
           <section className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-950/40 via-[#0d0f17] to-black border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
             <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-rose-500/15 blur-3xl pointer-events-none" />
-            
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
               <div>
                 <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest mb-3">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                   <span>Journey So Far</span>
                 </div>
-                
+
                 <div className="flex items-baseline gap-3">
                   <span className="text-5xl sm:text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-rose-100 to-rose-300 tracking-tight drop-shadow">
                     {days_together}
@@ -305,7 +305,7 @@ export default function Dashboard() {
 
               {/* Next Countdown Sneak-Peek */}
               {nextCountdown && (
-                <div 
+                <div
                   onClick={() => navigate('/countdowns')}
                   className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-rose-500/30 cursor-pointer transition-all max-w-xs w-full"
                 >
@@ -332,7 +332,7 @@ export default function Dashboard() {
           </section>
 
           {/* Couple Presence & Real 3D Bitmoji Studio Showcase Card */}
-          <div 
+          <div
             onClick={() => navigate('/room')}
             className="p-5 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#0d0f17] to-purple-950/40 border border-white/[0.1] hover:border-rose-500/50 cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:scale-[1.01]"
           >

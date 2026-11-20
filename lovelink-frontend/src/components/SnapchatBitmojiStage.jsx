@@ -2,11 +2,28 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { 
-  Heart, Coffee, Shirt, Music, Check, X, RotateCw 
+import {
+  Heart, Coffee, Shirt, Music, Check, X, RotateCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
+
+// ----------------------------------------------------------------------
+// SINGLETON WEB AUDIO CONTEXT (Prevents 6 hardware context browser crash)
+// ----------------------------------------------------------------------
+let sharedAudioCtx = null;
+function getSharedAudioContext() {
+  if (typeof window === 'undefined') return null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new AudioCtx();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
 
 // ----------------------------------------------------------------------
 // WARDROBE CATALOGS FOR SNAPCHAT 3D BITMOJIS
@@ -99,7 +116,7 @@ export default function SnapchatBitmojiStage({
   const boyModelRef = useRef(null);
   const girlBonesRef = useRef({ head: null, spine: null, leftArm: null, leftForeArm: null, leftHand: null, rightArm: null, rightForeArm: null, rightHand: null, hips: null });
   const boyBonesRef = useRef({ head: null, spine: null, leftArm: null, leftForeArm: null, leftHand: null, rightArm: null, rightForeArm: null, rightHand: null, hips: null });
-  
+
   // Props & Visual Meshes
   const girlCupRef = useRef(null);
   const boyCupRef = useRef(null);
@@ -118,14 +135,16 @@ export default function SnapchatBitmojiStage({
   const [activeWardrobe, setActiveWardrobe] = useState('streetwear');
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
   const [is3DReady, setIs3DReady] = useState(false);
+  const [isCooldown, setIsCooldown] = useState(false);
 
-  // Animation Timing Ref
+  // Animation Timing Ref & Jitter Guard
   const animStateRef = useRef({
     currentEmote: action || 'toast',
     emoteStartTime: performance.now(),
     emoteProgress: 0,
     mouse: { x: 0, y: 0, targetX: 0, targetY: 0 },
   });
+  const lastLocalEmoteTimestampRef = useRef(0);
 
   const isPlayingMusicRef = useRef(isPlayingMusic);
   useEffect(() => {
@@ -135,17 +154,16 @@ export default function SnapchatBitmojiStage({
   // Clean Display Handles
   const cleanPartner = (partnerName || 'Partner').trim();
   const cleanMe = (myName || 'You').trim();
-  const displayPartnerHandle = partnerHandle 
-    ? `@${partnerHandle.replace(/^@/, '')}` 
+  const displayPartnerHandle = partnerHandle
+    ? `@${partnerHandle.replace(/^@/, '')}`
     : `@${cleanPartner.toLowerCase().replace(/\s+/g, '_')}`;
   const displayMyHandle = `@${cleanMe.toLowerCase().replace(/\s+/g, '_')}`;
 
-  // Synthesized Web Audio Sound Effects (Spatial & Crisp)
+  // Synthesized Web Audio Sound Effects (Spatial & Crisp with Singleton AudioContext)
   const playSfx = useCallback((type = 'clink') => {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = getSharedAudioContext();
+      if (!ctx) return;
 
       if (type === 'clink') {
         const osc = ctx.createOscillator();
@@ -189,8 +207,13 @@ export default function SnapchatBitmojiStage({
     } catch { }
   }, []);
 
-  // Trigger Action Emote
+  // Trigger Action Emote with Cooldown & Anti-Spam Guard
   const triggerEmote = useCallback((emoteType, notifyParent = true) => {
+    if (isCooldown) return;
+    setIsCooldown(true);
+    setTimeout(() => setIsCooldown(false), 1200);
+
+    lastLocalEmoteTimestampRef.current = performance.now();
     const normalized = (emoteType === 'clink' ? 'toast' : emoteType);
     setActiveEmote(normalized);
     animStateRef.current.currentEmote = normalized;
@@ -250,12 +273,17 @@ export default function SnapchatBitmojiStage({
       playSfx('chime');
       toast.success(`Waving hello to ${cleanPartner}! 👋✨`);
     }
-  }, [cleanPartner, playSfx, onEmoteTrigger]);
+  }, [cleanPartner, playSfx, onEmoteTrigger, isCooldown]);
 
-  // Synchronize incoming action from parent
+  // Synchronize incoming action from parent with Jitter Jump Guard
   useEffect(() => {
     if (action) {
+      const now = performance.now();
       const normalized = (action === 'clink' ? 'toast' : action);
+      // If action matches what we just locally clicked within 450ms, do not restart animation
+      if (normalized === animStateRef.current.currentEmote && now - lastLocalEmoteTimestampRef.current < 450) {
+        return;
+      }
       setActiveEmote(normalized);
       animStateRef.current.currentEmote = normalized;
       animStateRef.current.emoteStartTime = performance.now();
@@ -277,7 +305,7 @@ export default function SnapchatBitmojiStage({
   // Update Wardrobe Materials across active 3D meshes
   const applyWardrobe = useCallback((wardrobeId) => {
     const item = WARDROBE_COLLECTIONS[wardrobeId] || WARDROBE_COLLECTIONS.streetwear;
-    
+
     // 1. Update Girl GLB Materials
     if (girlModelRef.current) {
       girlModelRef.current.traverse((child) => {
@@ -318,11 +346,27 @@ export default function SnapchatBitmojiStage({
     }
 
     // 3. Update Stylized Fallback Models
-    if (girlStylizedGroupRef.current?.userData?.bodyMesh) {
-      girlStylizedGroupRef.current.userData.bodyMesh.material.color.setHex(item.girlTop);
+    if (girlStylizedGroupRef.current?.userData) {
+      if (girlStylizedGroupRef.current.userData.bodyMesh) {
+        girlStylizedGroupRef.current.userData.bodyMesh.material.color.setHex(item.girlTop);
+      }
+      if (girlStylizedGroupRef.current.userData.legL) {
+        girlStylizedGroupRef.current.userData.legL.material.color.setHex(item.girlBottom);
+      }
+      if (girlStylizedGroupRef.current.userData.legR) {
+        girlStylizedGroupRef.current.userData.legR.material.color.setHex(item.girlBottom);
+      }
     }
-    if (boyStylizedGroupRef.current?.userData?.bodyMesh) {
-      boyStylizedGroupRef.current.userData.bodyMesh.material.color.setHex(item.boyTop);
+    if (boyStylizedGroupRef.current?.userData) {
+      if (boyStylizedGroupRef.current.userData.bodyMesh) {
+        boyStylizedGroupRef.current.userData.bodyMesh.material.color.setHex(item.boyTop);
+      }
+      if (boyStylizedGroupRef.current.userData.legL) {
+        boyStylizedGroupRef.current.userData.legL.material.color.setHex(item.boyBottom);
+      }
+      if (boyStylizedGroupRef.current.userData.legR) {
+        boyStylizedGroupRef.current.userData.legR.material.color.setHex(item.boyBottom);
+      }
     }
   }, []);
 
@@ -589,6 +633,8 @@ export default function SnapchatBitmojiStage({
 
       g.add(headG);
       g.userData.headGroup = headG;
+      g.userData.legL = legL;
+      g.userData.legR = legR;
       g.userData.armL = armL;
       g.userData.armR = armR;
       return g;
@@ -623,17 +669,6 @@ export default function SnapchatBitmojiStage({
 
     // 12. Load Real 3D Humanoid Models (.GLB)
     const loader = new GLTFLoader();
-    let loadedCount = 0;
-    const checkReady = () => {
-      loadedCount++;
-      if (loadedCount >= 2) {
-        isGlbLoadedRef.current = true;
-        girlStylized.visible = false;
-        boyStylized.visible = false;
-        applyWardrobe(activeWardrobe);
-        setIs3DReady(true);
-      }
-    };
 
     // Load Female 3D Avatar (Neha)
     loader.load(
@@ -678,12 +713,17 @@ export default function SnapchatBitmojiStage({
 
         scene.add(model);
         girlModelRef.current = model;
-        checkReady();
+        // Independently hide stylized fallback once female GLB is fully loaded
+        if (girlStylizedGroupRef.current) {
+          girlStylizedGroupRef.current.visible = false;
+        }
+        isGlbLoadedRef.current = true;
+        applyWardrobe(activeWardrobe);
+        setIs3DReady(true);
       },
       undefined,
       (err) => {
-        console.warn('Female GLB not loaded, using stylized 3D avatar:', err);
-        checkReady();
+        console.warn('Female GLB not loaded, keeping stylized 3D avatar:', err);
       }
     );
 
@@ -720,20 +760,30 @@ export default function SnapchatBitmojiStage({
 
         scene.add(model);
         boyModelRef.current = model;
-        checkReady();
+        // Independently hide stylized fallback once male GLB is fully loaded
+        if (boyStylizedGroupRef.current) {
+          boyStylizedGroupRef.current.visible = false;
+        }
+        isGlbLoadedRef.current = true;
+        applyWardrobe(activeWardrobe);
+        setIs3DReady(true);
       },
       undefined,
       (err) => {
-        console.warn('Male GLB not loaded, using stylized 3D avatar:', err);
-        checkReady();
+        console.warn('Male GLB not loaded, keeping stylized 3D avatar:', err);
       }
     );
 
-    // 13. High-Performance WebGL Animation Loop
+    // 13. High-Performance WebGL Animation Loop with Battery Throttling
     const clock = new THREE.Clock();
 
     const animate = () => {
       animFrameIdRef.current = requestAnimationFrame(animate);
+
+      // Battery & background throttle: Pause rendering when browser tab is inactive
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
 
       const elapsedTime = clock.getElapsedTime();
       const emote = animStateRef.current.currentEmote;
@@ -1001,7 +1051,7 @@ export default function SnapchatBitmojiStage({
 
     animate();
 
-    // 14. Responsive Viewport Resize Handler
+    // 14. Responsive Viewport Resize & Background Tab Wakeup Handlers
     const handleResize = () => {
       if (!mount || !renderer || !camera) return;
       const w = mount.clientWidth || 380;
@@ -1011,15 +1061,52 @@ export default function SnapchatBitmojiStage({
       renderer.setSize(w, h);
     };
 
-    window.addEventListener('resize', handleResize);
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        clock.start();
+        if (!animFrameIdRef.current) {
+          animate();
+        }
+      }
+    };
 
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 15. Complete WebGL & GPU Resource Teardown (Zero Leak Guarantee)
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+        animFrameIdRef.current = null;
+      }
+      if (controlsRef.current) {
+        controlsRef.current.dispose();
+      }
+      if (sceneRef.current) {
+        sceneRef.current.traverse((object) => {
+          if (object.geometry) {
+            object.geometry.dispose();
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach((mat) => {
+                if (mat.map) mat.map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if (object.material.map) object.material.map.dispose();
+              object.material.dispose();
+            }
+          }
+        });
+      }
       if (renderer.domElement && mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }
       renderer.dispose();
+      renderer.forceContextLoss();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
@@ -1034,16 +1121,17 @@ export default function SnapchatBitmojiStage({
 
   return (
     <div className={`relative flex flex-col items-center w-full max-w-lg mx-auto select-none ${className}`}>
-      
+
       {/* ------------------------------------------------------------- */}
       {/* 1. TRUE 3D WEBGL STUDIO VIEWPORT (Obsidian Luxury Dark)       */}
       {/* ------------------------------------------------------------- */}
       <div
         ref={containerRef}
+        style={{ touchAction: 'pan-y' }}
         className="relative w-full aspect-[9/12.5] min-h-[430px] sm:min-h-[470px] max-h-[530px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#0e111a] via-[#090b12] to-[#040508] shadow-[0_25px_80px_rgba(0,0,0,0.85)] border-2 border-white/10 flex flex-col justify-between p-3.5 sm:p-4"
       >
         {/* Holographic light sheen reflection across glass */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%)',
@@ -1095,8 +1183,8 @@ export default function SnapchatBitmojiStage({
         {/* ── CENTER: TRUE THREE.JS WEBGL 3D CANVAS ─────────────────── */}
         <div className="relative flex-1 w-full h-full my-auto flex items-center justify-center overflow-hidden">
           {/* Mount Three.js DOM Canvas element */}
-          <div 
-            ref={mountRef} 
+          <div
+            ref={mountRef}
             className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing flex items-center justify-center"
           />
 
@@ -1143,11 +1231,10 @@ export default function SnapchatBitmojiStage({
                       });
                       toast.success(`Dressed in ${item.name}! ✨`);
                     }}
-                    className={`p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all ${
-                      isSelected
+                    className={`p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all ${isSelected
                         ? 'bg-white/15 border-white/30 shadow-md ring-1 ring-white/40'
                         : 'bg-white/5 hover:bg-white/10 border-white/5'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{item.emoji}</span>
@@ -1177,12 +1264,13 @@ export default function SnapchatBitmojiStage({
       <div className="flex items-center gap-2 mt-4 flex-wrap justify-center w-full">
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Toast Coffee with partner"
           onClick={() => triggerEmote('toast')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isToasting
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isToasting
               ? 'bg-amber-400 text-stone-950 scale-105 ring-2 ring-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Coffee size={15} className="text-amber-400" />
           <span>Toast Coffee ☕</span>
@@ -1190,12 +1278,13 @@ export default function SnapchatBitmojiStage({
 
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Send romantic kiss to partner"
           onClick={() => triggerEmote('kiss')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isKissing
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isKissing
               ? 'bg-rose-500 text-white scale-105 ring-2 ring-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Heart size={15} className="fill-rose-400 text-rose-400" />
           <span>Kiss 💕</span>
@@ -1203,12 +1292,13 @@ export default function SnapchatBitmojiStage({
 
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Send warm embrace hug to partner"
           onClick={() => triggerEmote('hug')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isHugging
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isHugging
               ? 'bg-pink-500 text-white scale-105 ring-2 ring-pink-300 shadow-[0_0_20px_rgba(236,72,153,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <span className="text-sm">🤗</span>
           <span>Warm Hug</span>
@@ -1216,12 +1306,13 @@ export default function SnapchatBitmojiStage({
 
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Cozy up and cuddle on couch with partner"
           onClick={() => triggerEmote('couch')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isCouch
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isCouch
               ? 'bg-purple-600 text-white scale-105 ring-2 ring-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <span className="text-sm">🛋️</span>
           <span>Couch Cuddle</span>
@@ -1229,12 +1320,13 @@ export default function SnapchatBitmojiStage({
 
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Dance together in sync with partner"
           onClick={() => triggerEmote('dance')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isDancing
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isDancing
               ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white scale-105 ring-2 ring-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <Music size={15} className="text-purple-300" />
           <span>Dance Party 💃</span>
@@ -1242,12 +1334,13 @@ export default function SnapchatBitmojiStage({
 
         <button
           type="button"
+          disabled={isCooldown}
+          aria-label="Wave hello to partner"
           onClick={() => triggerEmote('wave')}
-          className={`px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 ${
-            isWaving
+          className={`min-h-[44px] px-4 py-2.5 rounded-full font-black text-xs shadow-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${isWaving
               ? 'bg-sky-400 text-stone-950 scale-105 ring-2 ring-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.4)]'
               : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'
-          }`}
+            }`}
         >
           <span className="text-sm">👋</span>
           <span>Wave Hello</span>

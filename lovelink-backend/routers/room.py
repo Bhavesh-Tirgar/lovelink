@@ -2,9 +2,10 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
+from sqlalchemy.orm.attributes import flag_modified
 
 from database import get_db
 from models.user import User
@@ -16,33 +17,33 @@ from ws_manager.manager import manager
 router = APIRouter()
 
 class StickyNoteCreate(BaseModel):
-    text: str
-    color: Optional[str] = "yellow"
+    text: str = Field(..., min_length=1, max_length=300)
+    color: Optional[str] = Field("yellow", max_length=30)
 
 class WallPhotoCreate(BaseModel):
-    url: str
-    caption: Optional[str] = "Our Favorite Moment"
+    url: str = Field(..., max_length=2000)
+    caption: Optional[str] = Field("Our Favorite Moment", max_length=150)
 
 class AvatarActionRequest(BaseModel):
-    action: str # "couch", "bed", "window", "fireplace", "reading"
+    action: str = Field(..., max_length=50) # "couch", "bed", "window", "fireplace", "reading"
 
 class AvatarConfigRequest(BaseModel):
-    skin: Optional[str] = "fair"
-    hair_style: Optional[str] = "wavy_locks"
-    hair_color: Optional[str] = "dark_brown"
-    eye_color: Optional[str] = "deep_brown"
-    outfit: Optional[str] = "streetwear_hoodie"
-    accessory: Optional[str] = "none"
-    expression: Optional[str] = "smile"
-    avatar_url: Optional[str] = None
-    glb_url: Optional[str] = None
+    skin: Optional[str] = Field(None, max_length=50)
+    hair_style: Optional[str] = Field(None, max_length=50)
+    hair_color: Optional[str] = Field(None, max_length=50)
+    eye_color: Optional[str] = Field(None, max_length=50)
+    outfit: Optional[str] = Field(None, max_length=50)
+    accessory: Optional[str] = Field(None, max_length=50)
+    expression: Optional[str] = Field(None, max_length=50)
+    avatar_url: Optional[str] = Field(None, max_length=2000)
+    glb_url: Optional[str] = Field(None, max_length=2000)
 
 class CoupleInteractionRequest(BaseModel):
-    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave", "high_five"
+    action: str = Field(..., max_length=50)  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave", "high_five"
 
 class RoomThemeRequest(BaseModel):
-    theme: Optional[str] = None
-    flooring: Optional[str] = None
+    theme: Optional[str] = Field(None, max_length=50)
+    flooring: Optional[str] = Field(None, max_length=50)
 
 async def _get_or_create_room(db: AsyncSession, couple_id: str) -> CoupleRoom:
     res = await db.execute(select(CoupleRoom).where(CoupleRoom.couple_id == couple_id))
@@ -68,7 +69,10 @@ async def _get_or_create_room(db: AsyncSession, couple_id: str) -> CoupleRoom:
 
 async def _get_user_couple(db: AsyncSession, user_id: str) -> Couple:
     res = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == user_id, Couple.user2_id == user_id))
+        select(Couple).where(
+            or_(Couple.user1_id == user_id, Couple.user2_id == user_id),
+            Couple.user2_id.is_not(None)
+        )
     )
     couple = res.scalar_one_or_none()
     if not couple:
@@ -229,9 +233,14 @@ async def delete_sticky_note(
     couple = await _get_user_couple(db, current_user.id)
     room = await _get_or_create_room(db, couple.id)
 
-    notes = [n for n in (room.sticky_notes or []) if n.get("id") != note_id]
-    room.sticky_notes = notes
+    prior_notes = room.sticky_notes or []
+    notes = [n for n in prior_notes if n.get("id") != note_id]
+    if len(notes) == len(prior_notes):
+        raise HTTPException(status_code=404, detail="Sticky note not found")
 
+    room.sticky_notes = notes
+    flag_modified(room, "sticky_notes")
+    db.add(room)
     await db.commit()
 
     await manager.broadcast(str(couple.id), {
@@ -352,7 +361,11 @@ async def customize_avatar(
     db: AsyncSession = Depends(get_db)
 ):
     couple = await _get_user_couple(db, current_user.id)
-    current_user.avatar_config = payload.model_dump()
+    update_data = payload.model_dump(exclude_unset=True)
+    current_config = dict(current_user.avatar_config or {})
+    current_config.update(update_data)
+    current_user.avatar_config = current_config
+    flag_modified(current_user, "avatar_config")
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)
@@ -413,11 +426,14 @@ async def trigger_couple_interaction(
     }
     msg = action_messages.get(action, f"{current_user.name} interacted with you in the room! 💕")
 
+    updated_iso = room.couple_action_updated_at.isoformat() if room.couple_action_updated_at else datetime.utcnow().isoformat()
+
     await manager.broadcast(str(couple.id), {
         "type": "room_update",
         "action": "couple_interaction",
         "interaction": action,
         "initiated_by": current_user.name,
+        "updated_at": updated_iso,
         "message": msg
     })
 

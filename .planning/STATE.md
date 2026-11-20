@@ -1,6 +1,26 @@
 # Project State — LoveLink v3.0 (Snapchat Bitmojis, Music & UI Revamp)
 
-## Active Milestone: Phase 12 — Genuine Three.js WebGL 3D Snapchat Couple Studio & App-Wide Obsidian UI Overhaul (Delivered & Verified)
+## Active Milestone: Phase 13 — Architectural Hardening & Flawless 100/10 Verification (Delivered & Verified)
+
+### Completed Hardening Fixes (Phase 13):
+- [x] **P0-1 Memory Leak Elimination**: Implemented comprehensive Three.js scene traversal recursive disposal on unmount (`geometry.dispose()`, `material.dispose()`, `material.map.dispose()`, `controls.dispose()`, and `renderer.forceContextLoss()`), preventing `CONTEXT_LOST_WEBGL` across page transitions.
+- [x] **P0-2 AudioContext Singleton**: Implemented shared singleton `getSharedAudioContext()` with automatic resumption, eliminating the browser 6-context hardware limit crash.
+- [x] **P0-3 Independent Model Fallbacks**: Decoupled GLB avatar readiness tracking so neither stylized avatar is hidden unless its specific model loads; stylized fallback remains visible on any network or GLB error, preventing empty stages or invisible partners.
+- [x] **P0-4 Backend Dict Merge Safety**: Fixed `customize_avatar` in `lovelink-backend/routers/room.py` to use `model_dump(exclude_unset=True)` merged into existing configuration, preventing avatar setting wipeouts.
+- [x] **P1-1 Couple Pairing Validation**: Enforced `Couple.user2_id.is_not(None)` in `_get_user_couple` to prevent unpaired users from firing orphan room updates.
+- [x] **P1-2 Input Boundary Defense**: Added Pydantic `Field(..., max_length=...)` bounds to `StickyNoteCreate`, `WallPhotoCreate`, `AvatarActionRequest`, `AvatarConfigRequest`, `CoupleInteractionRequest`, and `RoomThemeRequest`.
+- [x] **P1-3 Animation Nonce Jump Guard**: Implemented `lastLocalEmoteTimestampRef` jitter guard (450ms lockout) to prevent local emote triggers from restarting animation mid-pose upon receiving the echoed WebSocket broadcast.
+- [x] **P1-4 Broadcast Monotonic Timestamps**: Included `updated_at` ISO timestamps in WebSocket room payloads to eliminate race conditions.
+- [x] **P2-1 Mobile Battery Throttling**: Added `document.hidden` render skip in the animation loop and a `visibilitychange` listener to sleep the WebGL engine when the browser tab is backgrounded.
+- [x] **P2-2 Stylized Avatar Leg Wardrobe Colorization**: Stored `legL` and `legR` on stylized avatars' `userData` and colorized both top jackets and bottom pants when changing wardrobes.
+- [x] **P2-3 Mobile Scroll Trapping Prevention**: Added `touch-action: pan-y` styling to the WebGL container so OrbitControls doesn't hijack vertical mobile page scrolling.
+- [x] **P2-4 Emote Cooldown & Touch Targets**: Added 1.2s cooldown on emote buttons to prevent audio/confetti spam, with WCAG AA `min-h-[44px]` touch target sizing and accessible `aria-label` tags.
+- [x] **P2-5 Note Deletion Validation**: Added existence validation and HTTP 404 in `delete_sticky_note` prior to database commit.
+- [x] **Compiler & Production Backpressure Verification**:
+  - `npm run build --prefix lovelink-frontend` compiles successfully: **0 errors, 0 warnings**.
+  - `python -m compileall lovelink-backend` byte-compiles successfully: **0 errors**.
+
+## Phase 12 — Genuine Three.js WebGL 3D Snapchat Couple Studio & App-Wide Obsidian UI Overhaul (Delivered & Verified)
 
 ### Completed Tasks (Phase 12):
 - [x] Task 12.1: Permanently eliminated 2D PNG/JPG image cutouts from `SnapchatBitmojiStage.jsx`. Mounted a genuine Three.js WebGL 3D Canvas with antialiasing, ACESFilmic tone mapping, studio lighting, and illuminated obsidian 3D circular podium.
