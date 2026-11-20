@@ -331,31 +331,40 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Couple Presence & Avatar Studio Widget */}
+          {/* Couple Presence & Real 3D Bitmoji Studio Showcase Card */}
           <div 
             onClick={() => navigate('/room')}
-            className="p-4 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#0d0f17] to-purple-950/40 border border-white/[0.08] hover:border-rose-500/40 cursor-pointer transition-all flex items-center justify-between group shadow-xl hover:scale-[1.01]"
+            className="p-5 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#0d0f17] to-purple-950/40 border border-white/[0.1] hover:border-rose-500/50 cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:scale-[1.01]"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">
-                🛋️
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-rose-500/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-inner">
+                🎭
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-white group-hover:text-rose-200 transition-colors">
-                    Couple Studio & Avatars
+                  <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-rose-200 transition-colors flex items-center gap-1.5">
+                    <span>3D Bitmoji Studio</span>
+                    <span className="text-amber-400">✨</span>
                   </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-                    Live Presence
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Real 3D WebGL</span>
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Hang out with {partner_user?.name || 'Partner'} • Hug, Kiss, Cuddle & Wardrobe
+                <p className="text-xs text-gray-300 mt-1">
+                  Hang out with {partner_user?.name || 'Partner'} • 360° Drag, Toast Coffee, Kiss, Hug, Couch Cuddle & Dance
                 </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">☕ Toast</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">💋 Kiss</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🤗 Hug</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🛋️ Couch</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">💃 Dance</span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 group-hover:text-rose-300 group-hover:translate-x-1 transition-all">
-              <span>Open Studio</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 group-hover:text-rose-300 group-hover:translate-x-1 transition-all self-end sm:self-center px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <span>Enter 3D Stage</span>
               <span>→</span>
             </div>
           </div>
