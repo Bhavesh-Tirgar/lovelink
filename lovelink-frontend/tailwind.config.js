@@ -13,6 +13,18 @@ module.exports = {
           purple: '#9b5cf6',
           pink: '#ec4899',
           rose: '#f43f5e',
+        },
+        obsidian: {
+          DEFAULT: '#07080c',
+          darker: '#040508',
+          card: 'rgba(255, 255, 255, 0.04)',
+          border: 'rgba(255, 255, 255, 0.08)',
+        },
+        neon: {
+          rose: '#f43f5e',
+          purple: '#a855f7',
+          cyan: '#06b6d4',
+          amber: '#f59e0b',
         }
       },
       animation: {

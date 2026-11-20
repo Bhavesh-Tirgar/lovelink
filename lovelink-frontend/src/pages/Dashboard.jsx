@@ -171,7 +171,7 @@ export default function Dashboard() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B0E14]">
+      <div className="min-h-screen flex items-center justify-center bg-[#07080c]">
         <div className="text-center animate-pulse">
           <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-2xl shadow-[0_0_30px_rgba(244,63,94,0.3)]">
             💖
@@ -188,7 +188,7 @@ export default function Dashboard() {
     <div className="min-h-screen pb-28 pt-4 sm:pt-6 px-4 sm:px-6 md:px-10 max-w-5xl mx-auto text-gray-100">
       
       {/* ── Top Header Bar ────────────────────────────────────────── */}
-      <header className="flex items-center justify-between py-3 mb-6 border-b border-white/5">
+      <header className="flex items-center justify-between py-3 mb-6 border-b border-white/[0.08]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/25">
             <Heart size={20} className="text-white fill-white" />
@@ -279,7 +279,7 @@ export default function Dashboard() {
         <main className="space-y-6">
           
           {/* Hero Card: Journey Milestone */}
-          <section className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-950/40 via-[#131722] to-black border border-rose-500/25 shadow-2xl">
+          <section className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-950/40 via-[#0d0f17] to-black border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
             <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-rose-500/15 blur-3xl pointer-events-none" />
             
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
@@ -334,7 +334,7 @@ export default function Dashboard() {
           {/* Couple Presence & Avatar Studio Widget */}
           <div 
             onClick={() => navigate('/room')}
-            className="p-4 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#131722] to-purple-950/40 border border-rose-500/25 hover:border-rose-500/40 cursor-pointer transition-all flex items-center justify-between group shadow-xl hover:scale-[1.01]"
+            className="p-4 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#0d0f17] to-purple-950/40 border border-white/[0.08] hover:border-rose-500/40 cursor-pointer transition-all flex items-center justify-between group shadow-xl hover:scale-[1.01]"
           >
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">
@@ -380,7 +380,7 @@ export default function Dashboard() {
                   <button
                     key={item.title}
                     onClick={() => navigate(item.path)}
-                    className="p-3.5 rounded-2xl bg-[#131722]/80 hover:bg-[#1a2030] border border-white/10 hover:border-white/25 text-left flex flex-col justify-between group transition-all duration-300 shadow-md"
+                    className="p-3.5 rounded-2xl bg-[#0d0f17]/90 hover:bg-[#131724] border border-white/[0.08] hover:border-rose-500/30 text-left flex flex-col justify-between group transition-all duration-300 shadow-md"
                   >
                     <div className={`w-8 h-8 rounded-xl ${item.color} border flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
                       <Icon size={16} />
@@ -438,7 +438,7 @@ export default function Dashboard() {
       {/* ── Settings & Profile Modal ─────────────────────────────── */}
       {showSettings && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-[#131722] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-6">
+          <div className="w-full max-w-md bg-[#0d0f17] border border-white/[0.1] rounded-3xl p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <Settings size={18} className="text-rose-400" />

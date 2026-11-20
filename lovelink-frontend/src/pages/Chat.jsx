@@ -496,13 +496,13 @@ function Chat() {
     };
 
     if (loading) {
-        return <div className="h-screen bg-[#080612] flex items-center justify-center text-gray-400">Loading chat...</div>;
+        return <div className="h-screen bg-[#07080c] flex items-center justify-center text-gray-400">Loading chat...</div>;
     }
 
     return (
-        <div className="flex flex-col h-[100dvh] w-full text-gray-100 overflow-hidden animate-in fade-in duration-700">
+        <div className="flex flex-col h-[100dvh] w-full bg-[#07080c] text-gray-100 overflow-hidden animate-in fade-in duration-700">
             {/* Top Bar */}
-            <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-4 bg-brand-darker/60 backdrop-blur-xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.3)] z-20">
+            <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-4 bg-[#07080c]/85 backdrop-blur-md border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.4)] z-20">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-gray-300 hover:text-white">
                         <ArrowLeft size={20} />
@@ -655,8 +655,8 @@ function Chat() {
 
                                                 <div
                                                     className={`px-4 py-3 shadow-md inline-block max-w-full backdrop-blur-md border relative ${isMine
-                                                        ? 'bg-rose-600 text-white border-rose-500/40 shadow-lg shadow-rose-950/30'
-                                                        : 'bg-[#161B26] text-gray-100 border-white/10 shadow-md'
+                                                        ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-500/30 shadow-lg shadow-rose-950/40'
+                                                        : 'bg-[#11141e]/95 text-gray-100 border-white/[0.08] shadow-md'
                                                         } transition-transform hover:scale-[1.01]`}
                                                     style={{ borderRadius }}
                                                 >
@@ -761,7 +761,7 @@ function Chat() {
             )}
 
             {/* Input Nav */}
-            <div className="flex-none p-2.5 sm:p-4 pb-safe bg-brand-darker/80 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] z-20">
+            <div className="flex-none p-2.5 sm:p-4 pb-safe bg-[#07080c]/90 backdrop-blur-md border-t border-white/[0.08] shadow-[0_-10px_30px_rgba(0,0,0,0.4)] z-20">
                 <div className="max-w-4xl mx-auto flex items-end gap-3 relative">
 
                     <label className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 mb-0 border border-transparent hover:border-pink-500/20" title="Send Photo">
