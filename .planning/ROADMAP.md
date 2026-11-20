@@ -1,5 +1,4 @@
-go
-- [x] Build `libmoji.js` utility for Friendmoji couple comic templates.
+### Phase 4: Friendmoji Couple Comic Engine
 - [x] Redesign `CozyRoom.jsx` with high-res Friendmoji scenes (Couch Cuddle, Hug, Coffee Toast, Spoon, Hand Hold, Kiss, High-Five).
 - [x] Provide Bitmoji Avatar ID configuration modal + presets with WebSocket sync.
 

@@ -38,7 +38,7 @@ class AvatarConfigRequest(BaseModel):
     glb_url: Optional[str] = None
 
 class CoupleInteractionRequest(BaseModel):
-    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating"
+    action: str  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave", "high_five"
 
 class RoomThemeRequest(BaseModel):
     theme: Optional[str] = None
@@ -375,23 +375,25 @@ async def trigger_couple_interaction(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    ALLOWED_ACTIONS = {
+        "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch",
+        "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave",
+        "high_five"
+    }
+    action = payload.action
+    if action not in ALLOWED_ACTIONS:
+        raise HTTPException(status_code=400, detail="Invalid couple action")
+
     couple = await _get_user_couple(db, current_user.id)
     room = await _get_or_create_room(db, couple.id)
 
-    action = payload.action
     room.couple_action = action
     room.couple_action_by = current_user.name
     room.couple_action_updated_at = datetime.utcnow()
 
     db.add(room)
     await db.commit()
-
-    ALLOWED_ACTIONS = {
-        "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch",
-        "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave"
-    }
-    if action not in ALLOWED_ACTIONS:
-        raise HTTPException(status_code=400, detail="Invalid couple action")
+    await db.refresh(room)
 
     action_messages = {
         "hug": f"{current_user.name} wrapped you in a warm hug! 🤗💖",
@@ -402,6 +404,7 @@ async def trigger_couple_interaction(
         "toast": f"{current_user.name} cheered morning coffee with you! ☕🥂",
         "clink": f"{current_user.name} cheered morning coffee with you! ☕🥂",
         "wave": f"{current_user.name} waved hello to you! 👋✨",
+        "high_five": f"{current_user.name} gave you an energetic high-five! ✋✨",
         "couch": f"{current_user.name} sat next to you on the couch! 🛋️",
         "sitting_on_couch": f"{current_user.name} is cuddling next to you on the couch! 🛋️",
         "idle": f"{current_user.name} is chilling with you in the room! ✨",
