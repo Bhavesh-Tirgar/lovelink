@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import useWebSocket from '../hooks/useWebSocket';
 import { getWsBaseUrl } from '../utils/wsUrl';
-import Real3DAvatarStage from '../components/Real3DAvatarStage';
+import SnapchatBitmojiStage from '../components/SnapchatBitmojiStage';
 import FriendmojiCouple from '../components/FriendmojiCouple';
 import { FRIENDMOJI_TEMPLATES, WARDROBE_OUTFITS } from '../utils/libmoji';
 import { useMusic } from '../context/MusicContext';
@@ -17,11 +17,30 @@ import { useMusic } from '../context/MusicContext';
 export default function CozyRoom() {
   const navigate = useNavigate();
   const { isPlaying: isPlayingMusic } = useMusic();
-  const [loading, setLoading] = useState(true);
-  const [room, setRoom] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [room, setRoom] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return {
+        my_name: u.name || 'Bhavesh',
+        partner_name: u.partner_name || 'Neha',
+        couple_action: 'toast',
+        sticky_notes: [],
+        wall_photos: [],
+      };
+    } catch {
+      return {
+        my_name: 'Bhavesh',
+        partner_name: 'Neha',
+        couple_action: 'toast',
+        sticky_notes: [],
+        wall_photos: [],
+      };
+    }
+  });
   const [currentAction, setCurrentAction] = useState('toast');
   const [actionNonce, setActionNonce] = useState(0);
-  const [stageMode, setStageMode] = useState('3d_real'); // '3d_real' (Default Real 3D Humanoid Avatars) | 'studio_art'
+  const [stageMode, setStageMode] = useState('snap_3d'); // 'snap_3d' (Authentic 3D Snapchat Bitmojis) | 'studio_art'
   
   // Interactive Modals
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -51,7 +70,6 @@ export default function CozyRoom() {
 
   const fetchRoom = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await api.get('/room');
       setRoom(res.data);
       if (res.data?.couple_action) {
@@ -276,15 +294,15 @@ export default function CozyRoom() {
               <div className="flex items-center gap-1.5 bg-[#131722] p-1 rounded-full border border-white/10 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => setStageMode('3d_real')}
+                  onClick={() => setStageMode('snap_3d')}
                   className={`px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-                    stageMode === '3d_real'
+                    stageMode === 'snap_3d'
                       ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-pink-500 text-white shadow-md scale-[1.02]'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  <Sparkles size={12} className={stageMode === '3d_real' ? 'text-amber-200' : 'text-gray-400'} />
-                  <span>Real 3D Avatars ✨</span>
+                  <Sparkles size={12} className={stageMode === 'snap_3d' ? 'text-amber-200' : 'text-gray-400'} />
+                  <span>3D Bitmojis 🎭</span>
                 </button>
                 <button
                   type="button"
@@ -300,18 +318,16 @@ export default function CozyRoom() {
               </div>
 
               <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
-                {stageMode === '3d_real' ? '360° Real 3D Humanoid Studio' : 'Stylized Couple Scene'}
+                {stageMode === 'snap_3d' ? 'Authentic 3D Bitmoji Studio' : 'Stylized Couple Scene'}
               </span>
             </div>
 
-            {stageMode === '3d_real' ? (
-              <Real3DAvatarStage
-                myName={room?.my_name || 'You'}
-                partnerName={room?.partner_name || 'Partner'}
-                myGlbUrl={room?.my_avatar?.glb_url}
-                partnerGlbUrl={room?.partner_avatar?.glb_url}
-                externalAction={currentAction}
+            {stageMode === 'snap_3d' ? (
+              <SnapchatBitmojiStage
+                action={currentAction}
                 actionNonce={actionNonce}
+                myName={room?.my_name || 'Bhavesh'}
+                partnerName={room?.partner_name || 'Neha'}
                 onEmoteTrigger={(emote) => handleSelectScene(emote)}
                 onOpenCreator={() => setShowBitmojiModal(true)}
                 isPlayingMusic={isPlayingMusic}
@@ -324,47 +340,49 @@ export default function CozyRoom() {
                   action={currentAction}
                   myAvatar={{ ...(room?.my_avatar || {}), outfit: selectedOutfit }}
                   partnerAvatar={room?.partner_avatar}
-                  myName={room?.my_name || 'You'}
-                  partnerName={room?.partner_name || 'Partner'}
+                  myName={room?.my_name || 'Bhavesh'}
+                  partnerName={room?.partner_name || 'Neha'}
                   onWardrobeClick={() => setShowWardrobeModal(true)}
                 />
               </div>
             )}
           </div>
 
-          {/* ── Interactive Scene Picker ──────────────────────────── */}
-          <div className="w-full max-w-lg space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                Choose Couple Action
-              </span>
-              <span className="text-[10px] text-rose-400 font-medium">
-                Syncs live to partner's screen 💖
-              </span>
-            </div>
+          {/* ── Interactive Scene Picker (for Studio Art mode) ───── */}
+          {stageMode === 'studio_art' && (
+            <div className="w-full max-w-lg space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                  Choose Couple Action
+                </span>
+                <span className="text-[10px] text-rose-400 font-medium">
+                  Syncs live to partner's screen 💖
+                </span>
+              </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {Object.values(FRIENDMOJI_TEMPLATES).map((tmpl) => {
-                const isSelected = currentAction === tmpl.id;
-                return (
-                  <button
-                    key={tmpl.id}
-                    onClick={() => handleSelectScene(tmpl.id)}
-                    className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${
-                      isSelected
-                        ? 'bg-rose-500/20 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.35)] scale-105'
-                        : 'bg-[#131722]/80 hover:bg-[#1a2030] border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <span className="text-2xl">{tmpl.emoji}</span>
-                    <span className={`text-[10px] font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                      {tmpl.name}
-                    </span>
-                  </button>
-                );
-              })}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {Object.values(FRIENDMOJI_TEMPLATES).map((tmpl) => {
+                  const isSelected = currentAction === tmpl.id;
+                  return (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => handleSelectScene(tmpl.id)}
+                      className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${
+                        isSelected
+                          ? 'bg-rose-500/20 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.35)] scale-105'
+                          : 'bg-[#131722]/80 hover:bg-[#1a2030] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span className="text-2xl">{tmpl.emoji}</span>
+                      <span className={`text-[10px] font-bold truncate ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                        {tmpl.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ── Studio Live Wall Decor Preview ── */}
           {((room?.sticky_notes && room.sticky_notes.length > 0) || (room?.wall_photos && room.wall_photos.length > 0)) && (
