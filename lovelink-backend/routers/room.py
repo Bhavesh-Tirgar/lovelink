@@ -39,7 +39,8 @@ class AvatarConfigRequest(BaseModel):
     glb_url: Optional[str] = Field(None, max_length=2000)
 
 class CoupleInteractionRequest(BaseModel):
-    action: str = Field(..., max_length=50)  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave", "high_five"
+    action: str = Field(..., max_length=50)  # "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch", "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave", "high_five", "whisper"
+    custom_message: Optional[str] = Field(None, max_length=250)
 
 class RoomThemeRequest(BaseModel):
     theme: Optional[str] = Field(None, max_length=50)
@@ -391,7 +392,7 @@ async def trigger_couple_interaction(
     ALLOWED_ACTIONS = {
         "hug", "kiss", "hand_hold", "spoon", "dance", "toast", "couch",
         "idle", "watching_movie", "eating", "sitting_on_couch", "clink", "wave",
-        "high_five"
+        "high_five", "whisper"
     }
     action = payload.action
     if action not in ALLOWED_ACTIONS:
@@ -423,6 +424,7 @@ async def trigger_couple_interaction(
         "idle": f"{current_user.name} is chilling with you in the room! ✨",
         "watching_movie": f"{current_user.name} started watching a movie with you! 🍿🎬",
         "eating": f"{current_user.name} is sharing a sweet snack with you! 🍰☕",
+        "whisper": f"{current_user.name} whispered: \"{payload.custom_message or 'I love you ❤️'}\" 💭💕",
     }
     msg = action_messages.get(action, f"{current_user.name} interacted with you in the room! 💕")
 
@@ -432,6 +434,7 @@ async def trigger_couple_interaction(
         "type": "room_update",
         "action": "couple_interaction",
         "interaction": action,
+        "custom_message": payload.custom_message,
         "initiated_by": current_user.name,
         "updated_at": updated_iso,
         "message": msg
@@ -439,6 +442,7 @@ async def trigger_couple_interaction(
 
     return {
         "action": action,
+        "custom_message": payload.custom_message,
         "initiated_by": current_user.name,
         "message": msg
     }

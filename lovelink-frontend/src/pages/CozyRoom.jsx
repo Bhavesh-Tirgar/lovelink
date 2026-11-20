@@ -92,6 +92,19 @@ export default function CozyRoom() {
     if (data.type === 'room_update') {
       if (data.action === 'couple_interaction') {
         const nextAction = data.interaction || data.interaction_action || data.sub_action || 'couch';
+        if (nextAction === 'whisper') {
+          const whisperText = data.custom_message || 'I love you ❤️';
+          setRoom(prev => ({ ...prev, love_whisper: whisperText }));
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.55 },
+            colors: ['#F43F5E', '#EC4899', '#FB7185', '#FBBF24']
+          });
+          toast(data.message || `Partner whispered: "${whisperText}" 💭💕`, { icon: '💖', duration: 4500 });
+          return;
+        }
+
         setCurrentAction(nextAction);
         setActionNonce(prev => prev + 1);
         
@@ -146,6 +159,15 @@ export default function CozyRoom() {
       await api.post('/room/couple-interaction', { action: sceneId });
     } catch (err) {
       console.warn('Could not sync scene to backend:', err);
+    }
+  };
+
+  const handleWhisper = async (msg) => {
+    setRoom(prev => ({ ...prev, love_whisper: msg }));
+    try {
+      await api.post('/room/couple-interaction', { action: 'whisper', custom_message: msg });
+    } catch (err) {
+      console.warn('Could not sync whisper to backend:', err);
     }
   };
 
@@ -328,7 +350,9 @@ export default function CozyRoom() {
                 actionNonce={actionNonce}
                 myName={room?.my_name || 'Bhavesh'}
                 partnerName={room?.partner_name || 'Neha'}
+                whisper={room?.love_whisper || "You make my heart smile every single day ❤️"}
                 onEmoteTrigger={(emote) => handleSelectScene(emote)}
+                onWhisperTrigger={(msg) => handleWhisper(msg)}
                 onOpenCreator={() => setShowBitmojiModal(true)}
                 isPlayingMusic={isPlayingMusic}
                 className="w-full"

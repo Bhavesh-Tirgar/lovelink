@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import {
-  Heart, Coffee, Shirt, Music, Check, X, RotateCw
+  Heart, Coffee, Shirt, Music, Check, X, RotateCw, ZoomIn, Play, Pause, Sparkles, MessageCircle, Palette
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
@@ -24,6 +24,76 @@ function getSharedAudioContext() {
   }
   return sharedAudioCtx;
 }
+
+// ----------------------------------------------------------------------
+// ATMOSPHERIC ROMANTIC MOOD LIGHTING PRESETS
+// ----------------------------------------------------------------------
+export const MOOD_THEMES = {
+  rose_gold: {
+    id: 'rose_gold',
+    name: 'Rose Romance',
+    emoji: '💖',
+    description: 'Blushing Rose & Golden Amber Warmth',
+    ambient: 0xfff0f5,
+    key: 0xffe4e6,
+    fill: 0xfce7f3,
+    rim: 0xf43f5e,
+    ringColor: 0xf43f5e,
+    bgGradient: 'from-[#1c0c16] via-[#0d0711] to-[#040206]',
+    accent: '#F43F5E',
+  },
+  sunset_glow: {
+    id: 'sunset_glow',
+    name: 'Sunset Golden Hour',
+    emoji: '🌅',
+    description: 'Golden Sunset Sunbeams & Honey Glow',
+    ambient: 0xfffbeb,
+    key: 0xfef3c7,
+    fill: 0xffedd5,
+    rim: 0xf59e0b,
+    ringColor: 0xf59e0b,
+    bgGradient: 'from-[#1a1107] via-[#0f0b07] to-[#050302]',
+    accent: '#F59E0B',
+  },
+  midnight_starlight: {
+    id: 'midnight_starlight',
+    name: 'Midnight Starlight',
+    emoji: '🌌',
+    description: 'Cosmic Sapphire Sky & Electric Cyan Rim',
+    ambient: 0xe0e7ff,
+    key: 0xdbeafe,
+    fill: 0x93c5fd,
+    rim: 0x6366f1,
+    ringColor: 0x38bdf8,
+    bgGradient: 'from-[#0a1224] via-[#070c18] to-[#03050c]',
+    accent: '#38BDF8',
+  },
+  cyber_noir: {
+    id: 'cyber_noir',
+    name: 'Cyber Ultraviolet',
+    emoji: '💜',
+    description: 'Luminous Purple Neon & Dark Luxury Velvet',
+    ambient: 0xf3e8ff,
+    key: 0xe9d5ff,
+    fill: 0xc084fc,
+    rim: 0xa855f7,
+    ringColor: 0xa855f7,
+    bgGradient: 'from-[#160a24] via-[#0e0618] to-[#04010a]',
+    accent: '#A855F7',
+  },
+};
+
+// ----------------------------------------------------------------------
+// ROMANTIC LOVE WHISPER PRESETS
+// ----------------------------------------------------------------------
+export const WHISPER_PRESETS = [
+  "You make my heart smile every single day ❤️",
+  "Can't stop thinking about you, my favorite person 💕",
+  "Forever and always by your side 🏡✨",
+  "You are my absolute happiest place 💖",
+  "Sending you the biggest, warmest hug right now 🤗",
+  "Every love story is beautiful, but ours is my favorite 👑",
+];
 
 // ----------------------------------------------------------------------
 // WARDROBE CATALOGS FOR SNAPCHAT 3D BITMOJIS
@@ -97,7 +167,9 @@ export default function SnapchatBitmojiStage({
   myName = 'You',
   partnerName = 'Partner',
   partnerHandle = '',
+  whisper = '',
   onEmoteTrigger,
+  onWhisperTrigger,
   onOpenCreator,
   className = '',
   isPlayingMusic = false,
@@ -125,6 +197,13 @@ export default function SnapchatBitmojiStage({
   const musicNotesGroupRef = useRef(null);
   const podiumMeshRef = useRef(null);
 
+  // Lighting & Material Refs for Dynamic Moods
+  const ambientLightRef = useRef(null);
+  const keyLightRef = useRef(null);
+  const fillLightRef = useRef(null);
+  const rimLightRef = useRef(null);
+  const rimRingMatRef = useRef(null);
+
   // Fallback Stylized Avatars (renders instantly while GLBs load)
   const girlStylizedGroupRef = useRef(null);
   const boyStylizedGroupRef = useRef(null);
@@ -134,8 +213,29 @@ export default function SnapchatBitmojiStage({
   const [activeEmote, setActiveEmote] = useState(action || 'toast');
   const [activeWardrobe, setActiveWardrobe] = useState('streetwear');
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
+  const [activeMood, setActiveMood] = useState('rose_gold');
+  const [showMoodModal, setShowMoodModal] = useState(false);
   const [is3DReady, setIs3DReady] = useState(false);
   const [isCooldown, setIsCooldown] = useState(false);
+
+  // Cinematic Camera State
+  const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const [cameraView, setCameraView] = useState('front'); // 'front' | 'closeup'
+
+  // Romantic Love Whisper State
+  const [loveWhisper, setLoveWhisper] = useState(whisper || "You make my heart smile every single day ❤️");
+  const [showWhisperModal, setShowWhisperModal] = useState(false);
+  const [customWhisperInput, setCustomWhisperInput] = useState('');
+
+  // Interactive Tap Ripple Particles
+  const [tapRipples, setTapRipples] = useState([]);
+
+  // Sync incoming whisper
+  useEffect(() => {
+    if (whisper) {
+      setLoveWhisper(whisper);
+    }
+  }, [whisper]);
 
   // Animation Timing Ref & Jitter Guard
   const animStateRef = useRef({
@@ -295,12 +395,104 @@ export default function SnapchatBitmojiStage({
   const handleResetCamera = useCallback(() => {
     if (controlsRef.current && cameraRef.current) {
       controlsRef.current.reset();
+      controlsRef.current.autoRotate = false;
+      setIsAutoRotating(false);
+      setCameraView('front');
       cameraRef.current.position.set(0, 1.15, 3.2);
       controlsRef.current.target.set(0, 0.95, 0);
       controlsRef.current.update();
-      toast.success('Camera view reset 📷');
+      toast.success('Front Camera View 📷');
     }
   }, []);
+
+  // Cinematic Close-Up Camera Angle
+  const handleCameraCloseup = useCallback(() => {
+    if (controlsRef.current && cameraRef.current) {
+      controlsRef.current.autoRotate = false;
+      setIsAutoRotating(false);
+      setCameraView('closeup');
+      cameraRef.current.position.set(0, 1.28, 1.7);
+      controlsRef.current.target.set(0, 1.18, 0);
+      controlsRef.current.update();
+      toast.success('Couple Close-Up View 🔍💖');
+    }
+  }, []);
+
+  // 360° Cinematic Showcase Auto-Rotate Toggle
+  const handleToggleAutoRotate = useCallback(() => {
+    if (controlsRef.current) {
+      const next = !isAutoRotating;
+      setIsAutoRotating(next);
+      controlsRef.current.autoRotate = next;
+      controlsRef.current.autoRotateSpeed = 1.6;
+      if (next) {
+        toast.success('360° Cinematic Showcase Spin ON 🎬');
+      } else {
+        toast.success('Spin Paused ⏸️');
+      }
+    }
+  }, [isAutoRotating]);
+
+  // Apply Atmospheric Mood Lighting
+  const applyMood = useCallback((moodId) => {
+    const item = MOOD_THEMES[moodId] || MOOD_THEMES.rose_gold;
+    setActiveMood(moodId);
+    setShowMoodModal(false);
+    if (ambientLightRef.current) ambientLightRef.current.color.setHex(item.ambient);
+    if (keyLightRef.current) keyLightRef.current.color.setHex(item.key);
+    if (fillLightRef.current) fillLightRef.current.color.setHex(item.fill);
+    if (rimLightRef.current) rimLightRef.current.color.setHex(item.rim);
+    if (rimRingMatRef.current) rimRingMatRef.current.color.setHex(item.ringColor);
+
+    confetti({
+      particleCount: 35,
+      spread: 60,
+      origin: { y: 0.6 },
+      colors: [item.accent, '#FFFFFF'],
+    });
+    toast.success(`Ambient Mood: ${item.name}! ✨`);
+  }, []);
+
+  // Save and Broadcast Love Whisper
+  const handleSaveWhisper = useCallback((text) => {
+    if (!text || !text.trim()) return;
+    const clean = text.trim();
+    setLoveWhisper(clean);
+    setShowWhisperModal(false);
+    setCustomWhisperInput('');
+    confetti({
+      particleCount: 40,
+      spread: 65,
+      origin: { y: 0.55 },
+      colors: ['#F43F5E', '#EC4899', '#FB7185', '#FBBF24'],
+    });
+    if (onWhisperTrigger) {
+      onWhisperTrigger(clean);
+    }
+    toast.success('Love whisper floating above your couple! 💭💕');
+  }, [onWhisperTrigger]);
+
+  // Interactive Tap on 3D Stage
+  const handleCanvasTap = useCallback((e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const newRipple = { id: Date.now() + Math.random(), x, y };
+    setTapRipples(prev => [...prev.slice(-3), newRipple]);
+    setTimeout(() => {
+      setTapRipples(prev => prev.filter(r => r.id !== newRipple.id));
+    }, 900);
+
+    playSfx('chime');
+    const cuteReactions = [
+      'Sending sweet love to your partner! 💕',
+      'Blushing together in 3D! ✨',
+      'Warm butterfly flutters in the room! 🦋',
+      'Cuddles & infinite affection! 💖',
+    ];
+    toast(cuteReactions[Math.floor(Math.random() * cuteReactions.length)], { icon: '❤️' });
+  }, [playSfx]);
 
   // Update Wardrobe Materials across active 3D meshes
   const applyWardrobe = useCallback((wardrobeId) => {
@@ -425,19 +617,23 @@ export default function SnapchatBitmojiStage({
     // 4. Studio Lighting Rig
     const ambientLight = new THREE.AmbientLight(0xfffbf5, 1.5);
     scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
 
     const keyLight = new THREE.DirectionalLight(0xfff1e6, 2.2);
     keyLight.position.set(2.5, 4.0, 2.8);
     keyLight.castShadow = true;
     scene.add(keyLight);
+    keyLightRef.current = keyLight;
 
     const fillLight = new THREE.DirectionalLight(0xdbeafe, 1.2);
     fillLight.position.set(-2.5, 3.0, 2.0);
     scene.add(fillLight);
+    fillLightRef.current = fillLight;
 
     const rimLight = new THREE.DirectionalLight(0xf43f5e, 1.8);
     rimLight.position.set(0, 3.0, -2.8);
     scene.add(rimLight);
+    rimLightRef.current = rimLight;
 
     // 5. 3D Illuminated Obsidian Circular Podium
     const podiumGeo = new THREE.CylinderGeometry(1.5, 1.6, 0.1, 48);
@@ -457,10 +653,19 @@ export default function SnapchatBitmojiStage({
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xf43f5e,
     });
+    rimRingMatRef.current = ringMat;
     const rimRing = new THREE.Mesh(ringGeo, ringMat);
     rimRing.rotation.x = Math.PI / 2;
     rimRing.position.set(0, 0.052, 0);
     scene.add(rimRing);
+
+    // Apply Active Atmospheric Mood Lighting
+    const initMood = MOOD_THEMES[activeMood] || MOOD_THEMES.rose_gold;
+    ambientLight.color.setHex(initMood.ambient);
+    keyLight.color.setHex(initMood.key);
+    fillLight.color.setHex(initMood.fill);
+    rimLight.color.setHex(initMood.rim);
+    ringMat.color.setHex(initMood.ringColor);
 
     // Soft Ground Contact Shadow
     const shadowGeo = new THREE.RingGeometry(0.3, 1.6, 32);
@@ -1112,6 +1317,7 @@ export default function SnapchatBitmojiStage({
   }, []); // Run once on mount
 
   const currentWardrobeObj = WARDROBE_COLLECTIONS[activeWardrobe] || WARDROBE_COLLECTIONS.streetwear;
+  const currentMoodObj = MOOD_THEMES[activeMood] || MOOD_THEMES.rose_gold;
   const isDancing = activeEmote === 'dance';
   const isKissing = activeEmote === 'kiss';
   const isHugging = activeEmote === 'hug';
@@ -1123,12 +1329,13 @@ export default function SnapchatBitmojiStage({
     <div className={`relative flex flex-col items-center w-full max-w-lg mx-auto select-none ${className}`}>
 
       {/* ------------------------------------------------------------- */}
-      {/* 1. TRUE 3D WEBGL STUDIO VIEWPORT (Obsidian Luxury Dark)       */}
+      {/* 1. TRUE 3D WEBGL STUDIO VIEWPORT (Dynamic Atmospheric Dark)  */}
       {/* ------------------------------------------------------------- */}
       <div
         ref={containerRef}
         style={{ touchAction: 'pan-y' }}
-        className="relative w-full aspect-[9/12.5] min-h-[430px] sm:min-h-[470px] max-h-[530px] rounded-[32px] overflow-hidden bg-gradient-to-b from-[#0e111a] via-[#090b12] to-[#040508] shadow-[0_25px_80px_rgba(0,0,0,0.85)] border-2 border-white/10 flex flex-col justify-between p-3.5 sm:p-4"
+        onClick={handleCanvasTap}
+        className={`relative w-full aspect-[9/12.5] min-h-[430px] sm:min-h-[470px] max-h-[530px] rounded-[32px] overflow-hidden bg-gradient-to-b ${currentMoodObj.bgGradient} shadow-[0_25px_80px_rgba(0,0,0,0.85)] border-2 border-white/10 flex flex-col justify-between p-3.5 sm:p-4 transition-colors duration-700`}
       >
         {/* Holographic light sheen reflection across glass */}
         <div
@@ -1139,44 +1346,98 @@ export default function SnapchatBitmojiStage({
         />
 
         {/* ── TOP BAR: Status & Controls ────────────────────────────── */}
-        <div className="relative z-20 flex items-center justify-between w-full">
-          {/* Left: 360° Rotate & Camera Reset Button */}
-          <div className="flex items-center gap-1.5">
+        <div className="relative z-20 flex items-center justify-between w-full flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {/* Left: Camera Angle Tools */}
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handleResetCamera}
-              className="px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/15 text-[11px] font-bold text-gray-300 hover:text-white transition-all flex items-center gap-1.5 shadow-lg active:scale-95"
-              title="Reset Front View"
+              className={`px-2.5 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold transition-all flex items-center gap-1 shadow-md active:scale-95 ${cameraView === 'front' && !isAutoRotating
+                ? 'bg-white/20 text-white border-white/30'
+                : 'bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border-white/15'}`}
+              title="Front Standard View"
             >
-              <RotateCw size={13} className="text-amber-400" />
-              <span className="hidden sm:inline">Reset View</span>
+              <RotateCw size={12} className="text-amber-400" />
+              <span className="hidden sm:inline">Front</span>
             </button>
-            <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-400 font-mono hidden md:inline-flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${is3DReady ? 'bg-emerald-400' : 'bg-amber-400'} animate-ping`} />
-              <span>{is3DReady ? '360° 3D WebGL' : '3D WebGL Live'}</span>
-            </span>
+
+            <button
+              type="button"
+              onClick={handleCameraCloseup}
+              className={`px-2.5 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold transition-all flex items-center gap-1 shadow-md active:scale-95 ${cameraView === 'closeup'
+                ? 'bg-rose-500/30 text-rose-200 border-rose-400/50'
+                : 'bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border-white/15'}`}
+              title="Couple Close-Up View"
+            >
+              <ZoomIn size={12} className="text-rose-400" />
+              <span className="hidden sm:inline">Close-Up</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleAutoRotate}
+              className={`px-2.5 py-1.5 rounded-full backdrop-blur-md border text-[11px] font-bold transition-all flex items-center gap-1 shadow-md active:scale-95 ${isAutoRotating
+                ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.5)]'
+                : 'bg-black/60 hover:bg-black/80 text-gray-300 hover:text-white border-white/15'}`}
+              title="360° Cinematic Showcase Spin"
+            >
+              {isAutoRotating ? <Pause size={12} /> : <Play size={12} className="text-amber-400" />}
+              <span className="hidden sm:inline">Spin</span>
+            </button>
           </div>
 
           {/* Center: Couple Names Pill */}
-          <div className="px-3.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white flex items-center gap-1.5 shadow-lg">
+          <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white flex items-center gap-1.5 shadow-lg">
+            <span className={`w-1.5 h-1.5 rounded-full ${is3DReady ? 'bg-emerald-400' : 'bg-amber-400'} animate-ping`} />
             <span className="text-xs font-black tracking-tight">{cleanMe}</span>
             <span className="text-rose-400 text-xs">♥</span>
             <span className="text-xs font-black tracking-tight">{cleanPartner}</span>
-            <span className="hidden sm:inline text-[10px] text-gray-400 font-mono ml-1">
+            <span className="hidden lg:inline text-[9px] text-gray-400 font-mono ml-1">
               {displayMyHandle} & {displayPartnerHandle}
             </span>
           </div>
 
-          {/* Right Action: Wardrobe Drawer Switcher */}
+          {/* Right Actions: Mood Lighting & Wardrobe Closets */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowMoodModal(!showMoodModal)}
+              className="px-2.5 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/15 shadow-xl text-xs font-bold text-slate-200 hover:text-white transition-all active:scale-95 flex items-center gap-1"
+              title="Atmospheric Mood Lighting"
+            >
+              <Palette size={13} className="text-pink-400" />
+              <span>{currentMoodObj.emoji}</span>
+              <span className="hidden md:inline">{currentMoodObj.name.split(' ')[0]}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowWardrobeModal(!showWardrobeModal)}
+              className="px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 shadow-xl text-xs font-bold text-slate-200 hover:text-white transition-all active:scale-95 flex items-center gap-1"
+              title="Switch Streetwear & Outfits"
+            >
+              <Shirt size={13} className="text-amber-400" />
+              <span>{currentWardrobeObj.emoji}</span>
+              <span className="hidden md:inline">{currentWardrobeObj.name.split(' ')[0]}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── FLOATING ROMANTIC LOVE WHISPER BUBBLE ─────────────────── */}
+        <div className="absolute top-14 inset-x-3 z-20 flex justify-center pointer-events-none" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => setShowWardrobeModal(!showWardrobeModal)}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 shadow-xl text-xs font-bold text-slate-200 hover:text-white transition-all active:scale-95 flex items-center gap-1.5"
-            title="Switch Streetwear & Outfits"
+            onClick={() => setShowWhisperModal(true)}
+            className="pointer-events-auto px-4 py-2 rounded-2xl bg-black/70 hover:bg-black/90 backdrop-blur-xl border border-white/20 text-white shadow-2xl transition-all active:scale-95 flex items-center gap-2 group animate-in fade-in duration-300 max-w-[92%]"
+            title="Click to whisper something sweet to your partner"
           >
-            <Shirt size={14} className="text-amber-400" />
-            <span className="hidden sm:inline">{currentWardrobeObj.name}</span>
-            <span className="sm:hidden">Closet</span>
+            <Sparkles size={14} className="text-amber-400 group-hover:rotate-45 transition-transform flex-shrink-0" />
+            <span className="text-xs font-semibold tracking-wide italic truncate text-rose-100">
+              "{loveWhisper}"
+            </span>
+            <span className="text-[10px] bg-rose-500/30 text-rose-300 font-bold px-2 py-0.5 rounded-full border border-rose-500/40 flex-shrink-0">
+              Whisper 💬
+            </span>
           </button>
         </div>
 
@@ -1188,17 +1449,83 @@ export default function SnapchatBitmojiStage({
             className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing flex items-center justify-center"
           />
 
+          {/* Interactive Tap Heart Particles */}
+          {tapRipples.map(r => (
+            <div
+              key={r.id}
+              className="absolute pointer-events-none z-30 animate-ping text-2xl select-none"
+              style={{ left: r.x - 12, top: r.y - 12 }}
+            >
+              💖
+            </div>
+          ))}
+
+          {/* Music Vibe Badge */}
+          {isPlayingMusic && (
+            <div className="absolute bottom-9 inset-x-0 flex items-center justify-center pointer-events-none z-20">
+              <div className="px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-purple-500/40 text-[10px] font-bold text-purple-300 flex items-center gap-1.5 shadow-[0_0_20px_rgba(168,85,247,0.4)] animate-pulse">
+                <Music size={11} className="text-purple-400 animate-bounce" />
+                <span>Vibing to Music in 3D 🎶</span>
+              </div>
+            </div>
+          )}
+
           {/* 360° Drag Hint Overlay */}
           <div className="absolute bottom-2 inset-x-0 flex items-center justify-center pointer-events-none opacity-60">
             <span className="px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-[10px] text-gray-300 font-medium">
-              ✦ Drag to Rotate 360° • Pinch / Scroll to Zoom
+              ✦ Drag to Rotate • Tap anywhere for Love ✨
             </span>
           </div>
         </div>
 
+        {/* ── MODAL: ATMOSPHERIC MOOD LIGHTING DRAWER ───────────────── */}
+        {showMoodModal && (
+          <div className="absolute inset-x-3 bottom-3 z-30 p-4 rounded-3xl bg-[#090b12]/95 backdrop-blur-xl border border-white/20 shadow-2xl animate-in slide-in-from-bottom-6 duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Palette size={16} className="text-pink-400" />
+                <h3 className="text-xs font-black text-white tracking-wide uppercase">Atmospheric Mood Lighting</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMoodModal(false)}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              {Object.values(MOOD_THEMES).map((item) => {
+                const isSelected = activeMood === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => applyMood(item.id)}
+                    className={`p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all ${isSelected
+                        ? 'bg-white/15 border-white/30 shadow-md ring-1 ring-white/40'
+                        : 'bg-white/5 hover:bg-white/10 border-white/5'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{item.emoji}</span>
+                      <div>
+                        <span className="text-xs font-bold text-white block">{item.name}</span>
+                        <p className="text-[10px] text-gray-400 truncate max-w-[170px]">{item.description}</p>
+                      </div>
+                    </div>
+                    {isSelected && <Check size={14} className="text-pink-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── MODAL: WARDROBE & STREETWEAR DRAWER ────────────────────── */}
         {showWardrobeModal && (
-          <div className="absolute inset-x-3 bottom-3 z-30 p-4 rounded-3xl bg-[#090b12]/95 backdrop-blur-xl border border-white/20 shadow-2xl animate-in slide-in-from-bottom-6 duration-300">
+          <div className="absolute inset-x-3 bottom-3 z-30 p-4 rounded-3xl bg-[#090b12]/95 backdrop-blur-xl border border-white/20 shadow-2xl animate-in slide-in-from-bottom-6 duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Shirt size={16} className="text-amber-400" />
@@ -1252,6 +1579,66 @@ export default function SnapchatBitmojiStage({
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL: ROMANTIC LOVE WHISPER DRAWER ────────────────────── */}
+        {showWhisperModal && (
+          <div className="absolute inset-x-3 bottom-3 z-30 p-4 rounded-3xl bg-[#090b12]/95 backdrop-blur-xl border border-white/20 shadow-2xl animate-in slide-in-from-bottom-6 duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <MessageCircle size={16} className="text-rose-400" />
+                <h3 className="text-xs font-black text-white tracking-wide uppercase">Whisper Love to {cleanPartner}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWhisperModal(false)}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Custom Whisper Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveWhisper(customWhisperInput);
+              }}
+              className="flex items-center gap-2 mb-3"
+            >
+              <input
+                type="text"
+                value={customWhisperInput}
+                onChange={(e) => setCustomWhisperInput(e.target.value)}
+                placeholder="Type your romantic whisper..."
+                maxLength={90}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-400"
+              />
+              <button
+                type="submit"
+                disabled={!customWhisperInput.trim()}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold text-xs shadow-md disabled:opacity-50 active:scale-95"
+              >
+                Float ✨
+              </button>
+            </form>
+
+            {/* Whisper Presets */}
+            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Sweet Presets</p>
+              {WHISPER_PRESETS.map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSaveWhisper(preset)}
+                  className="w-full p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-left text-xs text-rose-100 hover:text-white transition-all flex items-center gap-2 active:scale-98"
+                >
+                  <span className="text-xs">💬</span>
+                  <span className="truncate">{preset}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
