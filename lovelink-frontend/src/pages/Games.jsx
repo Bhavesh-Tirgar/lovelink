@@ -14,7 +14,7 @@ import CoupleUno from '../components/CoupleUno';
 // Web Audio API Synthesizers for zero-dependency satisfying sound effects
 const playSound = (type) => {
     try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const AudioContext = window.AudioContext || window['webkitAudioContext'];
         if (!AudioContext) return;
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();

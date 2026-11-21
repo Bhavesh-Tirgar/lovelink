@@ -7,7 +7,7 @@ import { Crown, RotateCcw, Flag, Sparkles, Heart, Volume2, VolumeX, ShieldAlert 
 const playChessSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const AudioContext = window.AudioContext || window['webkitAudioContext'];
         if (!AudioContext) return;
         const ctx = new AudioContext();
         const now = ctx.currentTime;
