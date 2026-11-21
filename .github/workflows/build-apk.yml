@@ -23,6 +23,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: lovelink-frontend/package-lock.json
+
+      - name: Install Frontend Dependencies & Sync Capacitor
+        working-directory: lovelink-frontend
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+          npm run build
+          npx cap sync android
+
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -59,8 +73,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0-apk
-          name: "LoveLink Android App v1.0"
+          tag_name: v1.0.${{ github.run_number }}
+          name: "LoveLink Android App Build #${{ github.run_number }}"
           draft: false
           prerelease: false
           make_latest: true

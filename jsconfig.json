@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./lovelink-frontend/src",
+    "jsx": "react-jsx",
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "lovelink-backend",
+    "lovelink-frontend/node_modules",
+    "lovelink-frontend/build",
+    "lovelink-frontend/android"
+  ],
+  "include": [
+    "lovelink-frontend/src/**/*"
+  ]
+}

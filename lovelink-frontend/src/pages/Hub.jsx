@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Gamepad2, Film, Palette, Droplets, 
   Camera, CalendarClock, MapPin,
-  ArrowRight
+  ArrowRight, Clapperboard
 } from 'lucide-react';
 
 export default function Hub() {
@@ -14,6 +14,14 @@ export default function Hub() {
       category: 'Play Together',
       emoji: '🎮',
       items: [
+        {
+          title: 'Reels Co-Scroll Lounge',
+          desc: 'Watch viral memes & shorts together in real-time with double-tap heart storms',
+          icon: Clapperboard,
+          path: '/reels',
+          color: 'from-pink-500/20 to-purple-500/20 border-pink-500/30 text-pink-300',
+          badge: 'Live Co-Scroll'
+        },
         {
           title: 'Couple Games',
           desc: '1v1 Chess, Ludo, Uno & Solo Bot practice',

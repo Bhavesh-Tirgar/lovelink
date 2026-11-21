@@ -21,7 +21,8 @@ export default function NavigationDock() {
     hiddenPaths.includes(location.pathname) ||
     location.pathname.startsWith('/call/') ||
     location.pathname.startsWith('/watch/') ||
-    location.pathname === '/doodle'
+    location.pathname === '/doodle' ||
+    location.pathname === '/reels'
   ) {
     return null;
   }

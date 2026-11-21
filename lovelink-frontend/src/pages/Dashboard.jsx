@@ -4,9 +4,10 @@ import api from '../api';
 import NotificationBell from '../components/NotificationBell';
 import confetti from 'canvas-confetti';
 import {
-  Heart, MessageCircle, Sparkles, Compass,
+  Heart, MessageCircle, Compass,
   MapPin, Film, Gamepad2, Camera,
-  Settings, LogOut, Copy, Check, QrCode, Volume2, VolumeX, X
+  Settings, LogOut, Copy, Check, QrCode, Volume2, VolumeX, X,
+  Clapperboard
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -318,39 +319,39 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Daily Spark & Connection Sanctuary Showcase Card */}
+          {/* Reels & Memes Co-Scroll Lounge Showcase Bento Card */}
           <div
-            onClick={() => navigate('/spark')}
-            className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-[#0d0f17] to-rose-950/40 border border-white/[0.1] hover:border-amber-500/50 cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:scale-[1.01]"
+            onClick={() => navigate('/reels')}
+            className="p-5 rounded-3xl bg-gradient-to-r from-pink-950/40 via-[#0d0f17] to-purple-950/40 border border-white/[0.1] hover:border-pink-500/50 cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:scale-[1.01]"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-pink-500/20 border border-amber-500/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-inner">
-                ✨
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-rose-500/20 border border-pink-500/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-inner">
+                🎬
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-amber-200 transition-colors flex items-center gap-1.5">
-                    <span>Daily Spark Sanctuary</span>
-                    <span className="text-amber-400">🔥</span>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-pink-200 transition-colors flex items-center gap-1.5">
+                    <span>Reels & Memes Co-Scroll Lounge</span>
+                    <span className="text-pink-400">🔥</span>
                   </h3>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold border border-rose-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                    <span>Daily Blind Reveal</span>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono font-bold border border-pink-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-ping" />
+                    <span>Live Co-Scroll</span>
                   </span>
                 </div>
                 <p className="text-xs text-gray-300 mt-1">
-                  Connect deeply with {partner_user?.name || 'Partner'} • Daily Blind Questions, Love Battery & Scratch-Off Date Nights
+                  Watch trending memes, wholesome couple shorts & TikTok clips in real-time with {partner_user?.name || 'Partner'}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🔒 Blind Reveal</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">⚡ Love Pulse</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🎲 Scratch Date</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">💌 Time Capsule</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🍿 Auto-Stream</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">❤️ Double-Tap Hearts</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">🔗 Live Sync</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">✨ Zero Effort</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all self-end sm:self-center px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <span>Open Daily Spark</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-pink-400 group-hover:text-pink-300 group-hover:translate-x-1 transition-all self-end sm:self-center px-4 py-2 rounded-xl bg-pink-500/10 border border-pink-500/20">
+              <span>Open Reels Lounge</span>
               <span>→</span>
             </div>
           </div>
@@ -364,8 +365,8 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               {[
                 { title: 'Chat', desc: 'E2EE Messages', icon: MessageCircle, path: '/chat', color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
-                { title: 'Spark', desc: 'Daily Connection', icon: Sparkles, path: '/spark', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-                { title: 'Games', desc: '1v1 & Solo Bot', icon: Gamepad2, path: '/games', color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+                { title: 'Reels', desc: 'Co-Scroll Lounge', icon: Clapperboard, path: '/reels', color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+                { title: 'Games', desc: '1v1 & Solo Bot', icon: Gamepad2, path: '/games', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
                 { title: 'Watch', desc: 'Sync Movies', icon: Film, path: '/movies', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
                 { title: 'Snap Map', desc: 'Live Radar', icon: MapPin, path: '/map', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
                 { title: 'All Hub', desc: 'Explore Features', icon: Compass, path: '/hub', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' }
