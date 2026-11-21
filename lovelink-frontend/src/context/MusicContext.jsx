@@ -28,6 +28,8 @@ export const MusicProvider = ({ children }) => {
     const reconnectTimeoutRef = useRef(null);
     const isLocalAction = useRef(true);
 
+    const SILENT_CARRIER_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
     // Cross-frame YouTube Player control bridge
     const controlYouTube = (action, param = null) => {
         const iframe = document.getElementById('yt-music-iframe');
@@ -75,6 +77,54 @@ export const MusicProvider = ({ children }) => {
         return () => window.removeEventListener('message', handleYtMessage);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack]);
+
+    // Background Audio Carrier to ensure mobile OS & Android WebView keep audio process alive in background
+    const ensureAudioCarrier = (active) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (active) {
+            try {
+                if (audio.src !== SILENT_CARRIER_URI) {
+                    audio.src = SILENT_CARRIER_URI;
+                    audio.loop = true;
+                    audio.volume = 0.05;
+                }
+                audio.play().catch(() => {});
+            } catch {}
+        } else {
+            try {
+                if (audio.src === SILENT_CARRIER_URI) {
+                    audio.pause();
+                }
+            } catch {}
+        }
+    };
+
+    // System MediaSession API: Lockscreen, Notification controls & OS media status
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+        if (currentTrack) {
+            try {
+                navigator.mediaSession.metadata = new window.MediaMetadata({
+                    title: currentTrack.title || 'LoveLink Lofi Sanctuary',
+                    artist: currentTrack.artist || 'LoveLink Radio',
+                    album: 'Couple Sanctuary',
+                    artwork: [
+                        { src: currentTrack.cover || '/logo192.png', sizes: '96x96', type: 'image/png' },
+                        { src: currentTrack.cover || '/logo192.png', sizes: '128x128', type: 'image/png' },
+                        { src: currentTrack.cover || '/logo192.png', sizes: '192x192', type: 'image/png' },
+                        { src: currentTrack.cover || '/logo512.png', sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+            } catch (e) {
+                console.warn('MediaSession metadata error:', e);
+            }
+        } else {
+            navigator.mediaSession.playbackState = 'none';
+        }
+    }, [currentTrack, isPlaying]);
 
     // Keep token & coupleId in sync on navigation / state changes
     useEffect(() => {
@@ -259,10 +309,12 @@ export const MusicProvider = ({ children }) => {
                     setDuration(data.track.duration || 210);
                     setIsPlaying(Boolean(data.is_playing));
                     if (data.is_playing) {
+                        ensureAudioCarrier(true);
                         controlYouTube('play');
                         if (data.position) controlYouTube('seek', data.position);
                     } else {
                         controlYouTube('pause');
+                        ensureAudioCarrier(false);
                     }
                 }
             }
@@ -275,6 +327,7 @@ export const MusicProvider = ({ children }) => {
                 }
                 audio.play().catch(() => { });
             } else if (isYt) {
+                ensureAudioCarrier(true);
                 controlYouTube('play');
                 if (data.position) controlYouTube('seek', data.position);
             }
@@ -284,7 +337,10 @@ export const MusicProvider = ({ children }) => {
         } else if (data.type === 'pause') {
             const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
             if (!isYt) audio.pause();
-            else controlYouTube('pause');
+            else {
+                controlYouTube('pause');
+                ensureAudioCarrier(false);
+            }
             setIsPlaying(false);
             if (data.position) {
                 if (!isYt) audio.currentTime = data.position;
@@ -334,12 +390,16 @@ export const MusicProvider = ({ children }) => {
         if (isYt) {
             audio.pause();
             audio.src = '';
+            ensureAudioCarrier(true);
             setCurrentTime(0);
             setDuration(track.duration || 210);
             setIsPlaying(true);
             controlYouTube('play');
             sendEvent('change_track', { track, is_playing: true, position: 0 });
         } else if (track.url) {
+            ensureAudioCarrier(false);
+            audio.loop = false;
+            audio.volume = volume;
             audio.src = track.url;
             audio.play().then(() => {
                 setIsPlaying(true);
@@ -361,14 +421,20 @@ export const MusicProvider = ({ children }) => {
 
         if (isPlaying) {
             if (!isYt) audio.pause();
-            else controlYouTube('pause');
+            else {
+                controlYouTube('pause');
+                ensureAudioCarrier(false);
+            }
             setIsPlaying(false);
             sendEvent('pause', { position: isYt ? currentTime : audio.currentTime });
         } else {
             if (!isYt && audio.src) {
+                audio.loop = false;
+                audio.volume = volume;
                 audio.play().catch(console.warn);
             } else if (isYt) {
                 controlYouTube('play');
+                ensureAudioCarrier(true);
             }
             setIsPlaying(true);
             sendEvent('play', { position: isYt ? currentTime : audio.currentTime });
@@ -433,6 +499,39 @@ export const MusicProvider = ({ children }) => {
             }
         }
     };
+
+    // Register MediaSession lockscreen / notification action handlers
+    useEffect(() => {
+        if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+        const actionHandlers = [
+            ['play', () => togglePlay()],
+            ['pause', () => togglePlay()],
+            ['previoustrack', () => playPrev()],
+            ['nexttrack', () => playNext()],
+            ['seekto', (details) => {
+                if (details.seekTime !== undefined && details.seekTime !== null) {
+                    seek(details.seekTime);
+                }
+            }],
+        ];
+
+        for (const [action, handler] of actionHandlers) {
+            try {
+                navigator.mediaSession.setActionHandler(action, handler);
+            } catch (e) {
+                console.warn(`MediaSession action ${action} not supported:`, e);
+            }
+        }
+
+        return () => {
+            for (const [action] of actionHandlers) {
+                try {
+                    navigator.mediaSession.setActionHandler(action, null);
+                } catch { }
+            }
+        };
+    });
 
     const addCustomTrack = async (trackData) => {
         try {

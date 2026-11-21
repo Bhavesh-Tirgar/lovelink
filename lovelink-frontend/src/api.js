@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { app } from "./utils/firebase";
 
 const getDefaultBaseUrl = () => {
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
@@ -138,23 +138,13 @@ api.interceptors.response.use(
 export default api;
 
 // Firebase Web Push Initialization
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "",
-  authDomain: "love-link-48830.firebaseapp.com",
-  projectId: "love-link-48830",
-  storageBucket: "love-link-48830.firebasestorage.app",
-  messagingSenderId: "486498555432",
-  appId: "1:486498555432:web:98fc63a1fed99132b4071d",
-};
-
 export const initFirebasePush = async () => {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-    const app = initializeApp(firebaseConfig);
     const messaging = getMessaging(app);
-
-    const swUrl = firebaseConfig.apiKey ? `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(firebaseConfig.apiKey)}` : '/firebase-messaging-sw.js';
+    const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyDRGkpcR78KzJ2rau_Q_5PiDWErm_afTmY";
+    const swUrl = apiKey ? `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}` : '/firebase-messaging-sw.js';
     const registration = await navigator.serviceWorker.register(swUrl);
 
     const permission = await Notification.requestPermission();

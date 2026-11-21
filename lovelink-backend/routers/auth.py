@@ -302,6 +302,10 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
     if not payload.credential:
         raise HTTPException(status_code=400, detail="Missing Google credential")
 
+    email = None
+    name = None
+    picture = None
+
     try:
         request = google_requests.Request()
         client_id = os.getenv("GOOGLE_CLIENT_ID")
@@ -316,15 +320,25 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
             # Verify valid Google issuers
             if google_data.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
                 raise ValueError("Untrusted Google token issuer.")
+        email = google_data.get("email")
+        name = google_data.get("name") or (email.split("@")[0] if email else "Partner")
+        picture = google_data.get("picture")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Google token cryptographic verification failed: {str(e)}")
+        # Fallback: Attempt verification using Firebase Admin Auth (for Firebase Google Sign-In)
+        try:
+            from firebase_admin import auth as fb_auth
+            fb_data = fb_auth.verify_id_token(payload.credential)
+            email = fb_data.get("email")
+            name = fb_data.get("name") or (email.split("@")[0] if email else "Partner")
+            picture = fb_data.get("picture")
+        except Exception as fb_err:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Google token cryptographic verification failed: {str(e)} (Firebase check: {str(fb_err)})"
+            )
 
-    email = google_data.get("email")
     if not email:
         raise HTTPException(status_code=400, detail="Google account has no verified email")
-
-    name = google_data.get("name") or email.split("@")[0]
-    picture = google_data.get("picture")
 
     # Find existing user by email
     result = await db.execute(select(User).where(User.email == email))

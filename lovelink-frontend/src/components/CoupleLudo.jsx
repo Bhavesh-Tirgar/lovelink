@@ -6,9 +6,9 @@ import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
 const playLudoSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContext = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
         if (ctx.state === 'suspended') {
             ctx.resume().catch(() => {});
         }

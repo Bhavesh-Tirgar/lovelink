@@ -38,9 +38,9 @@ function createDeck() {
 const playUnoSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContext = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
         const now = ctx.currentTime;
 
         if (type === 'play') {

@@ -7,9 +7,9 @@ import { Crown, RotateCcw, Flag, Sparkles, Heart, Volume2, VolumeX, ShieldAlert 
 const playChessSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContext = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
         const now = ctx.currentTime;
 
         if (type === 'move') {
@@ -555,8 +555,8 @@ export default function CoupleChess({
                                     {piece && (
                                         <span
                                             className={`text-2xl sm:text-3xl select-none leading-none drop-shadow-md transition-transform active:scale-95 ${piece.color === 'w'
-                                                    ? 'text-pink-200 drop-shadow-[0_2px_6px_rgba(244,114,182,0.6)] filter brightness-110'
-                                                    : 'text-indigo-950 drop-shadow-[0_2px_8px_rgba(168,85,247,0.85)] filter contrast-150'
+                                                ? 'text-pink-200 drop-shadow-[0_2px_6px_rgba(244,114,182,0.6)] filter brightness-110'
+                                                : 'text-indigo-950 drop-shadow-[0_2px_8px_rgba(168,85,247,0.85)] filter contrast-150'
                                                 }`}
                                             style={piece.color === 'b' ? {
                                                 textShadow: '-1px -1px 0 #c084fc, 1px -1px 0 #c084fc, -1px 1px 0 #c084fc, 1px 1px 0 #c084fc, 0 0 10px rgba(192,132,252,0.8)'
