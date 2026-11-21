@@ -189,7 +189,17 @@ export default function GoogleSignInButton({ onError }) {
                 return;
             }
 
-            // Fallback to redirect if popup is blocked
+            // If domain is unauthorized in Firebase Console, do NOT redirect (redirecting causes blank white screen)
+            if (popupErr.code === 'auth/unauthorized-domain') {
+                setLoading(false);
+                toast.error(
+                    'Domain not whitelisted in Firebase! Please add "lovelink-pearl.vercel.app" in Firebase Console -> Auth -> Settings -> Authorized Domains. Or use Phone OTP / Email login below!',
+                    { duration: 8000 }
+                );
+                return;
+            }
+
+            // Fallback to redirect only if not an unauthorized domain error
             try {
                 toast('Opening Google Sign-In...', { icon: '🔐' });
                 await signInWithRedirect(auth, googleProvider);
