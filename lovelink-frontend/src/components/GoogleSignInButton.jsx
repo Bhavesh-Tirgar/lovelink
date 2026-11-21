@@ -168,12 +168,29 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [clientId, handleGoogleResponse]);
 
-    // 5. Sign In Action: Use popup first across platforms to avoid mobile iframe storage partitioning bugs
+    // 5. Sign In Action: Handled according to platform (Web vs Android APK)
     const handleGoogleSignInClick = async () => {
         setLoading(true);
 
+        const isNativeApp = typeof window !== 'undefined' && (
+            Boolean(window['Capacitor']?.isNativePlatform?.()) ||
+            window.location.protocol === 'capacitor:' ||
+            /Capacitor/i.test(navigator.userAgent)
+        );
+
+        // Android WebViews strictly block web OAuth window.opener popups and redirects
+        if (isNativeApp) {
+            setLoading(false);
+            toast('Google Sign-In is restricted inside Android WebViews. Please use Phone OTP or Email login to enter instantly!', {
+                icon: '📱',
+                duration: 6000
+            });
+            if (onError) onError('Google Sign-In is restricted inside the Android APK. Please use Phone OTP or Email below.');
+            return;
+        }
+
         try {
-            // signInWithPopup is more resilient on mobile Chrome since Chrome 115+ partitions 3rd-party storage for iframes
+            // signInWithPopup is more resilient on desktop & mobile Chrome browsers
             const result = await signInWithPopup(auth, googleProvider);
             if (result && result.user) {
                 const idToken = await result.user.getIdToken();

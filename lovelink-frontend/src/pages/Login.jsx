@@ -12,10 +12,15 @@ const getError = (err) => {
 
 function Login() {
   const navigate = useNavigate();
+  const isNativeApp = typeof window !== 'undefined' && (
+    Boolean(window['Capacitor']?.isNativePlatform?.()) ||
+    window.location.protocol === 'capacitor:' ||
+    /Capacitor/i.test(navigator.userAgent)
+  );
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
-  const [mode, setMode] = useState('password');
+  const [mode, setMode] = useState(isNativeApp ? 'otp' : 'password');
   const [otpSent, setOtpSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -345,7 +350,15 @@ function Login() {
           </div>
         </div>
 
-        <GoogleSignInButton onError={(msg) => setError(msg)} />
+        {isNativeApp ? (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+            <p className="text-xs text-amber-200 font-medium">
+              📱 <strong>App Security Note:</strong> Google popup is disabled inside Android WebViews. Please use <strong>Phone OTP</strong> or <strong>Password</strong> above to log in instantly!
+            </p>
+          </div>
+        ) : (
+          <GoogleSignInButton onError={(msg) => setError(msg)} />
+        )}
 
         <p className="mt-4 text-center text-sm text-gray-400">
           Don&apos;t have an account?{' '}
