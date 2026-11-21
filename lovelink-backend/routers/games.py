@@ -198,7 +198,7 @@ async def games_websocket(
     if couple_id not in game_sessions:
         game_sessions[couple_id] = {
             "rps": {"moves": {}, "scores": {}},
-            "ttt": {"board": [""] * 9, "turn": user_id, "scores": {}, "symbol": {user_id: "X"}},
+            "ttt": {"board": [""] * 9, "turn": user_id, "scores": {}, "symbol": {user_id: "❤️"}},
             "tod": {
                 "turn": user_id,
                 "current_challenge": None,
@@ -229,6 +229,14 @@ async def games_websocket(
                 "winner": None
             }
         }
+    else:
+        # Second player connecting: assign them 💋 symbol in TTT
+        ttt_s = game_sessions[couple_id].get("ttt", {})
+        sym_map = ttt_s.get("symbol", {})
+        if user_id not in sym_map:
+            # Already has ❤️ holder, assign 💋 to this new user
+            sym_map[user_id] = "💋"
+            ttt_s["symbol"] = sym_map
 
     session = game_sessions[couple_id]
     if "tod" not in session:
@@ -252,7 +260,7 @@ async def games_websocket(
             "player_blue": other_user_id or "partner",
             "turn": "pink",
             "dice": None,
-            "tokens": {"pink": [-1, -1], "blue": [-1, -1]},
+            "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
             "scores": {user_id: 0, (other_user_id or "partner"): 0},
             "winner": None
         }
@@ -264,13 +272,24 @@ async def games_websocket(
             "scores": {user_id: 0, (other_user_id or "partner"): 0},
             "winner": None
         }
+    active_count = len(manager.connections.get(room, []))
     await manager.send_personal(websocket, {
         "type": "session_init",
         "user_id": user_id,
+        "partner_online": active_count >= 2,
+        "connected_count": active_count,
+        "ttt_symbol": session["ttt"].get("symbol", {}).get(user_id, "❤️"),
         "tod": session["tod"],
         "chess": session["chess"],
         "ludo": session["ludo"],
         "uno": session["uno"]
+    })
+
+    # Notify room about presence status
+    await manager.broadcast(room, {
+        "type": "partner_presence",
+        "partner_online": active_count >= 2,
+        "connected_count": active_count
     })
 
     import json
@@ -733,3 +752,9 @@ async def games_websocket(
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, room)
+        rem_count = len(manager.connections.get(room, []))
+        await manager.broadcast(room, {
+            "type": "partner_presence",
+            "partner_online": rem_count >= 2,
+            "connected_count": rem_count
+        })

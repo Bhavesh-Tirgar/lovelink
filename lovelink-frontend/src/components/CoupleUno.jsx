@@ -125,7 +125,9 @@ export default function CoupleUno({
     partnerName = "Partner",
     sendWs,
     unoState,
-    isLiveConnected
+    isLiveConnected,
+    gameMode = 'online',
+    partnerOnline = false
 }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [myHand, setMyHand] = useState([]);
@@ -172,12 +174,19 @@ export default function CoupleUno({
         });
     }, [userId, sendWs]);
 
-    // Mount initialization
+    // Mount initialization: only the player who is "player_1" (session initiator) starts the game.
+    // player_2 waits for uno_synced_init from partner.
+    // We detect who is player_1 from unoState (populated on session_init from server).
     useEffect(() => {
         if (!topCard && !winner) {
-            initGame();
+            // If unoState has player_1 and it's us, we init; otherwise wait for partner's sync
+            const isPlayer1 = !unoState?.player_1 || String(unoState.player_1) === String(userId);
+            if (isPlayer1) {
+                initGame();
+            }
+            // If we're player_2 and topCard is null, wait for incomingSync (handled below)
         }
-    }, [topCard, winner, initGame]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle incoming WebSocket synced state
     useEffect(() => {
@@ -204,7 +213,9 @@ export default function CoupleUno({
                 setDiscardPile(prev => [...prev, card]);
                 setActiveColor(active_color);
                 setPartnerCardCount(c => Math.max(0, c - 1));
-                setTurn(next_turn);
+                // next_turn is either our userId (we go again after their skip) or 'partner' (means us, since they sent it)
+                const resolvedTurn = next_turn === 'partner' ? userId : next_turn;
+                setTurn(resolvedTurn);
 
                 // Handle draw penalties (+2 or +4)
                 if (draw_penalty > 0) {
@@ -230,10 +241,69 @@ export default function CoupleUno({
             if (by_user !== userId) {
                 playUnoSound('draw', soundEnabled);
                 setPartnerCardCount(c => c + 1);
-                setTurn(next_turn);
+                // next_turn='partner' from sender means it's OUR turn now
+                const resolvedTurn = next_turn === 'partner' ? userId : next_turn;
+                setTurn(resolvedTurn);
             }
         }
     }, [unoState?.lastDrawn, userId, soundEnabled]);
+
+    // LoveBot autonomous partner moves (when in bot mode or partner offline)
+    useEffect(() => {
+        if (!isMyTurn && !winner && topCard && (gameMode === 'bot' || !partnerOnline)) {
+            const timer = setTimeout(() => {
+                // Check if bot can play a card
+                const hasMatch = Math.random() < 0.78;
+                if (hasMatch) {
+                    const pickWild = Math.random() < 0.15;
+                    const chosenColor = pickWild ? COLORS[Math.floor(Math.random() * COLORS.length)] : activeColor;
+                    const chosenValue = VALUES[Math.floor(Math.random() * VALUES.length)];
+                    const botCard = {
+                        id: `bot-c-${Date.now()}`,
+                        color: pickWild ? 'wild' : chosenColor,
+                        value: chosenValue
+                    };
+
+                    playUnoSound(pickWild ? 'wild' : 'play', soundEnabled);
+                    setDiscardPile(prev => [...prev, botCard]);
+                    setActiveColor(chosenColor);
+                    setPartnerCardCount(c => {
+                        const nextCount = Math.max(0, c - 1);
+                        if (nextCount === 0) {
+                            playUnoSound('win', soundEnabled);
+                        } else if (nextCount === 1) {
+                            playUnoSound('uno', soundEnabled);
+                        }
+                        return nextCount;
+                    });
+
+                    // Next turn resolution: skips return turn to bot, normal gives turn to player
+                    if (chosenValue === '+2' || chosenValue === '+4') {
+                        playUnoSound('draw', soundEnabled);
+                        setDeck(d => {
+                            const penalty = chosenValue === '+2' ? 2 : 4;
+                            const drawn = d.slice(0, penalty);
+                            setMyHand(h => [...h, ...drawn]);
+                            return d.slice(penalty);
+                        });
+                        // Skip player turn in 1v1
+                        setTurn('bot');
+                    } else if (chosenValue === 'skip') {
+                        setTurn('bot');
+                    } else {
+                        setTurn(userId);
+                    }
+                } else {
+                    // Bot draws a card
+                    playUnoSound('draw', soundEnabled);
+                    setPartnerCardCount(c => c + 1);
+                    setTurn(userId);
+                }
+            }, 1100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [isMyTurn, winner, topCard, gameMode, partnerOnline, activeColor, soundEnabled, userId]);
 
     // Check if a card is legally playable
     const isCardPlayable = useCallback((card) => {
@@ -284,19 +354,19 @@ export default function CoupleUno({
 
         // Determine next turn & draw penalty
         let drawPenalty = 0;
-        let nextTurn = partnerName; // partner user ID or toggle
+        let nextTurnVal = 'partner'; // signals "switch to partner"
         // If +2 card
         if (card.value === '+2') {
             drawPenalty = 2;
-            nextTurn = userId; // In 1v1, +2 skips partner turn, so you get another turn!
+            nextTurnVal = userId; // In 1v1, +2 skips partner turn, so you get another turn!
         } else if (card.value === '+4') {
             drawPenalty = 4;
-            nextTurn = userId; // In 1v1, +4 skips partner turn!
+            nextTurnVal = userId; // In 1v1, +4 skips partner turn!
         } else if (card.value === 'skip') {
-            nextTurn = userId; // Skip gives you another turn in 1v1!
+            nextTurnVal = userId; // Skip gives you another turn in 1v1!
         } else {
             // Normal pass to partner
-            nextTurn = 'partner';
+            nextTurnVal = 'partner';
         }
 
         sendWs({
@@ -304,7 +374,7 @@ export default function CoupleUno({
             action: 'play_card',
             card,
             active_color: chosenColor,
-            next_turn: nextTurn === userId ? userId : 'partner',
+            next_turn: nextTurnVal === userId ? userId : 'partner',
             draw_penalty: drawPenalty,
             is_uno: isUno,
             winner: isGameWon ? userId : null
@@ -324,13 +394,13 @@ export default function CoupleUno({
 
         setDeck(remainingDeck);
         setMyHand(h => [...h, drawnCard]);
-        setTurn('partner');
+        setTurn('waiting-partner'); // Effectively not our turn now; partner will get turn via WS
 
         sendWs({
             game: 'uno',
             action: 'draw_card',
             card: drawnCard,
-            next_turn: 'partner'
+            next_turn: 'partner' // Server broadcasts this; receiver maps 'partner' → their own userId
         });
     };
 

@@ -68,7 +68,7 @@ const playChessSound = (type, soundEnabled = true) => {
                 osc.stop(now + idx * 0.1 + 0.4);
             });
         }
-    } catch {}
+    } catch { }
 };
 
 // Unicode pieces mapping with modern styling
@@ -96,7 +96,9 @@ export default function CoupleChess({
     partnerName = "Partner",
     sendWs,
     chessState,
-    isLiveConnected
+    isLiveConnected,
+    gameMode = 'online',
+    partnerOnline = false
 }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [selectedSquare, setSelectedSquare] = useState(null);
@@ -199,12 +201,14 @@ export default function CoupleChess({
 
     // Handle Square Selection and Moves
     const handleSquareClick = useCallback((square) => {
-        if (!isMyTurn || isCheckmate || isDraw) return;
+        const canMove = isMyTurn || gameMode === 'couch';
+        if (!canMove || isCheckmate || isDraw) return;
 
         const piece = gameRef.current.get(square);
+        const movingTurnColor = gameMode === 'couch' ? turn : myColor;
 
-        // 1. If clicking a square with user's own piece -> select it & show legal moves
-        if (piece && piece.color === myColor) {
+        // 1. If clicking a square with selectable piece -> select it & show legal moves
+        if (piece && piece.color === movingTurnColor) {
             setSelectedSquare(square);
             const legal = gameRef.current.moves({ square, verbose: true });
             setPossibleMoves(legal);
@@ -273,7 +277,78 @@ export default function CoupleChess({
                 setPossibleMoves([]);
             }
         }
-    }, [isMyTurn, isCheckmate, isDraw, myColor, selectedSquare, possibleMoves, sendWs, soundEnabled]);
+    }, [isMyTurn, isCheckmate, isDraw, gameMode, turn, myColor, selectedSquare, possibleMoves, sendWs, soundEnabled]);
+
+    // LoveBot automated move for partner (in bot mode or when partner is offline)
+    useEffect(() => {
+        if (!isMyTurn && !isCheckmate && !isDraw && (gameMode === 'bot' || !partnerOnline)) {
+            const botTimer = setTimeout(() => {
+                try {
+                    const legalMoves = gameRef.current.moves({ verbose: true });
+                    if (!legalMoves || legalMoves.length === 0) return;
+
+                    // Evaluate best move
+                    const pieceVals = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+                    let bestMove = legalMoves[0];
+                    let bestScore = -999;
+
+                    legalMoves.forEach(m => {
+                        let score = 0;
+                        if (m.captured) score += (pieceVals[m.captured] || 1) * 10;
+                        if (m.san.includes('#')) score += 1000;
+                        else if (m.san.includes('+')) score += 15;
+                        if (['d4', 'd5', 'e4', 'e5'].includes(m.to)) score += 3;
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = m;
+                        }
+                    });
+
+                    const res = gameRef.current.move({
+                        from: bestMove.from,
+                        to: bestMove.to,
+                        promotion: bestMove.promotion || 'q'
+                    });
+
+                    if (res) {
+                        const newFen = gameRef.current.fen();
+                        setCurrentFen(newFen);
+                        setSelectedSquare(null);
+                        setPossibleMoves([]);
+                        setLastMove({ from: bestMove.from, to: bestMove.to });
+
+                        const check = gameRef.current.isCheck();
+                        const mate = gameRef.current.isCheckmate();
+                        const draw = gameRef.current.isDraw();
+
+                        if (mate) playChessSound('win', soundEnabled);
+                        else if (check) playChessSound('check', soundEnabled);
+                        else if (res.captured) playChessSound('capture', soundEnabled);
+                        else playChessSound('move', soundEnabled);
+
+                        sendWs({
+                            game: 'chess',
+                            action: 'move',
+                            from: bestMove.from,
+                            to: bestMove.to,
+                            promotion: bestMove.promotion || 'q',
+                            fen: newFen,
+                            san: res.san,
+                            captured: res.captured || null,
+                            is_check: check,
+                            is_checkmate: mate,
+                            is_draw: draw
+                        });
+                    }
+                } catch (err) {
+                    console.error("Bot chess move error", err);
+                }
+            }, 850);
+
+            return () => clearTimeout(botTimer);
+        }
+    }, [isMyTurn, isCheckmate, isDraw, gameMode, partnerOnline, soundEnabled, sendWs]);
 
     // Rematch / Reset
     const handleRematch = () => {
@@ -480,11 +555,10 @@ export default function CoupleChess({
                                     {/* Piece Character */}
                                     {piece && (
                                         <span
-                                            className={`text-2xl sm:text-3xl select-none leading-none drop-shadow-md transition-transform active:scale-95 ${
-                                                piece.color === 'w'
+                                            className={`text-2xl sm:text-3xl select-none leading-none drop-shadow-md transition-transform active:scale-95 ${piece.color === 'w'
                                                     ? 'text-pink-200 drop-shadow-[0_2px_6px_rgba(244,114,182,0.6)] filter brightness-110'
                                                     : 'text-indigo-950 drop-shadow-[0_2px_8px_rgba(168,85,247,0.85)] filter contrast-150'
-                                            }`}
+                                                }`}
                                             style={piece.color === 'b' ? {
                                                 textShadow: '-1px -1px 0 #c084fc, 1px -1px 0 #c084fc, -1px 1px 0 #c084fc, 1px 1px 0 #c084fc, 0 0 10px rgba(192,132,252,0.8)'
                                             } : {

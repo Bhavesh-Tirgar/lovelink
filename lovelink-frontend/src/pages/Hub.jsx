@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Gamepad2, Film, Palette, Droplets, 
   Camera, CalendarClock, MapPin,
-  ArrowRight
+  ArrowRight, Sparkles
 } from 'lucide-react';
 
 export default function Hub() {
@@ -44,6 +44,14 @@ export default function Hub() {
       category: 'Intimacy & Care',
       emoji: '🌸',
       items: [
+        {
+          title: 'Daily Spark',
+          desc: 'Blind question reveal, love battery & scratch dates',
+          icon: Sparkles,
+          path: '/spark',
+          color: 'from-amber-500/20 to-rose-500/20 border-amber-500/30 text-amber-300',
+          badge: 'Daily Connection'
+        },
         {
           title: 'Cycle Care',
           desc: 'Mutual menstrual calendar & empathy tips',

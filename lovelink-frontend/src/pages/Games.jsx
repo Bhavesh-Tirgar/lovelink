@@ -80,6 +80,8 @@ export default function Games() {
         winner: null
     });
     const [isLiveConnected, setIsLiveConnected] = useState(false);
+    const [partnerOnline, setPartnerOnline] = useState(false);
+    const [gameMode, setGameMode] = useState('online'); // 'online' (Live Sync), 'bot' (LoveBot AI), 'couch' (Pass & Play)
 
     const [user, setUser] = useState(() => {
         try { return JSON.parse(window.localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -202,13 +204,12 @@ export default function Games() {
             move: moveId
         });
 
-        // Solo fallback if partner is not in room
-        if (!isLiveConnected) {
-            toast.success("Move locked in! Waiting for partner or playing solo simulation...");
+        // Fallback / Bot mode if partner is not in room or LoveBot mode active
+        if (!isLiveConnected || !partnerOnline || gameMode === 'bot') {
             setTimeout(() => {
                 const partnerMove = ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)];
                 evaluateRpsSolo(moveId, partnerMove);
-            }, 1000);
+            }, 800);
         }
     };
 
@@ -318,7 +319,35 @@ export default function Games() {
         };
         setTodActiveChallenge(newChallenge);
         setTodCustomText('');
-        toast.success("Challenge sent to your partner! 💌");
+        toast.success("Challenge sent! 💌");
+
+        // In bot mode or when partner is offline, simulate a sweet romantic reply
+        if (!partnerOnline || gameMode === 'bot') {
+            setTimeout(() => {
+                const sweetConfessions = [
+                    "The exact moment was when we laughed together until our stomachs hurt. I knew you were the one. ✨",
+                    "How you remember the tiny little details about me that everyone else misses. It melts me. 💖",
+                    "My favorite memory was that late-night talk under the stars. Time stood completely still. 🌌",
+                    "You make me feel safe, cherished, and completely myself. I wouldn't trade that for anything. 💕"
+                ];
+                const sweetDareNotes = [
+                    "Done with 100 kisses and a big romantic smile! 💋",
+                    "Recorded a cute voice note singing just for you! 🎵",
+                    "Completed like a champ! Anything for my favorite human. 👑"
+                ];
+                const simulatedAnswer = todType === 'truth'
+                    ? sweetConfessions[Math.floor(Math.random() * sweetConfessions.length)]
+                    : sweetDareNotes[Math.floor(Math.random() * sweetDareNotes.length)];
+
+                playSound('win');
+                confetti({ particleCount: 75, spread: 65 });
+                setTodActiveChallenge(prev => ({
+                    ...(prev || {}),
+                    answer: simulatedAnswer,
+                    status: todType === 'truth' ? 'answered' : 'completed'
+                }));
+            }, 1800);
+        }
     };
 
     const submitTodAnswer = () => {
@@ -397,6 +426,7 @@ export default function Games() {
     // ───────────────────────────────────────────────────────────────────────────
     const [tttBoard, setTttBoard] = useState(Array(9).fill(null));
     const [tttTurn, setTttTurn] = useState('❤️'); // '❤️' or '💋'
+    const [tttMySymbol, setTttMySymbol] = useState(null); // assigned on session_init: '❤️' or '💋'
     const [tttWinner, setTttWinner] = useState(null); // '❤️', '💋', or 'draw'
     const [tttScores, setTttScores] = useState({ hearts: 0, kisses: 0, draws: 0 });
 
@@ -418,7 +448,9 @@ export default function Games() {
     };
 
     const handleTttClick = (index) => {
+        // Enforce turn: if in online mode and we know our symbol, only allow clicking on our turn
         if (tttBoard[index] || tttWinner) return;
+        if (gameMode !== 'couch' && tttMySymbol && tttTurn !== tttMySymbol) return; // Not your turn!
 
         playSound('click');
         const newBoard = [...tttBoard];
@@ -452,11 +484,73 @@ export default function Games() {
         });
     };
 
+    // LoveBot automated move for TicTacToe (when in bot mode or partner is offline)
+    useEffect(() => {
+        if (activeTab === 'ttt' && !tttWinner && tttTurn === '💋' && (gameMode === 'bot' || !partnerOnline)) {
+            const botTimer = setTimeout(() => {
+                setTttBoard(prev => {
+                    const emptyIndices = prev.map((val, idx) => val === null ? idx : null).filter(val => val !== null);
+                    if (emptyIndices.length === 0) return prev;
+
+                    const lines = [
+                        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                        [0, 4, 8], [2, 4, 6]
+                    ];
+
+                    let chosenIdx = null;
+                    // 1. Can bot win?
+                    for (const [a, b, c] of lines) {
+                        const vals = [prev[a], prev[b], prev[c]];
+                        if (vals.filter(v => v === '💋').length === 2 && vals.includes(null)) {
+                            chosenIdx = [a, b, c].find(i => prev[i] === null);
+                            break;
+                        }
+                    }
+                    // 2. Can bot block player?
+                    if (chosenIdx === null) {
+                        for (const [a, b, c] of lines) {
+                            const vals = [prev[a], prev[b], prev[c]];
+                            if (vals.filter(v => v === '❤️').length === 2 && vals.includes(null)) {
+                                chosenIdx = [a, b, c].find(i => prev[i] === null);
+                                break;
+                            }
+                        }
+                    }
+                    // 3. Center
+                    if (chosenIdx === null && prev[4] === null) chosenIdx = 4;
+                    // 4. Random empty
+                    if (chosenIdx === null) {
+                        chosenIdx = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                    }
+
+                    playSound('click');
+                    const next = [...prev];
+                    next[chosenIdx] = '💋';
+                    const res = checkTttWinner(next);
+                    if (res) {
+                        setTttWinner(res);
+                        if (res.winner !== 'draw') {
+                            playSound('win');
+                            confetti({ particleCount: 70, spread: 60 });
+                        }
+                    } else {
+                        setTttTurn('❤️');
+                    }
+                    return next;
+                });
+            }, 600);
+
+            return () => clearTimeout(botTimer);
+        }
+    }, [activeTab, tttWinner, tttTurn, gameMode, partnerOnline]);
+
     const handleTttReset = () => {
         playSound('click');
         setTttBoard(Array(9).fill(null));
         setTttWinner(null);
         setTttTurn('❤️');
+        setTttMySymbol(null); // Will be re-assigned on next session_init or first ttt_update
         sendWs({ game: 'ttt', action: 'reset' });
     };
 
@@ -506,15 +600,18 @@ export default function Games() {
             } else {
                 toast("Opposites attract! You picked differently 😉");
             }
-        } else if (!isLiveConnected) {
+        } else if (!isLiveConnected || !partnerOnline || gameMode === 'bot') {
             setTimeout(() => {
-                const randomChoice = Math.random() > 0.5 ? 'A' : 'B';
+                const randomChoice = Math.random() > 0.4 ? choice : (choice === 'A' ? 'B' : 'A');
                 setPartnerWyrChoice(randomChoice);
                 if (randomChoice === choice) {
                     playSound('win');
                     confetti({ particleCount: 50, spread: 50 });
+                    toast.success("You both picked the same! Perfect match 💕");
+                } else {
+                    toast("Opposites attract! You picked differently 😉");
                 }
-            }, 600);
+            }, 700);
         }
     };
 
@@ -718,6 +815,8 @@ export default function Games() {
                 if (data.by_user && data.by_user === currentMyId) {
                     break;
                 }
+                // If we haven't been assigned a symbol yet, we're the second player → 💋
+                setTttMySymbol(prev => prev || '💋');
                 setTttBoard(prev => {
                     const next = [...prev];
                     next[data.index] = data.symbol;
@@ -739,9 +838,20 @@ export default function Games() {
                 setTttBoard(Array(9).fill(null));
                 setTttWinner(null);
                 setTttTurn('❤️');
+                setTttMySymbol(null); // Will be re-inferred from next move
+                break;
+
+            case 'partner_presence':
+                setPartnerOnline(!!data.partner_online);
+                if (data.partner_online) {
+                    toast.success("Partner joined the room! Live sync active 🟢", { icon: '✨' });
+                }
                 break;
 
             case 'session_init':
+                if (data.partner_online !== undefined) {
+                    setPartnerOnline(!!data.partner_online);
+                }
                 if (data.chess) {
                     setChessState(prev => ({ ...prev, ...data.chess }));
                 }
@@ -749,12 +859,19 @@ export default function Games() {
                     setLudoState(prev => ({ ...prev, ...data.ludo }));
                 }
                 if (data.uno) {
-                    setUnoState(prev => ({ ...prev, scores: data.uno.scores || {} }));
+                    setUnoState(prev => ({ ...prev, scores: data.uno.scores || {}, player_1: data.uno.player_1, player_2: data.uno.player_2 }));
                 }
                 if (data.tod) {
                     if (data.tod.turn) setTodTurn(data.tod.turn);
                     if (data.tod.current_challenge) setTodActiveChallenge(data.tod.current_challenge);
                     if (data.tod.completed_count) setTodCompletedCount(data.tod.completed_count);
+                }
+                // TicTacToe: assign player symbol based on server user_id assignment
+                // First user to connect = ❤️, second = 💋
+                if (data.user_id) {
+                    const myId = data.user_id;
+                    const tttSym = data.ttt_symbol || (data.ttt?.symbol?.[myId]) || null;
+                    if (tttSym) setTttMySymbol(tttSym);
                 }
                 break;
 
@@ -874,13 +991,46 @@ export default function Games() {
                 </div>
 
                 {/* Connection Status Pill */}
-                <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-medium backdrop-blur-xl transition-all ${
-                    isLiveConnected 
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
-                        : 'bg-white/5 border-white/10 text-gray-400'
-                }`}>
-                    <span className={`w-2 h-2 rounded-full ${isLiveConnected ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
-                    {isLiveConnected ? 'Partner Live Synced' : 'Solo / Offline Ready'}
+                <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-medium backdrop-blur-xl transition-all ${
+                        partnerOnline 
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+                            : isLiveConnected
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                : 'bg-white/5 border-white/10 text-gray-400'
+                    }`}>
+                        <span className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-emerald-400 animate-pulse' : isLiveConnected ? 'bg-amber-400' : 'bg-gray-500'}`} />
+                        {partnerOnline ? 'Partner Online 🟢' : isLiveConnected ? 'Waiting for Partner ⏳' : 'Offline Ready'}
+                    </div>
+                </div>
+            </div>
+
+            {/* Mode Switcher: Online Live vs LoveBot AI vs Couch Pass & Play */}
+            <div className="flex items-center justify-between gap-2 p-1.5 bg-black/40 border border-white/10 rounded-2xl mb-4 backdrop-blur-xl">
+                <div className="flex items-center gap-1.5 flex-1">
+                    {[
+                        { id: 'online', label: 'Online 2-Player', icon: '🌐' },
+                        { id: 'bot', label: 'LoveBot AI', icon: '🤖' },
+                        { id: 'couch', label: 'Couch Pass & Play', icon: '🛋️' }
+                    ].map(m => (
+                        <button
+                            key={m.id}
+                            onClick={() => {
+                                playSound('click');
+                                setGameMode(m.id);
+                                toast(m.id === 'online' ? 'Online 2-Player Mode 🌐' : m.id === 'bot' ? 'LoveBot AI Companion Active 🤖' : 'Couch Pass & Play Active 🛋️');
+                            }}
+                            className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                gameMode === m.id
+                                    ? 'bg-gradient-to-r from-pink-600/80 to-purple-600/80 text-white shadow-md shadow-pink-500/20 border border-pink-400/40'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                        >
+                            <span>{m.icon}</span>
+                            <span className="hidden sm:inline">{m.label}</span>
+                            <span className="sm:hidden">{m.id === 'online' ? 'Online' : m.id === 'bot' ? 'AI Bot' : 'Couch'}</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -927,6 +1077,8 @@ export default function Games() {
                     sendWs={sendWs}
                     ludoState={ludoState}
                     isLiveConnected={isLiveConnected}
+                    gameMode={gameMode}
+                    partnerOnline={partnerOnline}
                 />
             )}
 
@@ -939,6 +1091,8 @@ export default function Games() {
                     sendWs={sendWs}
                     unoState={unoState}
                     isLiveConnected={isLiveConnected}
+                    gameMode={gameMode}
+                    partnerOnline={partnerOnline}
                 />
             )}
 
@@ -951,6 +1105,8 @@ export default function Games() {
                     sendWs={sendWs}
                     chessState={chessState}
                     isLiveConnected={isLiveConnected}
+                    gameMode={gameMode}
+                    partnerOnline={partnerOnline}
                 />
             )}
 
@@ -1477,9 +1633,21 @@ export default function Games() {
                                     : `${tttWinner.winner} Wins the match! 🏆`}
                             </div>
                         ) : (
-                            <div className="inline-flex items-center gap-2 text-sm text-gray-300 font-medium">
-                                Turn: <span className="text-2xl">{tttTurn}</span>
+                            <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border text-sm font-bold transition-all ${
+                                tttMySymbol && tttTurn === tttMySymbol
+                                    ? 'bg-pink-500/20 border-pink-400/50 text-pink-300 animate-pulse'
+                                    : 'bg-white/5 border-white/10 text-gray-400'
+                            }`}>
+                                <span className="text-2xl">{tttTurn}</span>
+                                {tttMySymbol
+                                    ? (tttTurn === tttMySymbol ? '✨ YOUR TURN!' : `⏳ ${user?.partner_name || 'Partner'}'s turn...`)
+                                    : `Turn: ${tttTurn}`}
                             </div>
+                        )}
+                        {tttMySymbol && (
+                            <p className="text-[11px] text-gray-500 mt-1.5">
+                                You are <span className="text-pink-300 font-bold">{tttMySymbol}</span>
+                            </p>
                         )}
                     </div>
 
@@ -1487,14 +1655,20 @@ export default function Games() {
                     <div className="grid grid-cols-3 gap-3 p-4 bg-black/40 border border-purple-500/20 rounded-3xl backdrop-blur-xl shadow-2xl">
                         {tttBoard.map((val, idx) => {
                             const isWinCell = tttWinner?.line?.includes(idx);
+                            const isMyTurnTtt = !tttMySymbol || tttTurn === tttMySymbol;
                             return (
                                 <button
                                     key={idx}
                                     onClick={() => handleTttClick(idx)}
+                                    disabled={!!val || !!tttWinner || !isMyTurnTtt}
                                     className={`aspect-square rounded-2xl border flex items-center justify-center text-4xl sm:text-5xl transition-all duration-300 ${
                                         isWinCell 
                                             ? 'bg-gradient-to-tr from-pink-500/40 to-purple-600/40 border-pink-400 scale-105 shadow-lg shadow-pink-500/30' 
-                                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                                            : val
+                                                ? 'bg-white/5 border-white/10'
+                                                : isMyTurnTtt
+                                                    ? 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 cursor-pointer'
+                                                    : 'bg-white/3 border-white/5 opacity-60 cursor-not-allowed'
                                     }`}
                                 >
                                     {val && <span className="animate-pop">{val}</span>}

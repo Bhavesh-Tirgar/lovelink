@@ -15,7 +15,7 @@ import DoodleBoard from './pages/DoodleBoard';
 import Games from './pages/Games';
 import LiveMap from './pages/LiveMap';
 import CycleTracker from './pages/CycleTracker';
-import CozyRoom from './pages/CozyRoom';
+import Spark from './pages/Spark';
 import Hub from './pages/Hub';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -52,7 +52,8 @@ function App() {
                 <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
                 <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
                 <Route path="/cycle" element={<ProtectedRoute><CycleTracker /></ProtectedRoute>} />
-                <Route path="/room" element={<ProtectedRoute><CozyRoom /></ProtectedRoute>} />
+                <Route path="/spark" element={<ProtectedRoute><Spark /></ProtectedRoute>} />
+                <Route path="/room" element={<ProtectedRoute><Spark /></ProtectedRoute>} />
                 <Route path="/hub" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -253,7 +253,9 @@ export default function CoupleLudo({
     partnerName = "Partner",
     sendWs,
     ludoState,
-    isLiveConnected
+    isLiveConnected,
+    gameMode = 'online',
+    partnerOnline = false
 }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [rolling, setRolling] = useState(false);
@@ -362,11 +364,16 @@ export default function CoupleLudo({
         return (step + 26) % 52;
     }, []);
 
-    // Move Token
-    const handleMoveToken = (tokenIdx) => {
-        if (!isMyTurn || !currentDice || rolling || winner) return;
+    // Execute Token Move (Generalized for Player, Couch Partner & LoveBot)
+    const handleExecuteMove = useCallback((tokenIdx, movingColor) => {
+        if (!currentDice || rolling || winner) return;
 
-        const currentStep = myTokens[tokenIdx];
+        const isMeMoving = movingColor === myColor;
+        const movingTokens = isMeMoving ? myTokens : partnerTokens;
+        const opponentTokens = isMeMoving ? partnerTokens : myTokens;
+        const opponentColor = isMeMoving ? partnerColor : myColor;
+
+        const currentStep = movingTokens[tokenIdx];
         if (!canTokenMove(currentStep, currentDice)) return;
 
         let nextStep;
@@ -380,13 +387,13 @@ export default function CoupleLudo({
 
         // Check if opponent token is cut
         let opponentCutIdx = null;
-        const myTrackIdx = getTrackIndex(nextStep, myColor);
+        const trackIdx = getTrackIndex(nextStep, movingColor);
 
         // Can only cut on outer track squares that are NOT safe star squares
-        if (myTrackIdx !== null && !SAFE_STAR_INDICES.includes(myTrackIdx)) {
-            partnerTokens.forEach((pStep, pIdx) => {
-                const partnerTrackIdx = getTrackIndex(pStep, partnerColor);
-                if (partnerTrackIdx !== null && partnerTrackIdx === myTrackIdx && opponentCutIdx === null) {
+        if (trackIdx !== null && !SAFE_STAR_INDICES.includes(trackIdx)) {
+            opponentTokens.forEach((pStep, pIdx) => {
+                const oppTrackIdx = getTrackIndex(pStep, opponentColor);
+                if (oppTrackIdx !== null && oppTrackIdx === trackIdx && opponentCutIdx === null) {
                     opponentCutIdx = pIdx;
                     playLudoSound('cut', soundEnabled);
                 }
@@ -394,7 +401,7 @@ export default function CoupleLudo({
         }
 
         // Check Win Condition: All 4 tokens reached home (step 56)
-        const updatedTokens = [...myTokens];
+        const updatedTokens = [...movingTokens];
         updatedTokens[tokenIdx] = nextStep;
         const isGameWon = updatedTokens.every(s => s === 56);
 
@@ -410,19 +417,111 @@ export default function CoupleLudo({
 
         // Bonus roll if rolled a 6, captured opponent, or reached home
         const grantsBonusRoll = currentDice === 6 || opponentCutIdx !== null || nextStep === 56;
-        const nextTurn = isGameWon ? null : (grantsBonusRoll ? myColor : partnerColor);
+        const nextTurn = isGameWon ? null : (grantsBonusRoll ? movingColor : opponentColor);
 
         sendWs({
             game: 'ludo',
             action: 'move_token',
-            color: myColor,
+            color: movingColor,
             token_idx: tokenIdx,
             new_pos: nextStep,
             opponent_cut_idx: opponentCutIdx,
             next_turn: nextTurn,
-            winner: isGameWon ? myColor : null
+            winner: isGameWon ? movingColor : null
+        });
+    }, [currentDice, rolling, winner, myColor, myTokens, partnerTokens, partnerColor, canTokenMove, soundEnabled, getTrackIndex, sendWs]);
+
+    const handleMoveToken = (tokenIdx) => {
+        if (!isMyTurn) return;
+        handleExecuteMove(tokenIdx, myColor);
+    };
+
+    const handlePartnerMoveToken = (tokenIdx) => {
+        if (isMyTurn) return;
+        handleExecuteMove(tokenIdx, partnerColor);
+    };
+
+    const handlePartnerRollDice = () => {
+        if (isMyTurn || rolling || winner || currentDice) return;
+        const finalDice = Math.floor(Math.random() * 6) + 1;
+        playLudoSound('dice', soundEnabled);
+        setPartnerLastDice(finalDice);
+        sendWs({
+            game: 'ludo',
+            action: 'roll_dice',
+            dice: finalDice
         });
     };
+
+    // LoveBot autonomous partner moves (in bot mode or when partner offline)
+    useEffect(() => {
+        if (!isMyTurn && !winner && (gameMode === 'bot' || !partnerOnline)) {
+            // 1. Roll Dice if not yet rolled
+            if (!currentDice && !rolling) {
+                const rollTimer = setTimeout(() => {
+                    const finalDice = Math.floor(Math.random() * 6) + 1;
+                    playLudoSound('dice', soundEnabled);
+                    setPartnerLastDice(finalDice);
+                    sendWs({
+                        game: 'ludo',
+                        action: 'roll_dice',
+                        dice: finalDice
+                    });
+                }, 900);
+                return () => clearTimeout(rollTimer);
+            }
+
+            // 2. Move Pawn once dice is rolled
+            if (currentDice && !rolling) {
+                const moveTimer = setTimeout(() => {
+                    const validMoves = [];
+                    partnerTokens.forEach((pStep, pIdx) => {
+                        if (canTokenMove(pStep, currentDice)) {
+                            validMoves.push(pIdx);
+                        }
+                    });
+
+                    if (validMoves.length === 0) {
+                        sendWs({
+                            game: 'ludo',
+                            action: 'pass_turn'
+                        });
+                        return;
+                    }
+
+                    // Strategic Move Selection
+                    let bestTokenIdx = validMoves[0];
+                    let bestScore = -1;
+
+                    validMoves.forEach(idx => {
+                        const step = partnerTokens[idx];
+                        let nextStep = step === -1 ? 0 : step + currentDice;
+                        let score = nextStep;
+
+                        if (nextStep === 56) score += 50;
+                        if (step === -1 && currentDice === 6) score += 30;
+
+                        // Check if cuts player
+                        const trackIdx = getTrackIndex(nextStep, partnerColor);
+                        if (trackIdx !== null && !SAFE_STAR_INDICES.includes(trackIdx)) {
+                            myTokens.forEach(mStep => {
+                                const mTrack = getTrackIndex(mStep, myColor);
+                                if (mTrack === trackIdx) score += 100;
+                            });
+                        }
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestTokenIdx = idx;
+                        }
+                    });
+
+                    handleExecuteMove(bestTokenIdx, partnerColor);
+                }, 850);
+                return () => clearTimeout(moveTimer);
+            }
+        }
+    }, [isMyTurn, winner, currentDice, rolling, gameMode, partnerOnline, partnerTokens, canTokenMove, getTrackIndex, partnerColor, myTokens, myColor, handleExecuteMove, soundEnabled, sendWs]);
 
     // Reset game / Rematch
     const handleReset = () => {
@@ -583,7 +682,8 @@ export default function CoupleLudo({
                     <RealisticDice
                         value={!isMyTurn ? (currentDice || partnerLastDice) : partnerLastDice}
                         rolling={false}
-                        disabled={true}
+                        disabled={gameMode !== 'couch' || isMyTurn || !!currentDice || !!winner}
+                        onClick={gameMode === 'couch' ? handlePartnerRollDice : undefined}
                         isTurn={!isMyTurn && !currentDice && !winner}
                         color="yellow"
                     />
@@ -776,7 +876,8 @@ export default function CoupleLudo({
                     {/* ==================== 5. 3D GLOSSY PAWNS (GOTTIYAN) ==================== */}
                     {allTokensOnBoard.map((item) => {
                         const { isMe, color, tokenIdx, step, cx, cy } = item;
-                        const canMove = isMe && isMyTurn && canTokenMove(step, currentDice);
+                        const canMove = (isMe && isMyTurn && canTokenMove(step, currentDice)) ||
+                                        (gameMode === 'couch' && !isMe && !isMyTurn && canTokenMove(step, currentDice));
 
                         // Multi-token stacking offsets
                         let ox = 0;
@@ -806,7 +907,10 @@ export default function CoupleLudo({
                             <g
                                 key={`${color}-token-${tokenIdx}`}
                                 transform={`translate(${finalX}, ${finalY}) scale(${scale})`}
-                                onClick={() => isMe && handleMoveToken(tokenIdx)}
+                                onClick={() => {
+                                    if (isMe) handleMoveToken(tokenIdx);
+                                    else if (gameMode === 'couch') handlePartnerMoveToken(tokenIdx);
+                                }}
                                 className={canMove ? 'cursor-pointer' : ''}
                             >
                                 {/* Full-area Touch Target Circle for Mobile Fingers */}

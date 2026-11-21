@@ -11,7 +11,7 @@ export default function NavigationDock() {
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: Home },
     { name: 'Chat', path: '/chat', icon: MessageCircle },
-    { name: 'Studio', path: '/room', icon: Sparkles },
+    { name: 'Spark', path: '/spark', icon: Sparkles },
     { name: 'Hub', path: '/hub', icon: Compass },
   ];
 
