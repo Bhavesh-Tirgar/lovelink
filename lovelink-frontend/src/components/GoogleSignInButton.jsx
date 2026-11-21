@@ -28,6 +28,17 @@ export default function GoogleSignInButton({ onError }) {
             const { access_token, user, couple_id } = res.data;
             const activeCoupleId = couple_id || user?.couple_id;
 
+            // If returning from a Chrome Custom Tab OAuth flow for Capacitor APK
+            const urlParams = new URLSearchParams(window.location.search);
+            const isCapacitorFlow = urlParams.get('oauth_source') === 'capacitor';
+
+            if (isCapacitorFlow) {
+                // Return seamlessly to the Android APK via custom scheme deep-link!
+                const deepLink = `lovelink://auth?token=${access_token}&refresh_token=${res.data.refresh_token || ''}&couple_id=${activeCoupleId || ''}&user=${encodeURIComponent(JSON.stringify(user))}`;
+                window.location.href = deepLink;
+                return;
+            }
+
             window.localStorage.setItem('token', access_token);
             if (res.data.refresh_token) window.localStorage.setItem('refresh_token', res.data.refresh_token);
             window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
@@ -178,15 +189,23 @@ export default function GoogleSignInButton({ onError }) {
             /Capacitor/i.test(navigator.userAgent)
         );
 
-        // Android WebViews strictly block web OAuth window.opener popups and redirects
+        // Inside the Android APK: Open real Chrome Custom Tab to bypass WebView restrictions
         if (isNativeApp) {
-            setLoading(false);
-            toast('Google Sign-In is restricted inside Android WebViews. Please use Phone OTP or Email login to enter instantly!', {
-                icon: '📱',
-                duration: 6000
-            });
-            if (onError) onError('Google Sign-In is restricted inside the Android APK. Please use Phone OTP or Email below.');
-            return;
+            try {
+                toast('Opening Google Sign-In...', { icon: '🔐' });
+                const { Browser } = await import('@capacitor/browser');
+                await Browser.open({
+                    url: 'https://lovelink-pearl.vercel.app/login?oauth_source=capacitor',
+                    windowName: '_blank'
+                });
+                setLoading(false);
+                return;
+            } catch (err) {
+                console.warn('Failed to open Chrome Custom Tab:', err);
+                toast.error('Could not open browser. Please use Phone OTP or Email login below!');
+                setLoading(false);
+                return;
+            }
         }
 
         try {

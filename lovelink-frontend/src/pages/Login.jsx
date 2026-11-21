@@ -350,15 +350,7 @@ function Login() {
           </div>
         </div>
 
-        {isNativeApp ? (
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
-            <p className="text-xs text-amber-200 font-medium">
-              📱 <strong>App Security Note:</strong> Google popup is disabled inside Android WebViews. Please use <strong>Phone OTP</strong> or <strong>Password</strong> above to log in instantly!
-            </p>
-          </div>
-        ) : (
-          <GoogleSignInButton onError={(msg) => setError(msg)} />
-        )}
+        <GoogleSignInButton onError={(msg) => setError(msg)} />
 
         <p className="mt-4 text-center text-sm text-gray-400">
           Don&apos;t have an account?{' '}

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunklovelink_frontend=self.webpackChunklovelink_frontend||[]).push([[229],{229(e,n,r){r.d(n,{Browser:()=>s});const s=(0,r(344).F3)("Browser",{web:()=>r.e(127).then(r.bind(r,127)).then(e=>new e.BrowserWeb)})}}]);

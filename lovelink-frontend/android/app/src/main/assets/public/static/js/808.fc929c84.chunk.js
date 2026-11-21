@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunklovelink_frontend=self.webpackChunklovelink_frontend||[]).push([[808],{808(e,n,p){p.d(n,{App:()=>t});const t=(0,p(344).F3)("App",{web:()=>p.e(970).then(p.bind(p,970)).then(e=>new e.AppWeb)})}}]);

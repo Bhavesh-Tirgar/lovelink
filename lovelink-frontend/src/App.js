@@ -26,6 +26,42 @@ import { initFirebasePush } from './api';
 function App() {
   React.useEffect(() => {
     initFirebasePush();
+
+    // Listen to native app URL open events (for Google OAuth return from Chrome Custom Tabs)
+    let handler = null;
+    try {
+      import('@capacitor/app').then(({ App: CapApp }) => {
+        CapApp.addListener('appUrlOpen', async (data) => {
+          if (data?.url && (data.url.includes('lovelink://auth') || data.url.includes('token='))) {
+            try {
+              import('@capacitor/browser').then(({ Browser }) => Browser.close().catch(() => {}));
+              
+              const rawUrl = data.url;
+              const queryString = rawUrl.includes('?') ? rawUrl.substring(rawUrl.indexOf('?') + 1) : '';
+              const params = new URLSearchParams(queryString);
+              const token = params.get('token');
+              const refreshToken = params.get('refresh_token');
+              const userRaw = params.get('user');
+              const coupleId = params.get('couple_id');
+
+              if (token) {
+                window.localStorage.setItem('token', token);
+                if (refreshToken) window.localStorage.setItem('refresh_token', refreshToken);
+                if (userRaw) window.localStorage.setItem('user', decodeURIComponent(userRaw));
+                if (coupleId) window.localStorage.setItem('couple_id', coupleId);
+                window.location.href = coupleId ? '/dashboard' : '/link';
+              }
+            } catch (e) {
+              console.error('Failed to parse OAuth deep link:', e);
+            }
+          }
+        }).then(h => { handler = h; });
+      }).catch(() => {});
+    } catch (e) {}
+
+    return () => {
+      if (handler && handler.remove) handler.remove();
+    };
   }, []);
 
   return (
