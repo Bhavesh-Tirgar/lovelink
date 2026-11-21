@@ -23,15 +23,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: lovelink-frontend/package-lock.json
 
       - name: Install Frontend Dependencies & Sync Capacitor
         working-directory: lovelink-frontend
+        env:
+          CI: false
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           npm ci --legacy-peer-deps || npm install --legacy-peer-deps
           npm run build
