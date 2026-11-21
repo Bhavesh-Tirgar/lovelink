@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { auth, googleProvider } from '../utils/firebase';
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 
 export default function GoogleSignInButton({ onError }) {
     const navigate = useNavigate();
@@ -49,7 +49,30 @@ export default function GoogleSignInButton({ onError }) {
         }
     }, [navigate, onError]);
 
-    // 1. Check for Firebase Redirect Result on mount (for mobile WebView & redirect flows)
+    // 1. Listen to Firebase Auth state changes (catches successful redirect or popup logins seamlessly)
+    useEffect(() => {
+        let isMounted = true;
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (!isMounted || !currentUser) return;
+            // If user is already authenticated in app, avoid redundant token requests
+            if (window.localStorage.getItem('token')) return;
+            try {
+                const idToken = await currentUser.getIdToken();
+                if (idToken) {
+                    await handleGoogleResponse({ credential: idToken });
+                }
+            } catch (e) {
+                console.error('Failed to get token from current user:', e);
+            }
+        });
+
+        return () => {
+            isMounted = false;
+            unsubscribe();
+        };
+    }, [handleGoogleResponse]);
+
+    // 2. Check for Firebase Redirect Result on mount (for mobile WebView & redirect flows)
     useEffect(() => {
         let isMounted = true;
         getRedirectResult(auth)
@@ -58,7 +81,7 @@ export default function GoogleSignInButton({ onError }) {
                 try {
                     const idToken = await result.user.getIdToken();
                     if (idToken) {
-                        handleGoogleResponse({ credential: idToken });
+                        await handleGoogleResponse({ credential: idToken });
                     }
                 } catch (e) {
                     console.error('Failed to get ID token from redirect:', e);
@@ -73,7 +96,7 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [handleGoogleResponse]);
 
-    // 2. Handle OAuth2 redirect return (extracts id_token from URL hash if using classic OAuth)
+    // 3. Handle OAuth2 redirect return (extracts id_token from URL hash if using classic OAuth)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const hash = window.location.hash;
@@ -91,7 +114,7 @@ export default function GoogleSignInButton({ onError }) {
         }
     }, [handleGoogleResponse]);
 
-    // 3. Initialize Google Identity Services if Client ID is configured
+    // 4. Initialize Google Identity Services if Client ID is configured
     useEffect(() => {
         if (typeof window === 'undefined' || !clientId) return;
 
@@ -145,64 +168,41 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [clientId, handleGoogleResponse]);
 
-    // 4. Primary Sign In Action: Firebase Google Auth with smart fallback
+    // 5. Sign In Action: On mobile/Android, ALWAYS use redirect (popups fail to close and stay blank)
     const handleGoogleSignInClick = async () => {
         setLoading(true);
 
-        // A. If GSI is initialized and client ID is set, attempt prompt first
-        if (clientId && window.google?.accounts?.id) {
+        const isMobile = typeof window !== 'undefined' && (
+            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+            window.innerWidth < 768 ||
+            Boolean(window['Capacitor']?.isNativePlatform?.())
+        );
+
+        if (isMobile) {
             try {
-                let promptTriggered = false;
-                window.google.accounts.id.prompt((notification) => {
-                    promptTriggered = true;
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        triggerFirebaseAuth();
-                    }
-                });
-                // If prompt didn't show after 500ms, use Firebase
-                setTimeout(() => {
-                    if (!promptTriggered) triggerFirebaseAuth();
-                }, 600);
+                await signInWithRedirect(auth, googleProvider);
                 return;
-            } catch (e) {
-                console.warn('GSI prompt failed, using Firebase Google Auth:', e);
+            } catch (err) {
+                console.warn('Mobile redirect failed, attempting popup fallback:', err);
             }
         }
 
-        // B. Standard resilient flow: Firebase Google Auth
-        await triggerFirebaseAuth();
-    };
-
-    const triggerFirebaseAuth = async () => {
+        // On desktop browsers: try popup with redirect fallback
         try {
-            // First try popup
             const result = await signInWithPopup(auth, googleProvider);
             if (result && result.user) {
                 const idToken = await result.user.getIdToken();
                 await handleGoogleResponse({ credential: idToken });
             }
         } catch (popupErr) {
-            console.warn('Popup login failed or blocked, falling back to redirect:', popupErr);
-            // If popup is blocked by WebView or browser, switch to redirect
-            if (
-                popupErr.code === 'auth/popup-blocked' ||
-                popupErr.code === 'auth/popup-closed-by-user' ||
-                popupErr.code === 'auth/cancelled-popup-request' ||
-                popupErr.message?.includes('popup')
-            ) {
-                try {
-                    await signInWithRedirect(auth, googleProvider);
-                    return;
-                } catch (redirectErr) {
-                    console.error('Redirect auth error:', redirectErr);
-                    toast.error('Google Sign-In failed. Please try again or use Email / OTP.');
-                }
-            } else {
-                const errDetail = popupErr.message || 'Google sign-in could not be completed.';
-                toast.error(errDetail);
+            console.warn('Popup login failed, falling back to redirect:', popupErr);
+            try {
+                await signInWithRedirect(auth, googleProvider);
+            } catch (redirectErr) {
+                console.error('Redirect auth error:', redirectErr);
+                toast.error('Google Sign-In failed. Please try again or use Email / OTP.');
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -214,7 +214,7 @@ export default function GoogleSignInButton({ onError }) {
                 className={gsiLoaded ? "w-full flex justify-center min-h-[44px]" : "hidden"}
             />
 
-            {/* Custom Modern Romantic Google Sign-In Button (shown when GSI is loading or in WebView) */}
+            {/* Custom Modern Romantic Google Sign-In Button */}
             {!gsiLoaded && (
                 <button
                     type="button"
