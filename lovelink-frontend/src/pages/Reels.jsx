@@ -365,9 +365,9 @@ export default function Reels() {
                 <div className="absolute top-0 left-0 right-0 z-30 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
                     <div className="flex items-center gap-2.5 pointer-events-auto">
                         <button
-                            onClick={() => navigate('/hub')}
+                            onClick={() => navigate('/dashboard')}
                             className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all shadow-lg"
-                            title="Back to Hub"
+                            title="Back to Dashboard"
                         >
                             <ArrowLeft className="w-4 h-4" />
                         </button>

@@ -168,39 +168,34 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [clientId, handleGoogleResponse]);
 
-    // 5. Sign In Action: On mobile/Android, ALWAYS use redirect (popups fail to close and stay blank)
+    // 5. Sign In Action: Use popup first across platforms to avoid mobile iframe storage partitioning bugs
     const handleGoogleSignInClick = async () => {
         setLoading(true);
 
-        const isMobile = typeof window !== 'undefined' && (
-            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-            window.innerWidth < 768 ||
-            Boolean(window['Capacitor']?.isNativePlatform?.())
-        );
-
-        if (isMobile) {
-            try {
-                await signInWithRedirect(auth, googleProvider);
-                return;
-            } catch (err) {
-                console.warn('Mobile redirect failed, attempting popup fallback:', err);
-            }
-        }
-
-        // On desktop browsers: try popup with redirect fallback
         try {
+            // signInWithPopup is more resilient on mobile Chrome since Chrome 115+ partitions 3rd-party storage for iframes
             const result = await signInWithPopup(auth, googleProvider);
             if (result && result.user) {
                 const idToken = await result.user.getIdToken();
                 await handleGoogleResponse({ credential: idToken });
+                return;
             }
         } catch (popupErr) {
-            console.warn('Popup login failed, falling back to redirect:', popupErr);
+            console.warn('Popup login failed or closed:', popupErr);
+            
+            // Check if popup was simply closed by user
+            if (popupErr.code === 'auth/popup-closed-by-user') {
+                setLoading(false);
+                return;
+            }
+
+            // Fallback to redirect if popup is blocked
             try {
+                toast('Opening Google Sign-In...', { icon: '🔐' });
                 await signInWithRedirect(auth, googleProvider);
             } catch (redirectErr) {
                 console.error('Redirect auth error:', redirectErr);
-                toast.error('Google Sign-In failed. Please try again or use Email / OTP.');
+                toast.error('Google Sign-In unavailable. Please sign in with Email or Phone OTP below!');
                 setLoading(false);
             }
         }

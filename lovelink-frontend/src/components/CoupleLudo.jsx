@@ -259,35 +259,57 @@ export default function CoupleLudo({
 }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [rolling, setRolling] = useState(false);
-    const [diceDisplay, setDiceDisplay] = useState(ludoState?.dice || 6);
+    const [diceDisplay, setDiceDisplay] = useState(6);
     const [myLastDice, setMyLastDice] = useState(6);
     const [partnerLastDice, setPartnerLastDice] = useState(6);
+    const [extraTurnBanner, setExtraTurnBanner] = useState('');
 
-    // Color assignment: Pink/Red for Player 1, Blue/Yellow for Player 2
-    const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : null;
-    const myColor = isPink === null ? null : (isPink ? 'pink' : 'blue');
-    const partnerColor = isPink === null ? null : (isPink ? 'blue' : 'pink');
+    // Local resilient game state (ensures immediate responsiveness offline, in couch mode, bot mode, or online)
+    const [gameState, setGameState] = useState({
+        dice: ludoState?.dice || null,
+        turn: ludoState?.turn || 'pink',
+        tokens: {
+            pink: ludoState?.tokens?.pink || [-1, -1, -1, -1],
+            blue: ludoState?.tokens?.blue || [-1, -1, -1, -1]
+        },
+        winner: ludoState?.winner || null,
+        scores: ludoState?.scores || {}
+    });
 
-    const turn = ludoState?.turn || null;
-    const isMyTurn = Boolean(turn && myColor && turn === myColor);
+    // Synchronize external server updates from WebSocket when received
+    useEffect(() => {
+        if (ludoState) {
+            setGameState(prev => ({
+                ...prev,
+                dice: ludoState.dice !== undefined ? ludoState.dice : prev.dice,
+                turn: ludoState.turn || prev.turn,
+                tokens: ludoState.tokens ? {
+                    pink: Array.isArray(ludoState.tokens.pink) ? ludoState.tokens.pink : prev.tokens.pink,
+                    blue: Array.isArray(ludoState.tokens.blue) ? ludoState.tokens.blue : prev.tokens.blue
+                } : prev.tokens,
+                winner: ludoState.winner !== undefined ? ludoState.winner : prev.winner,
+                scores: ludoState.scores || prev.scores
+            }));
+        }
+    }, [ludoState]);
 
-    // Tokens arrays (standard 4 tokens per player)
-    const tokens = useMemo(() => {
-        const rawTokens = ludoState?.tokens || {};
-        const pTokens = Array.isArray(rawTokens.pink) && rawTokens.pink.length === 4
-            ? rawTokens.pink
-            : (rawTokens.pink ? [...rawTokens.pink, -1, -1] : [-1, -1, -1, -1]);
-        const bTokens = Array.isArray(rawTokens.blue) && rawTokens.blue.length === 4
-            ? rawTokens.blue
-            : (rawTokens.blue ? [...rawTokens.blue, -1, -1] : [-1, -1, -1, -1]);
-        return { pink: pTokens.slice(0, 4), blue: bTokens.slice(0, 4) };
-    }, [ludoState?.tokens]);
+    // Color assignment: Red ('pink') for Player 1, Yellow ('blue') for Player 2
+    const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : true;
+    const myColor = isPink ? 'pink' : 'blue';
+    const partnerColor = isPink ? 'blue' : 'pink';
 
+    const turn = gameState.turn || 'pink';
+    const currentDice = gameState.dice;
+    const winner = gameState.winner;
+
+    // Couch mode allows active player to move regardless of identity; Online/Bot checks assigned role
+    const isMyTurn = gameMode === 'couch' ? (turn === myColor) : (turn === myColor);
+    const isPartnerActive = gameMode === 'couch' ? (turn === partnerColor) : false;
+
+    // Tokens
+    const tokens = gameState.tokens;
     const myTokens = useMemo(() => tokens[myColor] || [-1, -1, -1, -1], [tokens, myColor]);
     const partnerTokens = useMemo(() => tokens[partnerColor] || [-1, -1, -1, -1], [tokens, partnerColor]);
-
-    const currentDice = ludoState?.dice;
-    const winner = ludoState?.winner;
 
     useEffect(() => {
         if (currentDice) {
@@ -300,62 +322,16 @@ export default function CoupleLudo({
     }, [currentDice, turn, myColor]);
 
     // Valid move logic:
-    // - -1: in base, needs 6
-    // - 56: home
+    // - -1: in base yard, requires 6 to enter start cell (0 for Red, 26 for Yellow)
+    // - 56: Home center
     // - 0 to 50: outer track
-    // - 51 to 55: home stretch
-    // - 56: Home!
+    // - 51 to 55: home stretch (needs exact count to reach 56)
     const canTokenMove = useCallback((step, diceVal) => {
         if (!diceVal) return false;
         if (step === -1) return diceVal === 6;
         if (step === 56) return false;
         return step + diceVal <= 56;
     }, []);
-
-    // Check if player has at least one valid move with current dice
-    const hasAnyValidMove = useMemo(() => {
-        if (!currentDice) return false;
-        return myTokens.some(step => canTokenMove(step, currentDice));
-    }, [currentDice, myTokens, canTokenMove]);
-
-    // Auto pass turn if rolled dice has no valid moves
-    useEffect(() => {
-        if (isMyTurn && currentDice && !rolling && !hasAnyValidMove && !winner) {
-            const timer = setTimeout(() => {
-                sendWs({
-                    game: 'ludo',
-                    action: 'pass_turn'
-                });
-            }, 1200);
-            return () => clearTimeout(timer);
-        }
-    }, [isMyTurn, currentDice, rolling, hasAnyValidMove, winner, sendWs]);
-
-    // Roll Dice with Realistic 3D Shuffle
-    const handleRollDice = () => {
-        if (!isMyTurn || rolling || winner || currentDice) return;
-
-        setRolling(true);
-        playLudoSound('dice', soundEnabled);
-
-        let count = 0;
-        const interval = setInterval(() => {
-            setDiceDisplay(Math.floor(Math.random() * 6) + 1);
-            count++;
-            if (count > 8) {
-                clearInterval(interval);
-                const finalDice = Math.floor(Math.random() * 6) + 1;
-                setDiceDisplay(finalDice);
-                setRolling(false);
-
-                sendWs({
-                    game: 'ludo',
-                    action: 'roll_dice',
-                    dice: finalDice
-                });
-            }
-        }, 50);
-    };
 
     // Calculate absolute track index on the 52-cell circle
     const getTrackIndex = useCallback((step, color) => {
@@ -364,9 +340,10 @@ export default function CoupleLudo({
         return (step + 26) % 52;
     }, []);
 
-    // Execute Token Move (Generalized for Player, Couch Partner & LoveBot)
+    // Execute Token Move (Updates local state instantly & broadcasts via WebSocket)
     const handleExecuteMove = useCallback((tokenIdx, movingColor) => {
-        if (!currentDice || rolling || winner) return;
+        if (!gameState.dice || rolling || winner) return;
+        const diceVal = gameState.dice;
 
         const isMeMoving = movingColor === myColor;
         const movingTokens = isMeMoving ? myTokens : partnerTokens;
@@ -374,14 +351,14 @@ export default function CoupleLudo({
         const opponentColor = isMeMoving ? partnerColor : myColor;
 
         const currentStep = movingTokens[tokenIdx];
-        if (!canTokenMove(currentStep, currentDice)) return;
+        if (!canTokenMove(currentStep, diceVal)) return;
 
         let nextStep;
         if (currentStep === -1) {
             nextStep = 0; // Open from base onto start cell
             playLudoSound('open', soundEnabled);
         } else {
-            nextStep = currentStep + currentDice;
+            nextStep = currentStep + diceVal;
             playLudoSound(nextStep === 56 ? 'home' : 'step', soundEnabled);
         }
 
@@ -401,9 +378,15 @@ export default function CoupleLudo({
         }
 
         // Check Win Condition: All 4 tokens reached home (step 56)
-        const updatedTokens = [...movingTokens];
-        updatedTokens[tokenIdx] = nextStep;
-        const isGameWon = updatedTokens.every(s => s === 56);
+        const updatedMovingTokens = [...movingTokens];
+        updatedMovingTokens[tokenIdx] = nextStep;
+
+        const updatedOpponentTokens = [...opponentTokens];
+        if (opponentCutIdx !== null) {
+            updatedOpponentTokens[opponentCutIdx] = -1; // Send back to base yard
+        }
+
+        const isGameWon = updatedMovingTokens.every(s => s === 56);
 
         if (isGameWon) {
             playLudoSound('win', soundEnabled);
@@ -415,10 +398,38 @@ export default function CoupleLudo({
             });
         }
 
-        // Bonus roll if rolled a 6, captured opponent, or reached home
-        const grantsBonusRoll = currentDice === 6 || opponentCutIdx !== null || nextStep === 56;
+        // Classic Ludo rule: Rolling a 6, capturing opponent, or reaching home grants an extra roll!
+        const grantsBonusRoll = diceVal === 6 || opponentCutIdx !== null || nextStep === 56;
         const nextTurn = isGameWon ? null : (grantsBonusRoll ? movingColor : opponentColor);
 
+        if (grantsBonusRoll && !isGameWon) {
+            const reason = diceVal === 6 ? 'Rolled a 6! 🎲' : (opponentCutIdx !== null ? 'Cut opponent! ⚡' : 'Reached Home! 🏠');
+            setExtraTurnBanner(`+1 Extra Turn (${reason})`);
+            setTimeout(() => setExtraTurnBanner(''), 2500);
+        }
+
+        // 1. Immediately apply local state update (Zero-lag UI!)
+        setGameState(prev => {
+            const newTokens = {
+                ...prev.tokens,
+                [movingColor]: updatedMovingTokens,
+                [opponentColor]: updatedOpponentTokens
+            };
+            const newScores = { ...prev.scores };
+            if (isGameWon && userId) {
+                newScores[userId] = (newScores[userId] || 0) + (movingColor === myColor ? 1 : 0);
+            }
+            return {
+                ...prev,
+                tokens: newTokens,
+                turn: nextTurn,
+                dice: null, // Reset dice so next roll is expected
+                winner: isGameWon ? movingColor : null,
+                scores: newScores
+            };
+        });
+
+        // 2. Broadcast to partner via WebSocket
         sendWs({
             game: 'ludo',
             action: 'move_token',
@@ -429,7 +440,77 @@ export default function CoupleLudo({
             next_turn: nextTurn,
             winner: isGameWon ? movingColor : null
         });
-    }, [currentDice, rolling, winner, myColor, myTokens, partnerTokens, partnerColor, canTokenMove, soundEnabled, getTrackIndex, sendWs]);
+    }, [gameState.dice, rolling, winner, myColor, myTokens, partnerTokens, partnerColor, canTokenMove, soundEnabled, getTrackIndex, sendWs, userId]);
+
+    // Handle user rolling their dice
+    const handleRollDiceFor = useCallback((rollingColor) => {
+        if (rolling || winner || gameState.dice) return;
+
+        setRolling(true);
+        playLudoSound('dice', soundEnabled);
+
+        let count = 0;
+        const interval = setInterval(() => {
+            setDiceDisplay(Math.floor(Math.random() * 6) + 1);
+            count++;
+            if (count > 7) {
+                clearInterval(interval);
+                const finalDice = Math.floor(Math.random() * 6) + 1;
+                setDiceDisplay(finalDice);
+                setRolling(false);
+
+                // Update local state immediately with the rolled dice
+                setGameState(prev => ({
+                    ...prev,
+                    dice: finalDice
+                }));
+
+                // Broadcast roll via WebSocket
+                sendWs({
+                    game: 'ludo',
+                    action: 'roll_dice',
+                    dice: finalDice
+                });
+
+                // LUDO KING AUTO-MOVE: If exactly 1 token can move, auto-move after 450ms!
+                const movingTokens = rollingColor === myColor ? myTokens : partnerTokens;
+                const validMoves = [];
+                movingTokens.forEach((s, idx) => {
+                    if (canTokenMove(s, finalDice)) validMoves.push(idx);
+                });
+
+                if (validMoves.length === 1) {
+                    setTimeout(() => {
+                        handleExecuteMove(validMoves[0], rollingColor);
+                    }, 450);
+                } else if (validMoves.length === 0) {
+                    // No moves possible -> auto pass turn after 1000ms
+                    setTimeout(() => {
+                        const nextTurn = rollingColor === 'pink' ? 'blue' : 'pink';
+                        setGameState(prev => ({
+                            ...prev,
+                            turn: nextTurn,
+                            dice: null
+                        }));
+                        sendWs({
+                            game: 'ludo',
+                            action: 'pass_turn'
+                        });
+                    }, 1000);
+                }
+            }
+        }, 50);
+    }, [rolling, winner, gameState.dice, soundEnabled, myColor, myTokens, partnerTokens, canTokenMove, handleExecuteMove, sendWs]);
+
+    const handleRollDice = () => {
+        if (!isMyTurn) return;
+        handleRollDiceFor(myColor);
+    };
+
+    const handlePartnerRollDice = () => {
+        if (!isPartnerActive) return;
+        handleRollDiceFor(partnerColor);
+    };
 
     const handleMoveToken = (tokenIdx) => {
         if (!isMyTurn) return;
@@ -437,41 +518,22 @@ export default function CoupleLudo({
     };
 
     const handlePartnerMoveToken = (tokenIdx) => {
-        if (isMyTurn) return;
+        if (!isPartnerActive) return;
         handleExecuteMove(tokenIdx, partnerColor);
-    };
-
-    const handlePartnerRollDice = () => {
-        if (isMyTurn || rolling || winner || currentDice) return;
-        const finalDice = Math.floor(Math.random() * 6) + 1;
-        playLudoSound('dice', soundEnabled);
-        setPartnerLastDice(finalDice);
-        sendWs({
-            game: 'ludo',
-            action: 'roll_dice',
-            dice: finalDice
-        });
     };
 
     // LoveBot autonomous partner moves (only in bot mode)
     useEffect(() => {
-        if (turn && !isMyTurn && !winner && gameMode === 'bot') {
+        if (turn === partnerColor && !winner && gameMode === 'bot') {
             // 1. Roll Dice if not yet rolled
             if (!currentDice && !rolling) {
                 const rollTimer = setTimeout(() => {
-                    const finalDice = Math.floor(Math.random() * 6) + 1;
-                    playLudoSound('dice', soundEnabled);
-                    setPartnerLastDice(finalDice);
-                    sendWs({
-                        game: 'ludo',
-                        action: 'roll_dice',
-                        dice: finalDice
-                    });
-                }, 900);
+                    handleRollDiceFor(partnerColor);
+                }, 750);
                 return () => clearTimeout(rollTimer);
             }
 
-            // 2. Move Pawn once dice is rolled
+            // 2. Move Pawn once dice is rolled (if multiple valid moves)
             if (currentDice && !rolling) {
                 const moveTimer = setTimeout(() => {
                     const validMoves = [];
@@ -482,14 +544,10 @@ export default function CoupleLudo({
                     });
 
                     if (validMoves.length === 0) {
-                        sendWs({
-                            game: 'ludo',
-                            action: 'pass_turn'
-                        });
-                        return;
+                        return; // Auto-pass already handled in handleRollDiceFor
                     }
 
-                    // Strategic Move Selection
+                    // Strategic Move Selection for LoveBot
                     let bestTokenIdx = validMoves[0];
                     let bestScore = -1;
 
@@ -498,8 +556,8 @@ export default function CoupleLudo({
                         let nextStep = step === -1 ? 0 : step + currentDice;
                         let score = nextStep;
 
-                        if (nextStep === 56) score += 50;
-                        if (step === -1 && currentDice === 6) score += 30;
+                        if (nextStep === 56) score += 50; // Reaching home
+                        if (step === -1 && currentDice === 6) score += 30; // Opening token
 
                         // Check if cuts player
                         const trackIdx = getTrackIndex(nextStep, partnerColor);
@@ -517,14 +575,22 @@ export default function CoupleLudo({
                     });
 
                     handleExecuteMove(bestTokenIdx, partnerColor);
-                }, 850);
+                }, 600);
                 return () => clearTimeout(moveTimer);
             }
         }
-    }, [turn, isMyTurn, winner, currentDice, rolling, gameMode, partnerTokens, canTokenMove, getTrackIndex, partnerColor, myTokens, myColor, handleExecuteMove, soundEnabled, sendWs]);
+    }, [turn, partnerColor, winner, currentDice, rolling, gameMode, partnerTokens, canTokenMove, getTrackIndex, myTokens, myColor, handleExecuteMove, handleRollDiceFor]);
 
     // Reset game / Rematch
     const handleReset = () => {
+        const resetState = {
+            dice: null,
+            turn: 'pink',
+            tokens: { pink: [-1, -1, -1, -1], blue: [-1, -1, -1, -1] },
+            winner: null,
+            scores: gameState.scores
+        };
+        setGameState(resetState);
         sendWs({
             game: 'ludo',
             action: 'reset'
@@ -659,7 +725,7 @@ export default function CoupleLudo({
                 {/* Partner (Yellow) */}
                 <div
                     className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between ${
-                        !isMyTurn
+                        isPartnerActive
                             ? 'bg-gradient-to-r from-amber-950/80 to-black/70 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
                             : 'bg-black/40 border-white/10 opacity-75'
                     }`}
@@ -671,7 +737,7 @@ export default function CoupleLudo({
                         <div>
                             <div className="text-xs font-bold text-white flex items-center gap-1">
                                 <span className="truncate max-w-[80px]">{partnerName}</span>
-                                {!isMyTurn && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+                                {isPartnerActive && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
                             </div>
                             <div className="text-[10px] text-gray-400">
                                 {partnerHomeCount}/4 In Home
@@ -680,25 +746,34 @@ export default function CoupleLudo({
                     </div>
 
                     <RealisticDice
-                        value={!isMyTurn ? (currentDice || partnerLastDice) : partnerLastDice}
-                        rolling={false}
-                        disabled={gameMode !== 'couch' || isMyTurn || !!currentDice || !!winner}
-                        onClick={gameMode === 'couch' ? handlePartnerRollDice : undefined}
-                        isTurn={!isMyTurn && !currentDice && !winner}
+                        value={isPartnerActive ? (currentDice || (rolling ? diceDisplay : partnerLastDice)) : partnerLastDice}
+                        rolling={rolling && turn === partnerColor}
+                        disabled={!isPartnerActive || rolling || !!currentDice || !!winner}
+                        onClick={handlePartnerRollDice}
+                        isTurn={isPartnerActive && !currentDice && !winner}
                         color="yellow"
                     />
                 </div>
             </div>
 
             {/* Turn Announcement Banner */}
-            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center text-xs">
+            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 flex flex-col items-center justify-center text-xs">
+                {extraTurnBanner && (
+                    <span className="text-amber-400 font-black animate-bounce mb-0.5">
+                        ✨ {extraTurnBanner}
+                    </span>
+                )}
                 {winner ? (
                     <span className="text-emerald-400 font-black flex items-center gap-1.5 animate-bounce">
                         🏆 {winner === myColor ? 'Victory! You won the Ludo match!' : `${partnerName} won the match!`}
                     </span>
                 ) : isMyTurn ? (
                     <span className="text-amber-300 font-extrabold flex items-center gap-1 animate-pulse">
-                        {currentDice ? `🎲 Rolled ${currentDice}! Tap a highlighted pawn to move.` : '✨ Your Turn! Tap your 3D Dice to roll.'}
+                        {currentDice ? `🎲 Rolled ${currentDice}! Tap a glowing pawn to move.` : '✨ Your Turn (Red)! Tap your 3D Dice to roll.'}
+                    </span>
+                ) : isPartnerActive ? (
+                    <span className="text-amber-300 font-extrabold flex items-center gap-1 animate-pulse">
+                        {currentDice ? `🎲 Rolled ${currentDice}! Tap a glowing pawn to move.` : `✨ ${partnerName}'s Turn (Yellow)! Tap 3D Dice.`}
                     </span>
                 ) : (
                     <span className="text-gray-400 flex items-center gap-1">
@@ -877,7 +952,7 @@ export default function CoupleLudo({
                     {allTokensOnBoard.map((item) => {
                         const { isMe, color, tokenIdx, step, cx, cy } = item;
                         const canMove = (isMe && isMyTurn && canTokenMove(step, currentDice)) ||
-                                        (gameMode === 'couch' && !isMe && !isMyTurn && canTokenMove(step, currentDice));
+                                        (!isMe && isPartnerActive && canTokenMove(step, currentDice));
 
                         // Multi-token stacking offsets
                         let ox = 0;
@@ -908,8 +983,8 @@ export default function CoupleLudo({
                                 key={`${color}-token-${tokenIdx}`}
                                 transform={`translate(${finalX}, ${finalY}) scale(${scale})`}
                                 onClick={() => {
-                                    if (isMe) handleMoveToken(tokenIdx);
-                                    else if (gameMode === 'couch') handlePartnerMoveToken(tokenIdx);
+                                    if (isMe && isMyTurn) handleMoveToken(tokenIdx);
+                                    else if (!isMe && isPartnerActive) handlePartnerMoveToken(tokenIdx);
                                 }}
                                 className={canMove ? 'cursor-pointer' : ''}
                             >

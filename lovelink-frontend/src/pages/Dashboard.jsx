@@ -213,6 +213,32 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Top Prominent Quick Pill for Reels Lounge */}
+      <div className="mb-4 flex items-center justify-between gap-3 p-3 rounded-2xl bg-gradient-to-r from-pink-950/60 via-purple-950/40 to-black/80 border border-pink-500/30 shadow-[0_10px_25px_rgba(244,63,94,0.15)] select-none">
+        <div className="flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-lg">
+            🎬
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-white tracking-wide">Reels Lounge</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/25 text-pink-300 font-bold border border-pink-500/40 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-ping" />
+                <span>Live Feed</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400">Watch viral couple reels together in real-time</p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/reels')}
+          className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1"
+        >
+          <span>Watch</span>
+          <span>→</span>
+        </button>
+      </div>
+
       {error && (
         <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
           {error}

@@ -151,12 +151,12 @@ export default function CoupleChess({
 
     // Role assignment: Determine whether current user plays White or Black
     const whitePlayerId = chessState?.white;
-    const isWhite = whitePlayerId ? String(whitePlayerId) === String(userId) : null;
-    const myColor = isWhite === null ? null : (isWhite ? 'w' : 'b');
-    const partnerColor = isWhite === null ? null : (isWhite ? 'b' : 'w');
+    const isWhite = whitePlayerId ? String(whitePlayerId) === String(userId) : true;
+    const myColor = isWhite ? 'w' : 'b';
+    const partnerColor = isWhite ? 'b' : 'w';
 
     const turn = chessState?.turn || gameRef.current.turn(); // 'w' or 'b'
-    const isMyTurn = Boolean(whitePlayerId && myColor && turn === myColor);
+    const isMyTurn = (gameMode === 'couch') ? true : Boolean(turn === myColor);
 
     const isCheck = gameRef.current.isCheck();
     const isCheckmate = gameRef.current.isCheckmate();

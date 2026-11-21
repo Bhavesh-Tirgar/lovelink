@@ -146,7 +146,7 @@ export default function CoupleUno({
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [pendingWildCard, setPendingWildCard] = useState(null);
 
-    const isMyTurn = Boolean(turn && String(turn) === String(userId));
+    const isMyTurn = (gameMode === 'couch') ? true : Boolean(turn ? String(turn) === String(userId) : true);
     const topCard = discardPile[discardPile.length - 1] || null;
     const winner = unoState?.winner;
 
@@ -209,12 +209,9 @@ export default function CoupleUno({
             return;
         }
 
-        // Only Player 1 may initialize if server session has arrived and has no top_card
-        if (unoState?.player_1 && !topCard && !winner && !unoState?.top_card) {
-            const isPlayer1 = String(unoState.player_1) === String(userId);
-            if (isPlayer1) {
-                initGame();
-            }
+        // Initialize if server session or local session has no active top_card
+        if (!topCard && !winner && (!unoState?.top_card || myHand.length === 0)) {
+            initGame();
         }
     }, [unoState?.top_card, unoState?.player_1]); // eslint-disable-line react-hooks/exhaustive-deps
 

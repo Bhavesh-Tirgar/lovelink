@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Gamepad2, Compass, Headphones } from 'lucide-react';
+import { Home, MessageCircle, Gamepad2, Compass, Headphones, Clapperboard } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
 
 export default function NavigationDock() {
@@ -10,6 +10,7 @@ export default function NavigationDock() {
 
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: Home },
+    { name: 'Reels', path: '/reels', icon: Clapperboard },
     { name: 'Chat', path: '/chat', icon: MessageCircle },
     { name: 'Games', path: '/games', icon: Gamepad2 },
     { name: 'Hub', path: '/hub', icon: Compass },
@@ -21,8 +22,7 @@ export default function NavigationDock() {
     hiddenPaths.includes(location.pathname) ||
     location.pathname.startsWith('/call/') ||
     location.pathname.startsWith('/watch/') ||
-    location.pathname === '/doodle' ||
-    location.pathname === '/reels'
+    location.pathname === '/doodle'
   ) {
     return null;
   }
