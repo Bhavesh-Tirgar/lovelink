@@ -150,14 +150,13 @@ export default function CoupleChess({
     }, [chessState?.lastMove, soundEnabled, userId]);
 
     // Role assignment: Determine whether current user plays White or Black
-    // Default: white is the creator or first player
     const whitePlayerId = chessState?.white;
-    const isWhite = whitePlayerId ? String(whitePlayerId) === String(userId) : true;
-    const myColor = isWhite ? 'w' : 'b';
-    const partnerColor = isWhite ? 'b' : 'w';
+    const isWhite = whitePlayerId ? String(whitePlayerId) === String(userId) : null;
+    const myColor = isWhite === null ? null : (isWhite ? 'w' : 'b');
+    const partnerColor = isWhite === null ? null : (isWhite ? 'b' : 'w');
 
-    const turn = gameRef.current.turn(); // 'w' or 'b'
-    const isMyTurn = turn === myColor;
+    const turn = chessState?.turn || gameRef.current.turn(); // 'w' or 'b'
+    const isMyTurn = Boolean(whitePlayerId && myColor && turn === myColor);
 
     const isCheck = gameRef.current.isCheck();
     const isCheckmate = gameRef.current.isCheckmate();
@@ -279,9 +278,9 @@ export default function CoupleChess({
         }
     }, [isMyTurn, isCheckmate, isDraw, gameMode, turn, myColor, selectedSquare, possibleMoves, sendWs, soundEnabled]);
 
-    // LoveBot automated move for partner (in bot mode or when partner is offline)
+    // LoveBot automated move for partner (only in bot mode)
     useEffect(() => {
-        if (!isMyTurn && !isCheckmate && !isDraw && (gameMode === 'bot' || !partnerOnline)) {
+        if (whitePlayerId && !isMyTurn && !isCheckmate && !isDraw && gameMode === 'bot') {
             const botTimer = setTimeout(() => {
                 try {
                     const legalMoves = gameRef.current.moves({ verbose: true });
@@ -348,7 +347,7 @@ export default function CoupleChess({
 
             return () => clearTimeout(botTimer);
         }
-    }, [isMyTurn, isCheckmate, isDraw, gameMode, partnerOnline, soundEnabled, sendWs]);
+    }, [isMyTurn, isCheckmate, isDraw, gameMode, whitePlayerId, soundEnabled, sendWs]);
 
     // Rematch / Reset
     const handleRematch = () => {

@@ -130,7 +130,14 @@ export default function CoupleUno({
     partnerOnline = false
 }) {
     const [soundEnabled, setSoundEnabled] = useState(true);
-    const [myHand, setMyHand] = useState([]);
+    const [myHand, setMyHand] = useState(() => {
+        try {
+            const saved = localStorage.getItem(`lovelink_uno_hand_${coupleId}_${userId}`);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
     const [partnerCardCount, setPartnerCardCount] = useState(7);
     const [discardPile, setDiscardPile] = useState([]);
     const [deck, setDeck] = useState([]);
@@ -139,9 +146,17 @@ export default function CoupleUno({
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [pendingWildCard, setPendingWildCard] = useState(null);
 
-    const isMyTurn = turn === userId;
+    const isMyTurn = Boolean(turn && String(turn) === String(userId));
     const topCard = discardPile[discardPile.length - 1] || null;
     const winner = unoState?.winner;
+
+    useEffect(() => {
+        if (myHand && myHand.length > 0) {
+            try {
+                localStorage.setItem(`lovelink_uno_hand_${coupleId}_${userId}`, JSON.stringify(myHand));
+            } catch {}
+        }
+    }, [myHand, coupleId, userId]);
 
     // Initialize game if first time opening
     const initGame = useCallback(() => {
@@ -155,6 +170,9 @@ export default function CoupleUno({
         const [startCard] = fullDeck.splice(startCardIdx, 1);
 
         setMyHand(p1Hand);
+        try {
+            localStorage.setItem(`lovelink_uno_hand_${coupleId}_${userId}`, JSON.stringify(p1Hand));
+        } catch {}
         setPartnerCardCount(p2Hand.length);
         setDiscardPile([startCard]);
         setDeck(fullDeck);
@@ -172,21 +190,33 @@ export default function CoupleUno({
             p1_hand: p1Hand,
             p2_hand: p2Hand
         });
-    }, [userId, sendWs]);
+    }, [userId, coupleId, sendWs]);
 
-    // Mount initialization: only the player who is "player_1" (session initiator) starts the game.
-    // player_2 waits for uno_synced_init from partner.
-    // We detect who is player_1 from unoState (populated on session_init from server).
+    // Mount & sync initialization: restores active game state or inits once
     useEffect(() => {
-        if (!topCard && !winner) {
-            // If unoState has player_1 and it's us, we init; otherwise wait for partner's sync
-            const isPlayer1 = !unoState?.player_1 || String(unoState.player_1) === String(userId);
+        // If server already has an active Uno session with top_card, restore it
+        if (unoState?.top_card && !winner) {
+            if (unoState.discard) setDiscardPile(unoState.discard);
+            else setDiscardPile([unoState.top_card]);
+            if (unoState.active_color) setActiveColor(unoState.active_color);
+            if (unoState.turn) setTurn(unoState.turn);
+            if (unoState.deck) setDeck(unoState.deck);
+            if (myHand.length === 0) {
+                const isP1 = String(unoState.player_1) === String(userId);
+                if (isP1 && unoState.p1_hand) setMyHand(unoState.p1_hand);
+                else if (!isP1 && unoState.p2_hand) setMyHand(unoState.p2_hand);
+            }
+            return;
+        }
+
+        // Only Player 1 may initialize if server session has arrived and has no top_card
+        if (unoState?.player_1 && !topCard && !winner && !unoState?.top_card) {
+            const isPlayer1 = String(unoState.player_1) === String(userId);
             if (isPlayer1) {
                 initGame();
             }
-            // If we're player_2 and topCard is null, wait for incomingSync (handled below)
         }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [unoState?.top_card, unoState?.player_1]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle incoming WebSocket synced state
     useEffect(() => {
@@ -194,15 +224,20 @@ export default function CoupleUno({
             const sync = unoState.incomingSync;
             if (sync.p2_hand && sync.p1_hand) {
                 // Partner initiated game -> pick our assigned hand
-                setMyHand(sync.p2_hand);
-                setPartnerCardCount(sync.p1_hand.length);
+                const isP1 = String(unoState.player_1) === String(userId);
+                const assignedHand = isP1 ? sync.p1_hand : sync.p2_hand;
+                setMyHand(assignedHand);
+                setPartnerCardCount(isP1 ? sync.p2_hand.length : sync.p1_hand.length);
+                try {
+                    localStorage.setItem(`lovelink_uno_hand_${coupleId}_${userId}`, JSON.stringify(assignedHand));
+                } catch {}
             }
             if (sync.discard) setDiscardPile(sync.discard);
             if (sync.active_color) setActiveColor(sync.active_color);
             if (sync.turn) setTurn(sync.turn);
             if (sync.deck) setDeck(sync.deck);
         }
-    }, [unoState?.incomingSync]);
+    }, [unoState?.incomingSync, coupleId, userId, unoState?.player_1]);
 
     // Handle played card from partner
     useEffect(() => {
@@ -248,9 +283,9 @@ export default function CoupleUno({
         }
     }, [unoState?.lastDrawn, userId, soundEnabled]);
 
-    // LoveBot autonomous partner moves (when in bot mode or partner offline)
+    // LoveBot autonomous partner moves (only in bot mode)
     useEffect(() => {
-        if (!isMyTurn && !winner && topCard && (gameMode === 'bot' || !partnerOnline)) {
+        if (!isMyTurn && !winner && topCard && gameMode === 'bot') {
             const timer = setTimeout(() => {
                 // Check if bot can play a card
                 const hasMatch = Math.random() < 0.78;
@@ -303,7 +338,7 @@ export default function CoupleUno({
 
             return () => clearTimeout(timer);
         }
-    }, [isMyTurn, winner, topCard, gameMode, partnerOnline, activeColor, soundEnabled, userId]);
+    }, [isMyTurn, winner, topCard, gameMode, activeColor, soundEnabled, userId]);
 
     // Check if a card is legally playable
     const isCardPlayable = useCallback((card) => {
@@ -406,6 +441,9 @@ export default function CoupleUno({
 
     // Reset game
     const handleReset = () => {
+        try {
+            localStorage.removeItem(`lovelink_uno_hand_${coupleId}_${userId}`);
+        } catch {}
         initGame();
         sendWs({
             game: 'uno',

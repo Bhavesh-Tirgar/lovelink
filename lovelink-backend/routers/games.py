@@ -194,91 +194,121 @@ async def games_websocket(
     room = f"games_{couple_id}"
     await manager.connect(websocket, room)
 
-    # Initialize couple session if not present
+    c_u1 = str(couple.user1_id)
+    c_u2 = str(couple.user2_id)
+
+    # Initialize couple session if not present (permanently keyed to couple partners)
     if couple_id not in game_sessions:
         game_sessions[couple_id] = {
             "rps": {"moves": {}, "scores": {}},
-            "ttt": {"board": [""] * 9, "turn": user_id, "scores": {}, "symbol": {user_id: "❤️"}},
+            "ttt": {
+                "board": [""] * 9,
+                "turn": "❤️",
+                "scores": {"hearts": 0, "kisses": 0, "draws": 0},
+                "symbol": {c_u1: "❤️", c_u2: "💋"}
+            },
             "tod": {
-                "turn": user_id,
+                "turn": c_u1,
                 "current_challenge": None,
                 "completed_count": 0
             },
             "chess": {
                 "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                "white": user_id,
-                "black": other_user_id or "partner",
+                "white": c_u1,
+                "black": c_u2,
                 "turn": "w",
                 "stakes": "Loser gives a 15-minute massage 💆",
-                "scores": {user_id: 0, (other_user_id or "partner"): 0}
+                "scores": {c_u1: 0, c_u2: 0}
             },
             "ludo": {
-                "player_pink": user_id,
-                "player_blue": other_user_id or "partner",
+                "player_pink": c_u1,
+                "player_blue": c_u2,
                 "turn": "pink",
                 "dice": None,
                 "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
-                "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                "scores": {c_u1: 0, c_u2: 0},
                 "winner": None
             },
             "uno": {
-                "player_1": user_id,
-                "player_2": other_user_id or "partner",
-                "turn": user_id,
-                "scores": {user_id: 0, (other_user_id or "partner"): 0},
+                "player_1": c_u1,
+                "player_2": c_u2,
+                "turn": c_u1,
+                "scores": {c_u1: 0, c_u2: 0},
+                "deck": None,
+                "discard": None,
+                "top_card": None,
+                "active_color": "red",
+                "p1_hand": None,
+                "p2_hand": None,
                 "winner": None
             }
         }
     else:
-        # Second player connecting: assign them 💋 symbol in TTT
-        ttt_s = game_sessions[couple_id].get("ttt", {})
-        sym_map = ttt_s.get("symbol", {})
-        if user_id not in sym_map:
-            # Already has ❤️ holder, assign 💋 to this new user
-            sym_map[user_id] = "💋"
-            ttt_s["symbol"] = sym_map
+        # Guarantee stable role assignment even if existing session was partial
+        sess = game_sessions[couple_id]
+        if "ttt" in sess:
+            sess["ttt"]["symbol"] = {c_u1: "❤️", c_u2: "💋"}
+        if "chess" in sess:
+            sess["chess"]["white"] = c_u1
+            sess["chess"]["black"] = c_u2
+        if "ludo" in sess:
+            sess["ludo"]["player_pink"] = c_u1
+            sess["ludo"]["player_blue"] = c_u2
+        if "uno" in sess:
+            sess["uno"]["player_1"] = c_u1
+            sess["uno"]["player_2"] = c_u2
 
     session = game_sessions[couple_id]
     if "tod" not in session:
         session["tod"] = {
-            "turn": user_id,
+            "turn": c_u1,
             "current_challenge": None,
             "completed_count": 0
         }
     if "chess" not in session:
         session["chess"] = {
             "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "white": user_id,
-            "black": other_user_id or "partner",
+            "white": c_u1,
+            "black": c_u2,
             "turn": "w",
             "stakes": "Loser gives a 15-minute massage 💆",
-            "scores": {user_id: 0, (other_user_id or "partner"): 0}
+            "scores": {c_u1: 0, c_u2: 0}
         }
     if "ludo" not in session:
         session["ludo"] = {
-            "player_pink": user_id,
-            "player_blue": other_user_id or "partner",
+            "player_pink": c_u1,
+            "player_blue": c_u2,
             "turn": "pink",
             "dice": None,
             "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
-            "scores": {user_id: 0, (other_user_id or "partner"): 0},
+            "scores": {c_u1: 0, c_u2: 0},
             "winner": None
         }
     if "uno" not in session:
         session["uno"] = {
-            "player_1": user_id,
-            "player_2": other_user_id or "partner",
-            "turn": user_id,
-            "scores": {user_id: 0, (other_user_id or "partner"): 0},
+            "player_1": c_u1,
+            "player_2": c_u2,
+            "turn": c_u1,
+            "scores": {c_u1: 0, c_u2: 0},
+            "deck": None,
+            "discard": None,
+            "top_card": None,
+            "active_color": "red",
+            "p1_hand": None,
+            "p2_hand": None,
             "winner": None
         }
     active_count = len(manager.connections.get(room, []))
+    my_ttt_symbol = "❤️" if str(user_id) == c_u1 else "💋"
     await manager.send_personal(websocket, {
         "type": "session_init",
         "user_id": user_id,
+        "is_p1": str(user_id) == c_u1,
         "partner_online": active_count >= 2,
         "connected_count": active_count,
-        "ttt_symbol": session["ttt"].get("symbol", {}).get(user_id, "❤️"),
+        "rps": session["rps"],
+        "ttt": session["ttt"],
+        "ttt_symbol": my_ttt_symbol,
         "tod": session["tod"],
         "chess": session["chess"],
         "ludo": session["ludo"],
@@ -370,18 +400,27 @@ async def games_websocket(
                     symbol = data.get("symbol", "❤️") # Heart or Kiss
                     if 0 <= index < 9 and not session["ttt"]["board"][index]:
                         session["ttt"]["board"][index] = symbol
+                        next_turn = "💋" if symbol == "❤️" else "❤️"
+                        session["ttt"]["turn"] = next_turn
                         # Broadcast move (exclude sender because sender has already updated their board)
                         await manager.broadcast(room, {
                             "type": "ttt_update",
                             "index": index,
                             "symbol": symbol,
                             "board": session["ttt"]["board"],
+                            "turn": next_turn,
                             "by_user": user_id
                         }, exclude=websocket)
 
                 elif action == "reset":
                     session["ttt"]["board"] = [""] * 9
-                    await manager.broadcast(room, {"type": "ttt_reset", "by_user": user_id})
+                    session["ttt"]["turn"] = "❤️"
+                    await manager.broadcast(room, {
+                        "type": "ttt_reset",
+                        "board": session["ttt"]["board"],
+                        "turn": "❤️",
+                        "by_user": user_id
+                    })
 
             # ── 3. TRUTH OR DARE (INTERACTIVE & REALISTIC) ─────────────────────
             elif game == "truth_or_dare":
@@ -716,6 +755,16 @@ async def games_websocket(
                     is_uno = data.get("is_uno", False)
                     winner = data.get("winner")
 
+                    if card:
+                        uno_s["top_card"] = card
+                    if active_color:
+                        uno_s["active_color"] = active_color
+                    if next_turn == "partner":
+                        resolved_next_turn = c_u2 if str(user_id) == c_u1 else c_u1
+                    else:
+                        resolved_next_turn = next_turn or uno_s.get("turn")
+                    uno_s["turn"] = resolved_next_turn
+
                     if winner:
                         uno_s["winner"] = winner
                         uno_s["scores"][user_id] = uno_s["scores"].get(user_id, 0) + 1
@@ -724,7 +773,7 @@ async def games_websocket(
                         "type": "uno_card_played",
                         "card": card,
                         "active_color": active_color,
-                        "next_turn": next_turn,
+                        "next_turn": resolved_next_turn,
                         "draw_penalty": draw_penalty,
                         "is_uno": is_uno,
                         "winner": winner,
@@ -735,10 +784,16 @@ async def games_websocket(
                 elif action == "draw_card":
                     card = data.get("card")
                     next_turn = data.get("next_turn")
+                    if next_turn == "partner":
+                        resolved_next_turn = c_u2 if str(user_id) == c_u1 else c_u1
+                    else:
+                        resolved_next_turn = next_turn or uno_s.get("turn")
+                    uno_s["turn"] = resolved_next_turn
+
                     await manager.broadcast(room, {
                         "type": "uno_card_drawn",
                         "card": card,
-                        "next_turn": next_turn,
+                        "next_turn": resolved_next_turn,
                         "by_user": user_id
                     })
 

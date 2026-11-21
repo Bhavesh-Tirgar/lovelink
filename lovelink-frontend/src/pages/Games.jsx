@@ -58,7 +58,7 @@ export default function Games() {
         fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         white: null,
         black: null,
-        turn: "w",
+        turn: null, // Populated from session_init
         stakes: "Loser gives a 15-minute massage 💆",
         scores: {},
         lastMove: null
@@ -66,7 +66,9 @@ export default function Games() {
 
     const [ludoState, setLudoState] = useState({
         dice: null,
-        turn: 'pink',
+        turn: null, // Populated from session_init
+        player_pink: null,
+        player_blue: null,
         tokens: { pink: [-1, -1, -1, -1], blue: [-1, -1, -1, -1] },
         scores: {},
         winner: null
@@ -77,11 +79,15 @@ export default function Games() {
         lastPlayedCard: null,
         lastDrawn: null,
         scores: {},
-        winner: null
+        winner: null,
+        top_card: null,
+        turn: null
     });
     const [isLiveConnected, setIsLiveConnected] = useState(false);
     const [partnerOnline, setPartnerOnline] = useState(false);
-    const [gameMode, setGameMode] = useState('online'); // 'online' (Live Sync), 'bot' (LoveBot AI), 'couch' (Pass & Play)
+    const [gameMode, setGameMode] = useState(() => {
+        try { return localStorage.getItem('lovelink_game_mode') || 'online'; } catch { return 'online'; }
+    }); // 'online' (Live Sync), 'bot' (LoveBot AI), 'couch' (Pass & Play)
 
     const [user, setUser] = useState(() => {
         try { return JSON.parse(window.localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -204,8 +210,8 @@ export default function Games() {
             move: moveId
         });
 
-        // Fallback / Bot mode if partner is not in room or LoveBot mode active
-        if (!isLiveConnected || !partnerOnline || gameMode === 'bot') {
+        // LoveBot AI mode simulation
+        if (gameMode === 'bot') {
             setTimeout(() => {
                 const partnerMove = ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)];
                 evaluateRpsSolo(moveId, partnerMove);
@@ -321,8 +327,8 @@ export default function Games() {
         setTodCustomText('');
         toast.success("Challenge sent! 💌");
 
-        // In bot mode or when partner is offline, simulate a sweet romantic reply
-        if (!partnerOnline || gameMode === 'bot') {
+        // In bot mode, simulate a sweet romantic reply
+        if (gameMode === 'bot') {
             setTimeout(() => {
                 const sweetConfessions = [
                     "The exact moment was when we laughed together until our stomachs hurt. I knew you were the one. ✨",
@@ -425,7 +431,7 @@ export default function Games() {
     // GAME 3: TIC TAC TOE (HEARTS & KISSES)
     // ───────────────────────────────────────────────────────────────────────────
     const [tttBoard, setTttBoard] = useState(Array(9).fill(null));
-    const [tttTurn, setTttTurn] = useState('❤️'); // '❤️' or '💋'
+    const [tttTurn, setTttTurn] = useState(null); // Populated on session_init
     const [tttMySymbol, setTttMySymbol] = useState(null); // assigned on session_init: '❤️' or '💋'
     const [tttWinner, setTttWinner] = useState(null); // '❤️', '💋', or 'draw'
     const [tttScores, setTttScores] = useState({ hearts: 0, kisses: 0, draws: 0 });
@@ -448,9 +454,11 @@ export default function Games() {
     };
 
     const handleTttClick = (index) => {
-        // Enforce turn: if in online mode and we know our symbol, only allow clicking on our turn
+        // Enforce turn: if in online mode, only allow clicking when strictly your turn
         if (tttBoard[index] || tttWinner) return;
-        if (gameMode !== 'couch' && tttMySymbol && tttTurn !== tttMySymbol) return; // Not your turn!
+        if (gameMode !== 'couch') {
+            if (!tttMySymbol || !tttTurn || tttTurn !== tttMySymbol) return; // Not your turn!
+        }
 
         playSound('click');
         const newBoard = [...tttBoard];
@@ -484,9 +492,9 @@ export default function Games() {
         });
     };
 
-    // LoveBot automated move for TicTacToe (when in bot mode or partner is offline)
+    // LoveBot automated move for TicTacToe (when in bot mode)
     useEffect(() => {
-        if (activeTab === 'ttt' && !tttWinner && tttTurn === '💋' && (gameMode === 'bot' || !partnerOnline)) {
+        if (activeTab === 'ttt' && !tttWinner && tttTurn === '💋' && gameMode === 'bot') {
             const botTimer = setTimeout(() => {
                 setTttBoard(prev => {
                     const emptyIndices = prev.map((val, idx) => val === null ? idx : null).filter(val => val !== null);
@@ -543,7 +551,7 @@ export default function Games() {
 
             return () => clearTimeout(botTimer);
         }
-    }, [activeTab, tttWinner, tttTurn, gameMode, partnerOnline]);
+    }, [activeTab, tttWinner, tttTurn, gameMode]);
 
     const handleTttReset = () => {
         playSound('click');
@@ -600,7 +608,7 @@ export default function Games() {
             } else {
                 toast("Opposites attract! You picked differently 😉");
             }
-        } else if (!isLiveConnected || !partnerOnline || gameMode === 'bot') {
+        } else if (gameMode === 'bot') {
             setTimeout(() => {
                 const randomChoice = Math.random() > 0.4 ? choice : (choice === 'A' ? 'B' : 'A');
                 setPartnerWyrChoice(randomChoice);
@@ -852,6 +860,20 @@ export default function Games() {
                 if (data.partner_online !== undefined) {
                     setPartnerOnline(!!data.partner_online);
                 }
+                if (data.rps) {
+                    if (data.rps.scores) {
+                        setRpsScores(prev => ({ ...prev, ...data.rps.scores }));
+                    }
+                    if (data.rps.moves && data.user_id) {
+                        if (data.rps.moves[data.user_id]) {
+                            setRpsMyChoice(data.rps.moves[data.user_id]);
+                        }
+                        const partnerHasMove = Object.keys(data.rps.moves).some(uid => String(uid) !== String(data.user_id));
+                        if (partnerHasMove) {
+                            setRpsPartnerLocked(true);
+                        }
+                    }
+                }
                 if (data.chess) {
                     setChessState(prev => ({ ...prev, ...data.chess }));
                 }
@@ -859,19 +881,34 @@ export default function Games() {
                     setLudoState(prev => ({ ...prev, ...data.ludo }));
                 }
                 if (data.uno) {
-                    setUnoState(prev => ({ ...prev, scores: data.uno.scores || {}, player_1: data.uno.player_1, player_2: data.uno.player_2 }));
+                    setUnoState(prev => ({ ...prev, ...data.uno, scores: data.uno.scores || {} }));
                 }
                 if (data.tod) {
                     if (data.tod.turn) setTodTurn(data.tod.turn);
                     if (data.tod.current_challenge) setTodActiveChallenge(data.tod.current_challenge);
                     if (data.tod.completed_count) setTodCompletedCount(data.tod.completed_count);
                 }
-                // TicTacToe: assign player symbol based on server user_id assignment
-                // First user to connect = ❤️, second = 💋
-                if (data.user_id) {
-                    const myId = data.user_id;
-                    const tttSym = data.ttt_symbol || (data.ttt?.symbol?.[myId]) || null;
-                    if (tttSym) setTttMySymbol(tttSym);
+                // TicTacToe: restore board, turn, and assign persistent player symbol
+                if (data.ttt) {
+                    if (Array.isArray(data.ttt.board)) {
+                        const restored = data.ttt.board.map(cell => cell || null);
+                        setTttBoard(restored);
+                        const win = checkTttWinner(restored);
+                        if (win) setTttWinner(win);
+                    }
+                    if (data.ttt.turn) {
+                        setTttTurn(data.ttt.turn);
+                    } else {
+                        setTttTurn('❤️');
+                    }
+                    if (data.ttt.scores) {
+                        setTttScores(data.ttt.scores);
+                    }
+                }
+                if (data.ttt_symbol) {
+                    setTttMySymbol(data.ttt_symbol);
+                } else if (data.user_id && data.ttt?.symbol) {
+                    setTttMySymbol(data.ttt.symbol[data.user_id] || '❤️');
                 }
                 break;
 
@@ -1018,6 +1055,7 @@ export default function Games() {
                             onClick={() => {
                                 playSound('click');
                                 setGameMode(m.id);
+                                try { localStorage.setItem('lovelink_game_mode', m.id); } catch {}
                                 toast(m.id === 'online' ? 'Online 2-Player Mode 🌐' : m.id === 'bot' ? 'LoveBot AI Companion Active 🤖' : 'Couch Pass & Play Active 🛋️');
                             }}
                             className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
@@ -1655,7 +1693,7 @@ export default function Games() {
                     <div className="grid grid-cols-3 gap-3 p-4 bg-black/40 border border-purple-500/20 rounded-3xl backdrop-blur-xl shadow-2xl">
                         {tttBoard.map((val, idx) => {
                             const isWinCell = tttWinner?.line?.includes(idx);
-                            const isMyTurnTtt = !tttMySymbol || tttTurn === tttMySymbol;
+                            const isMyTurnTtt = Boolean(tttMySymbol && tttTurn && (tttTurn === tttMySymbol || gameMode === 'couch'));
                             return (
                                 <button
                                     key={idx}

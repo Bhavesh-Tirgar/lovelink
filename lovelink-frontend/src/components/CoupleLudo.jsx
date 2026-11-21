@@ -264,12 +264,12 @@ export default function CoupleLudo({
     const [partnerLastDice, setPartnerLastDice] = useState(6);
 
     // Color assignment: Pink/Red for Player 1, Blue/Yellow for Player 2
-    const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : true;
-    const myColor = isPink ? 'pink' : 'blue';
-    const partnerColor = isPink ? 'blue' : 'pink';
+    const isPink = ludoState?.player_pink ? String(ludoState.player_pink) === String(userId) : null;
+    const myColor = isPink === null ? null : (isPink ? 'pink' : 'blue');
+    const partnerColor = isPink === null ? null : (isPink ? 'blue' : 'pink');
 
-    const turn = ludoState?.turn || 'pink';
-    const isMyTurn = turn === myColor;
+    const turn = ludoState?.turn || null;
+    const isMyTurn = Boolean(turn && myColor && turn === myColor);
 
     // Tokens arrays (standard 4 tokens per player)
     const tokens = useMemo(() => {
@@ -453,9 +453,9 @@ export default function CoupleLudo({
         });
     };
 
-    // LoveBot autonomous partner moves (in bot mode or when partner offline)
+    // LoveBot autonomous partner moves (only in bot mode)
     useEffect(() => {
-        if (!isMyTurn && !winner && (gameMode === 'bot' || !partnerOnline)) {
+        if (turn && !isMyTurn && !winner && gameMode === 'bot') {
             // 1. Roll Dice if not yet rolled
             if (!currentDice && !rolling) {
                 const rollTimer = setTimeout(() => {
@@ -521,7 +521,7 @@ export default function CoupleLudo({
                 return () => clearTimeout(moveTimer);
             }
         }
-    }, [isMyTurn, winner, currentDice, rolling, gameMode, partnerOnline, partnerTokens, canTokenMove, getTrackIndex, partnerColor, myTokens, myColor, handleExecuteMove, soundEnabled, sendWs]);
+    }, [turn, isMyTurn, winner, currentDice, rolling, gameMode, partnerTokens, canTokenMove, getTrackIndex, partnerColor, myTokens, myColor, handleExecuteMove, soundEnabled, sendWs]);
 
     // Reset game / Rematch
     const handleReset = () => {
