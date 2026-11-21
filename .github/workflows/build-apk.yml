@@ -61,16 +61,10 @@ jobs:
         with:
           tag_name: v1.0.0-apk
           name: "LoveLink Android App v1.0"
-          body: |
-            ### 💖 LoveLink Android APK v1.0
-            Download and install `LoveLink.apk` directly on your Android phone!
-            
-            - 🔐 256-bit AES-GCM Client-Side End-to-End Encryption
-            - 📹 Native WebRTC Video & Voice Calling
-            - 🎮 Couple Chess, Ludo 1v1, Uno Card Game & Truth/Dare
-            - 📍 Live Snap Map GPS & Battery Sharing
-            - 💓 Heartbeat Touch Haptic Vibration
-            - 🔄 **Over-the-Air Live Sync**: Automatically updates UI when new web features are deployed!
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: false
           files: output/LoveLink.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

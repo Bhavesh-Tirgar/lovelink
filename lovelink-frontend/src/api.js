@@ -143,6 +143,7 @@ export const initFirebasePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
     const messaging = getMessaging(app);
+
     const apiKey = process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyDRGkpcR78KzJ2rau_Q_5PiDWErm_afTmY";
     const swUrl = apiKey ? `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}` : '/firebase-messaging-sw.js';
     const registration = await navigator.serviceWorker.register(swUrl);

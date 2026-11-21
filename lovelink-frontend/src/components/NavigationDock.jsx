@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, Sparkles, Compass, Headphones } from 'lucide-react';
+import { Home, MessageCircle, Gamepad2, Compass, Headphones } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
 
 export default function NavigationDock() {
@@ -11,7 +11,7 @@ export default function NavigationDock() {
   const navItems = [
     { name: 'Home', path: '/dashboard', icon: Home },
     { name: 'Chat', path: '/chat', icon: MessageCircle },
-    { name: 'Spark', path: '/spark', icon: Sparkles },
+    { name: 'Games', path: '/games', icon: Gamepad2 },
     { name: 'Hub', path: '/hub', icon: Compass },
   ];
 

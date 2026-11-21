@@ -18,7 +18,6 @@ from routers.countdowns import router as countdowns_router
 from routers.games import router as games_router
 from routers.cycle import router as cycle_router
 from routers.room import router as room_router
-from routers.spark import router as spark_router
 from routers.media import router as media_router
 from routers.movies import router as movies_router
 from routers.calls import router as calls_router
@@ -43,7 +42,6 @@ async def lifespan(app: FastAPI):
         from sqlalchemy import text
         import models.cycle
         import models.room
-        import models.spark
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             try:
@@ -158,7 +156,6 @@ app.include_router(notifs_router, prefix="/notifications", tags=["notifications"
 app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
 app.include_router(cycle_router, prefix="/cycle", tags=["cycle"])
-app.include_router(spark_router, prefix="/spark", tags=["spark"])
 app.include_router(room_router, prefix="/room", tags=["room"])
 
 # Mount uploads directory for images, media, and voice notes
