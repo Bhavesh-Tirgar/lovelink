@@ -1,7 +1,11 @@
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../api';
+import AmbientAuraGlow from '../components/ui/AmbientAuraGlow';
+import SpotlightCard from '../components/ui/SpotlightCard';
+import { Heart } from 'lucide-react';
 
 const getError = (err) => {
   const d = err.response?.data?.detail;
@@ -112,9 +116,11 @@ function Login() {
     }
 
     try {
-      const res = await api.post('/auth/login', { identifier: finalIdentifier });
+      const res = await api.post('/auth/login-otp', {
+        identifier: finalIdentifier,
+      });
       setOtpSent(true);
-      setInfo(res.data.message || `OTP sent to ${finalIdentifier}.`);
+      setInfo(res.data.message || 'OTP sent successfully');
       setResendSeconds(30);
     } catch (err) {
       setError(getError(err));
@@ -126,9 +132,10 @@ function Login() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
+    setInfo('');
 
-    if (!otp) {
-      setError("Please enter the OTP");
+    if (!otp || otp.trim().length < 6) {
+      setError("Please enter the 6-digit OTP");
       return;
     }
 
@@ -172,23 +179,38 @@ function Login() {
   }, [otpSent, resendSeconds]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#080612] px-4">
-      <div className="w-full max-w-md rounded-2xl border border-[rgba(155,92,246,0.3)] bg-[rgba(255,255,255,0.05)] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] p-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#050608] px-4 py-8 relative overflow-hidden select-none">
+      <AmbientAuraGlow />
+
+      <SpotlightCard
+        spotlightColor="rgba(244, 63, 94, 0.2)"
+        borderColor="rgba(244, 63, 94, 0.4)"
+        className="w-full max-w-md p-8 sm:p-10 bg-gradient-to-b from-[#0e101a]/90 via-[#07080e]/95 to-black"
+      >
         <div className="text-center mb-6">
-          <div className="text-4xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-400 to-fuchsia-400 bg-clip-text text-transparent mb-2">
-            💑 LoveLink
-          </div>
-          <p className="text-sm text-gray-400">Welcome back</p>
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 6 }}
+            className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-tr from-rose-600 via-pink-600 to-purple-600 flex items-center justify-center shadow-lg shadow-rose-500/30"
+          >
+            <Heart size={28} className="text-white fill-white" />
+          </motion.div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
+            <span>LoveLink</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold border border-rose-500/30">
+              SECURE
+            </span>
+          </h1>
+          <p className="text-xs text-gray-400 mt-1">Welcome back to your private couple sanctuary</p>
         </div>
 
         {info && (
-          <div className="mb-3 rounded-md border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+          <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-300">
             {info}
           </div>
         )}
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300">
             {error}
           </div>
         )}
@@ -196,35 +218,36 @@ function Login() {
         {mode === 'password' ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
                 Email or Phone
               </label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full rounded-lg bg-[#0f0b20] border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                className="w-full rounded-xl bg-black/50 border border-white/10 px-3.5 py-2.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-rose-500 transition-colors"
                 placeholder="you@example.com or +91XXXXXXXXXX"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg bg-[#0f0b20] border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                className="w-full rounded-xl bg-black/50 border border-white/10 px-3.5 py-2.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-rose-500 transition-colors"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="mt-2 w-full inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 disabled:from-purple-900 disabled:via-pink-900 disabled:to-rose-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110"
+              className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 disabled:opacity-50 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-rose-600/30 transition-all hover:brightness-110"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -232,13 +255,13 @@ function Login() {
                   Logging in...
                 </span>
               ) : (
-                'Log In'
+                'Log In 🚀'
               )}
-            </button>
+            </motion.button>
 
             <button
               type="button"
-              className="mt-2 w-full text-xs text-purple-300 hover:text-purple-200"
+              className="mt-2 w-full text-xs text-rose-300 hover:text-rose-200 font-medium"
               onClick={() => {
                 setMode('otp');
                 setError('');
@@ -251,7 +274,7 @@ function Login() {
         ) : (
           <form className="space-y-4" onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
                 Email or Phone
               </label>
               <input
@@ -262,47 +285,49 @@ function Login() {
                   setOtpSent(false);
                   setInfo('');
                 }}
-                className="w-full rounded-lg bg-[#0f0b20] border border-white/10 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                className="w-full rounded-xl bg-black/50 border border-white/10 px-3.5 py-2.5 text-xs text-gray-100 placeholder-gray-500 focus:outline-none focus:border-rose-500 transition-colors"
                 placeholder="you@example.com or +91XXXXXXXXXX"
               />
             </div>
 
             {!otpSent ? (
-              <button
+              <motion.button
+                whileTap={{ scale: 0.98 }}
                 type="button"
                 disabled={loading}
                 onClick={handleSendOtp}
-                className="mt-2 w-full inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 disabled:from-purple-900 disabled:via-pink-900 disabled:to-rose-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110"
+                className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 disabled:opacity-50 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-rose-600/30 transition-all hover:brightness-110"
               >
                 {loading ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Sending...
+                    Sending OTP...
                   </span>
                 ) : (
-                  'Send OTP'
+                  'Send OTP 📩'
                 )}
-              </button>
+              </motion.button>
             ) : (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    OTP
+                  <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    6-Digit Security OTP
                   </label>
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     maxLength={6}
-                    className="w-full text-center tracking-[0.5em] rounded-lg bg-[#0f0b20] border border-white/10 px-3 py-2 text-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                    className="w-full text-center tracking-[0.4em] rounded-xl bg-black/50 border border-white/10 px-3 py-2.5 text-base font-mono text-gray-100 placeholder-gray-500 focus:outline-none focus:border-rose-500 transition-colors"
                     placeholder="••••••"
                   />
                 </div>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   disabled={loading}
                   onClick={handleVerifyOtp}
-                  className="mt-2 w-full inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 disabled:from-purple-900 disabled:via-pink-900 disabled:to-rose-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/30 transition hover:brightness-110"
+                  className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 disabled:opacity-50 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-rose-600/30 transition-all hover:brightness-110"
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">
@@ -310,14 +335,14 @@ function Login() {
                       Verifying...
                     </span>
                   ) : (
-                    'Verify OTP'
+                    'Verify & Enter 🚀'
                   )}
-                </button>
+                </motion.button>
                 <button
                   type="button"
                   disabled={loading || resendSeconds > 0}
                   onClick={handleSendOtp}
-                  className="mt-2 w-full text-xs text-purple-300 hover:text-purple-200 disabled:text-gray-500"
+                  className="mt-2 w-full text-xs text-rose-300 hover:text-rose-200 disabled:text-gray-500"
                 >
                   {resendSeconds > 0
                     ? `Resend in ${resendSeconds}s`
@@ -328,7 +353,7 @@ function Login() {
 
             <button
               type="button"
-              className="mt-2 w-full text-xs text-purple-300 hover:text-purple-200"
+              className="mt-2 w-full text-xs text-rose-300 hover:text-rose-200 font-medium"
               onClick={() => {
                 setMode('password');
                 setOtpSent(false);
@@ -342,13 +367,12 @@ function Login() {
           </form>
         )}
 
-        
-        <div className="relative my-5">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-white/10" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[#131127] px-2 text-gray-400 font-semibold tracking-wider">
+          <div className="relative flex justify-center text-[10px] uppercase">
+            <span className="bg-[#0b0c14] px-2.5 text-gray-400 font-bold tracking-wider">
               Or continue with
             </span>
           </div>
@@ -356,19 +380,18 @@ function Login() {
 
         <GoogleSignInButton onError={(msg) => setError(msg)} />
 
-        <p className="mt-4 text-center text-sm text-gray-400">
+        <p className="mt-5 text-center text-xs text-gray-400">
           Don&apos;t have an account?{' '}
           <Link
             to="/signup"
-            className="font-medium text-purple-300 hover:text-purple-200"
+            className="font-bold text-rose-400 hover:text-rose-300 transition-colors"
           >
             Sign up
           </Link>
         </p>
-      </div>
+      </SpotlightCard>
     </div>
   );
 }
 
 export default Login;
-

@@ -7,12 +7,14 @@ import { useLocation } from 'react-router-dom';
 export default function Layout({ children }) {
     const location = useLocation();
     const hiddenPaths = ['/login', '/signup', '/link'];
+    const isReels = location.pathname === '/reels';
     const isFullscreen = location.pathname.startsWith('/call/') || 
         location.pathname.startsWith('/watch/') || 
         location.pathname === '/touch' || 
         location.pathname === '/universe' || 
         location.pathname === '/map' || 
         location.pathname === '/chat' || 
+        location.pathname === '/reels' ||
         location.pathname === '/doodle';
     const isAuthPage = hiddenPaths.includes(location.pathname);
 
@@ -40,14 +42,14 @@ export default function Layout({ children }) {
                 {children}
             </main>
 
-            {/* Floating Synchronized Music Player */}
-            {!isAuthPage && !isFullscreen && <FloatingMusicPlayer />}
+            {/* Floating Synchronized Music Player (Disable on Reels to avoid audio collision) */}
+            {!isAuthPage && !isFullscreen && !isReels && <FloatingMusicPlayer />}
 
             {/* PWA Add to Home Screen Prompt */}
             {!isAuthPage && !isFullscreen && <InstallPrompt />}
 
             {/* Persistent Floating Dock */}
-            {!isAuthPage && !isFullscreen && <NavigationDock />}
+            {!isAuthPage && !location.pathname.startsWith('/call/') && !location.pathname.startsWith('/watch/') && <NavigationDock />}
 
         </div>
     );
