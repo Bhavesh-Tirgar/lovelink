@@ -3,6 +3,8 @@
  * (c) 2010-2023 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
+/*! Capacitor: https://capacitorjs.com/ - MIT License */
+
 /**
  * @license
  * Copyright (c) 2025, Jeff Hlywa (jhlywa@gmail.com)

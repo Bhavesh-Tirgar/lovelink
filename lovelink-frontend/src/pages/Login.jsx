@@ -2,6 +2,7 @@ import GoogleSignInButton from '../components/GoogleSignInButton';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 import api from '../api';
 import AmbientAuraGlow from '../components/ui/AmbientAuraGlow';
 import SpotlightCard from '../components/ui/SpotlightCard';
@@ -17,6 +18,7 @@ const getError = (err) => {
 function Login() {
   const navigate = useNavigate();
   const isNativeApp = typeof window !== 'undefined' && (
+    Capacitor.isNativePlatform() ||
     Boolean(window['Capacitor']?.isNativePlatform?.()) ||
     window.location.protocol === 'capacitor:' ||
     /Capacitor/i.test(navigator.userAgent)

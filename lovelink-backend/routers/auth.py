@@ -467,18 +467,77 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         return await _build_token_response(user, db)
 
     # OTP login request (no password provided)
+    return await send_login_otp_internal(data.identifier, db)
+
+
+@router.post("/login-otp")
+async def login_otp(data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Dispatch a secure 6-digit login OTP to the user's email."""
+    return await send_login_otp_internal(data.identifier, db)
+
+
+async def send_login_otp_internal(raw_identifier: str, db: AsyncSession):
+    identifier = raw_identifier.strip()
+    user = await get_user_by_identifier(identifier, db)
+
+    # If identifier has no @, try formatting as Indian phone or lookup
+    if not user and "@" not in identifier:
+        digits = "".join([c for c in identifier if c.isdigit()])
+        if len(digits) == 10:
+            user = await get_user_by_identifier(f"+91{digits}", db)
+
+    # Check lockout
+    if user and user.locked_until:
+        if datetime.utcnow() < user.locked_until:
+            remaining_mins = max(1, int((user.locked_until - datetime.utcnow()).total_seconds() / 60))
+            raise HTTPException(
+                status_code=429,
+                detail=f"Account temporarily locked due to repeated failed attempts. Please try again in {remaining_mins} minutes."
+            )
+        else:
+            user.locked_until = None
+            user.failed_login_attempts = 0
+            db.add(user)
+            await db.commit()
+
+    target_email = None
+
     if not user:
-        # Generic message so attacker cannot enumerate emails
-        return {
-            "message": "If an account is associated with this identifier, a login code has been sent.",
-            "requires_otp": True
-        }
+        if "@" in identifier:
+            # Auto-create user so user is never blocked with "Not Found" or account creation friction
+            clean_email = identifier.lower().strip()
+            user = User(
+                id=str(uuid.uuid4()),
+                email=clean_email,
+                name=clean_email.split("@")[0].capitalize(),
+                is_verified=False,
+                city="Unknown",
+                timezone="Asia/Kolkata"
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+            target_email = user.email
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="No account found with this phone number. Please enter your email address to receive a login code."
+            )
+    else:
+        if user.email:
+            target_email = user.email
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Your account does not have a linked email address. Please enter your email or login with password."
+            )
 
     # Rate limiting on OTP send (cooldown 30s)
     if user.otp_sent_at and (datetime.utcnow() - user.otp_sent_at).total_seconds() < 30:
+        remaining_secs = 30 - int((datetime.utcnow() - user.otp_sent_at).total_seconds())
         raise HTTPException(
             status_code=429,
-            detail="Please wait 30 seconds before requesting another code."
+            detail=f"Please wait {max(1, remaining_secs)} seconds before requesting another code."
         )
 
     raw_otp = generate_secure_otp()
@@ -489,17 +548,28 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
 
-    if user.email:
-        try:
-            await send_otp_email(user.email, raw_otp, purpose="login")
-        except Exception as e:
-            print(f"\n=======================================================")
-            print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
-            print(f" >>> LOGIN OTP for {user.email}: {raw_otp} <<<")
-            print(f"=======================================================\n")
+    try:
+        await send_otp_email(target_email, raw_otp, purpose="login")
+    except Exception as e:
+        print(f"\n=======================================================")
+        print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
+        print(f" >>> LOGIN OTP for {target_email}: {raw_otp} <<<")
+        print(f"=======================================================\n")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send login code via email. Please check your email address and try again."
+        )
+
+    masked_email = target_email
+    if "@" in target_email:
+        parts = target_email.split("@")
+        name_part = parts[0]
+        domain = parts[1]
+        masked_name = name_part[:2] + "***" if len(name_part) > 2 else name_part + "***"
+        masked_email = f"{masked_name}@{domain}"
 
     return {
-        "message": f"OTP sent to your email {user.email}",
+        "message": f"OTP sent successfully to {masked_email}",
         "requires_otp": True
     }
 
@@ -509,6 +579,10 @@ async def login_verify_otp(
     data: OTPVerifyRequest, db: AsyncSession = Depends(get_db)
 ):
     user = await get_user_by_identifier(data.identifier, db)
+    if not user and "@" not in data.identifier:
+        digits = "".join([c for c in data.identifier if c.isdigit()])
+        if len(digits) == 10:
+            user = await get_user_by_identifier(f"+91{digits}", db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid OTP or identifier")
 
