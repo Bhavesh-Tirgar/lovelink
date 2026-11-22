@@ -223,22 +223,24 @@ export default function GoogleSignInButton({ onError }) {
                 }
             } catch (nativeErr) {
                 console.warn('[NativeAuth] Google Play Services sign-in error:', nativeErr);
-                // User explicitly dismissed the dialog
-                if (nativeErr?.message?.includes('cancel') || nativeErr?.code === '16' || nativeErr?.code === '12501' || nativeErr?.code === 'SIGN_IN_CANCELED') {
+                // Only treat explicit user cancellation as a silent dismissal
+                const errMsg = (nativeErr?.message || '').toLowerCase();
+                const isExplicitCancel = errMsg.includes('user cancel') || nativeErr?.code === 'SIGN_IN_CANCELED';
+                if (isExplicitCancel) {
                     setLoading(false);
                     return;
                 }
+                toast('Switching to secure browser sign-in...', { icon: '🌐' });
             }
 
             // 2. Fallback: Open external Chrome Custom Tabs via @capacitor/browser.
             try {
-                toast('Opening secure Google Sign-In...', { icon: '🌐' });
                 const redirectUri = 'https://lovelink-pearl.vercel.app/login';
                 const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&state=capacitor&nonce=${Date.now()}`;
                 await Browser.open({ url: oauthUrl, windowName: '_system' });
             } catch (browserErr) {
                 console.error('[NativeAuth] Failed to open external browser for Google auth:', browserErr);
-                toast.error('Unable to open Google sign-in. Please use Email OTP login below!');
+                toast.error('Google sign-in unavailable. Please use Email OTP login below!');
             } finally {
                 setLoading(false);
             }
