@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { auth, googleProvider } from '../utils/firebase';
-import { signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../utils/firebase';
+import { getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 
 export default function GoogleSignInButton({ onError }) {
     const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function GoogleSignInButton({ onError }) {
     const [gsiLoaded, setGsiLoaded] = useState(false);
     const googleBtnRef = useRef(null);
 
-    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+    const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '1088818591868-a2ktjjk82k2vnv2j3k837lumvaoie79f.apps.googleusercontent.com';
 
     const handleGoogleResponse = useCallback(async (response) => {
         if (!response || !response.credential) {
@@ -180,7 +180,7 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [clientId, handleGoogleResponse]);
 
-    // 5. Sign In Action: Handled according to platform (Web vs Android APK)
+    // 5. Sign In Action: Handled according to platform (Native Android vs Web)
     const handleGoogleSignInClick = async () => {
         setLoading(true);
 
@@ -190,61 +190,50 @@ export default function GoogleSignInButton({ onError }) {
             /Capacitor/i.test(navigator.userAgent)
         );
 
-        // Inside the Android APK: Open real Chrome Custom Tab to bypass WebView restrictions
+        // Native Android APK: Use Google Play Services Native Sign-In (no browser redirect, no white screen)
         if (isNativeApp) {
             try {
-                toast('Opening Google Sign-In...', { icon: '🔐' });
-                const { Browser } = await import('@capacitor/browser');
-                await Browser.open({
-                    url: 'https://lovelink-pearl.vercel.app/login?oauth_source=capacitor',
-                    windowName: '_blank'
+                toast('Signing in with Google...', { icon: '🔐' });
+                const { GoogleSignIn } = await import('@capawesome/capacitor-google-sign-in');
+                await GoogleSignIn.initialize({
+                    clientId,
                 });
-                setLoading(false);
-                return;
-            } catch (err) {
-                console.warn('Failed to open Chrome Custom Tab:', err);
-                toast.error('Could not open browser. Please use Phone OTP or Email login below!');
-                setLoading(false);
-                return;
+                const result = await GoogleSignIn.signIn();
+                if (result && result.idToken) {
+                    await handleGoogleResponse({ credential: result.idToken });
+                    return;
+                }
+            } catch (nativeErr) {
+                console.warn('Native Google Sign-In error:', nativeErr);
+                // User cancelled or closed dialog
+                if (nativeErr?.message?.includes('cancel') || nativeErr?.code === '16' || nativeErr?.code === '12501') {
+                    setLoading(false);
+                    return;
+                }
             }
         }
 
+        // Web platform: Use standard Google OAuth 2.0 direct authorization (bypasses broken Firebase handler)
         try {
-            // signInWithPopup is more resilient on desktop & mobile Chrome browsers
-            const result = await signInWithPopup(auth, googleProvider);
-            if (result && result.user) {
-                const idToken = await result.user.getIdToken();
-                await handleGoogleResponse({ credential: idToken });
-                return;
-            }
-        } catch (popupErr) {
-            console.warn('Popup login failed or closed:', popupErr);
-            
-            // Check if popup was simply closed by user
-            if (popupErr.code === 'auth/popup-closed-by-user') {
-                setLoading(false);
+            if (window.google?.accounts?.id) {
+                window.google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        // Fallback to top-level Google OAuth redirect
+                        const redirectUri = window.location.origin + '/login';
+                        const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
+                        window.location.href = oauthUrl;
+                    }
+                });
                 return;
             }
 
-            // If domain is unauthorized in Firebase Console, do NOT redirect (redirecting causes blank white screen)
-            if (popupErr.code === 'auth/unauthorized-domain') {
-                setLoading(false);
-                toast.error(
-                    'Domain not whitelisted in Firebase! Please add "lovelink-pearl.vercel.app" in Firebase Console -> Auth -> Settings -> Authorized Domains. Or use Phone OTP / Email login below!',
-                    { duration: 8000 }
-                );
-                return;
-            }
-
-            // Fallback to redirect only if not an unauthorized domain error
-            try {
-                toast('Opening Google Sign-In...', { icon: '🔐' });
-                await signInWithRedirect(auth, googleProvider);
-            } catch (redirectErr) {
-                console.error('Redirect auth error:', redirectErr);
-                toast.error('Google Sign-In unavailable. Please sign in with Email or Phone OTP below!');
-                setLoading(false);
-            }
+            const redirectUri = window.location.origin + '/login';
+            const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
+            window.location.href = oauthUrl;
+        } catch (err) {
+            console.error('Web Google auth error:', err);
+            toast.error('Google Sign-In unavailable. Please use Email or Password login below!');
+            setLoading(false);
         }
     };
 

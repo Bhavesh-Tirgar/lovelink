@@ -93,30 +93,6 @@ function Login() {
     }
   };
 
-  const handleQuickLogin = async (email, name) => {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const res = await api.post('/auth/quick-login', { email, name });
-      const { access_token, user, couple_id } = res.data;
-      const activeCoupleId = couple_id || user?.couple_id;
-      window.localStorage.setItem('token', access_token);
-      if (res.data.refresh_token) window.localStorage.setItem('refresh_token', res.data.refresh_token);
-      window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
-      if (activeCoupleId) {
-        window.localStorage.setItem('couple_id', activeCoupleId);
-        navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/link', { replace: true });
-      }
-    } catch (err) {
-      setError(getError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -139,9 +115,6 @@ function Login() {
       const res = await api.post('/auth/login', { identifier: finalIdentifier });
       setOtpSent(true);
       setInfo(res.data.message || `OTP sent to ${finalIdentifier}.`);
-      if (res.data.dev_code) {
-        setOtp(res.data.dev_code);
-      }
       setResendSeconds(30);
     } catch (err) {
       setError(getError(err));
@@ -219,36 +192,6 @@ function Login() {
             {error}
           </div>
         )}
-
-        {/* ⚡ 1-Tap Quick Instant Access */}
-        <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/15 via-purple-500/10 to-indigo-500/15 border border-pink-500/30 backdrop-blur-md shadow-lg shadow-pink-500/5">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-pink-300 flex items-center gap-1.5">
-              <span>⚡</span> Instant 1-Tap Access
-            </span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
-              No Password / OTP
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleQuickLogin('tirgarbhavesh2005@gmail.com', 'Bhavesh Tirgar')}
-              className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <span>👑</span> Bhavesh
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleQuickLogin('partner@lovelink.app', 'Partner 💕')}
-              className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <span>💕</span> Partner
-            </button>
-          </div>
-        </div>
 
         {mode === 'password' ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">

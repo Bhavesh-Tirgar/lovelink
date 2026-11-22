@@ -283,15 +283,12 @@ async def verify_otp(data: OTPVerifyRequest, db: AsyncSession = Depends(get_db))
         )
 
     # Constant-time comparison
-    entered_otp = data.otp.strip()
-    is_master_otp = (entered_otp == "123456")
-    entered_hash = hash_otp(entered_otp)
-    is_valid = is_master_otp
-    if not is_valid:
-        if user.otp_code and len(user.otp_code) == 64:
-            is_valid = hmac.compare_digest(user.otp_code, entered_hash)
-        elif user.otp_code:
-            is_valid = hmac.compare_digest(user.otp_code, entered_otp)
+    entered_hash = hash_otp(data.otp.strip())
+    is_valid = False
+    if user.otp_code and len(user.otp_code) == 64:
+        is_valid = hmac.compare_digest(user.otp_code, entered_hash)
+    elif user.otp_code:
+        is_valid = hmac.compare_digest(user.otp_code, data.otp.strip())
 
     if not is_valid:
         user.otp_attempts = current_attempts + 1
@@ -471,19 +468,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     # OTP login request (no password provided)
     if not user:
-        # Create user account seamlessly if logging in via phone or email for the first time
-        user = User(
-            id=str(uuid.uuid4()),
-            email=data.identifier if "@" in data.identifier else f"user_{secrets.randbelow(10000)}@lovelink.app",
-            phone=data.identifier if "@" not in data.identifier else None,
-            name=data.identifier.split("@")[0].title() if "@" in data.identifier else "Partner",
-            is_verified=True,
-            city="Ahmedabad",
-            timezone="Asia/Kolkata"
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        # Generic message so attacker cannot enumerate emails
+        return {
+            "message": "If an account is associated with this identifier, a login code has been sent.",
+            "requires_otp": True
+        }
 
     # Rate limiting on OTP send (cooldown 30s)
     if user.otp_sent_at and (datetime.utcnow() - user.otp_sent_at).total_seconds() < 30:
@@ -510,9 +499,8 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
             print(f"=======================================================\n")
 
     return {
-        "message": f"OTP sent to {user.email or user.phone}. (Backup code: 123456)",
-        "requires_otp": True,
-        "dev_code": "123456"
+        "message": f"OTP sent to your email {user.email}",
+        "requires_otp": True
     }
 
 
@@ -524,22 +512,37 @@ async def login_verify_otp(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid OTP or identifier")
 
-    entered_otp = data.otp.strip()
-    is_master_otp = (entered_otp == "123456")
+    if not user.otp_code or not user.otp_expires_at:
+        raise HTTPException(status_code=400, detail="No active OTP requested. Please request a new one.")
 
-    if not is_master_otp:
-        if not user.otp_code or not user.otp_expires_at:
-            raise HTTPException(status_code=400, detail="No active OTP requested. Please request a new one.")
+    if datetime.utcnow() > user.otp_expires_at:
+        user.otp_code = None
+        user.otp_expires_at = None
+        db.add(user)
+        await db.commit()
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
 
-        if datetime.utcnow() > user.otp_expires_at:
-            user.otp_code = None
-            user.otp_expires_at = None
-            db.add(user)
-            await db.commit()
-            raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    current_attempts = user.otp_attempts or 0
+    if current_attempts >= 5:
+        user.otp_code = None
+        user.otp_expires_at = None
+        db.add(user)
+        await db.commit()
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
+        )
 
-        current_attempts = user.otp_attempts or 0
-        if current_attempts >= 5:
+    entered_hash = hash_otp(data.otp.strip())
+    is_valid = False
+    if user.otp_code and len(user.otp_code) == 64:
+        is_valid = hmac.compare_digest(user.otp_code, entered_hash)
+    elif user.otp_code:
+        is_valid = hmac.compare_digest(user.otp_code, data.otp.strip())
+
+    if not is_valid:
+        user.otp_attempts = current_attempts + 1
+        if user.otp_attempts >= 5:
             user.otp_code = None
             user.otp_expires_at = None
             db.add(user)
@@ -548,28 +551,9 @@ async def login_verify_otp(
                 status_code=429,
                 detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
             )
-
-        entered_hash = hash_otp(entered_otp)
-        is_valid = False
-        if user.otp_code and len(user.otp_code) == 64:
-            is_valid = hmac.compare_digest(user.otp_code, entered_hash)
-        elif user.otp_code:
-            is_valid = hmac.compare_digest(user.otp_code, entered_otp)
-
-        if not is_valid:
-            user.otp_attempts = current_attempts + 1
-            if user.otp_attempts >= 5:
-                user.otp_code = None
-                user.otp_expires_at = None
-                db.add(user)
-                await db.commit()
-                raise HTTPException(
-                    status_code=429,
-                    detail="Too many failed attempts. This OTP has been invalidated for your security. Please request a new one."
-                )
-            db.add(user)
-            await db.commit()
-            raise HTTPException(status_code=400, detail=f"Invalid OTP. {5 - user.otp_attempts} attempts remaining.")
+        db.add(user)
+        await db.commit()
+        raise HTTPException(status_code=400, detail=f"Invalid OTP. {5 - user.otp_attempts} attempts remaining.")
 
     user.is_verified = True
     user.otp_code = None
@@ -580,41 +564,6 @@ async def login_verify_otp(
     db.add(user)
     await db.commit()
     await db.refresh(user)
-
-    return await _build_token_response(user, db)
-
-
-class QuickLoginRequest(BaseModel):
-    email: Optional[str] = "tirgarbhavesh2005@gmail.com"
-    name: Optional[str] = "Bhavesh Tirgar"
-
-
-@router.post("/quick-login", response_model=TokenResponse)
-async def quick_login(payload: QuickLoginRequest, db: AsyncSession = Depends(get_db)):
-    """1-Tap instant login for testing, APK, and seamless web access."""
-    email = (payload.email or "tirgarbhavesh2005@gmail.com").strip().lower()
-    name = (payload.name or "Bhavesh Tirgar").strip()
-
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalars().first()
-
-    if not user:
-        user = User(
-            id=str(uuid.uuid4()),
-            email=email,
-            name=name,
-            is_verified=True,
-            city="Ahmedabad",
-            timezone="Asia/Kolkata"
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-    else:
-        user.is_verified = True
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
 
     return await _build_token_response(user, db)
 
