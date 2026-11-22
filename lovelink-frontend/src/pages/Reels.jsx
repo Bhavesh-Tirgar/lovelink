@@ -16,7 +16,7 @@ export default function Reels() {
     const [reels, setReels] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeIndex, setActiveIndex] = useState(0);
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(true); // Default to muted so mobile browsers allow instant autoplay!
     const [syncWithPartner, setSyncWithPartner] = useState(true);
     const [autoAdvance, setAutoAdvance] = useState(false);
     const [partnerOnline, setPartnerOnline] = useState(false);
@@ -295,6 +295,11 @@ export default function Reels() {
             lastTapRef.current = 0;
         } else {
             lastTapRef.current = now;
+            setTimeout(() => {
+                if (Date.now() - lastTapRef.current >= DOUBLE_TAP_DELAY && lastTapRef.current !== 0) {
+                    setIsMuted(m => !m);
+                }
+            }, DOUBLE_TAP_DELAY);
         }
     };
 
@@ -441,6 +446,29 @@ export default function Reels() {
                         </div>
                     </div>
                 </div>
+
+                {/* ── FLOATING SOUND / UNMUTE BADGE ── */}
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMuted(m => !m);
+                    }}
+                    className="absolute top-16 right-3.5 z-30 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                    title={isMuted ? "Tap for sound" : "Mute"}
+                >
+                    {isMuted ? (
+                        <>
+                            <VolumeX className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+                            <span className="text-[11px] text-pink-200">Tap for Sound 🔊</span>
+                        </>
+                    ) : (
+                        <>
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-[11px] text-emerald-200">Sound ON</span>
+                        </>
+                    )}
+                </button>
 
                 {/* ── FLOATING PARTICLES OVERLAY ── */}
                 <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">

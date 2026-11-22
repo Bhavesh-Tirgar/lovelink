@@ -140,6 +140,7 @@ export default function GoogleSignInButton({ onError }) {
                     callback: handleGoogleResponse,
                     auto_select: false,
                     cancel_on_tap_outside: true,
+                    itp_support: true,
                 });
 
                 const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 360;

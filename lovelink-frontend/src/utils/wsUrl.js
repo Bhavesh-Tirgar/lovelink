@@ -17,16 +17,17 @@ export const getWsBaseUrl = () => {
 
     // 3. Fallback based on browser environment
     if (typeof window !== 'undefined') {
-        const isHttps = window.location.protocol === 'https:';
-        // If hosted on Vercel or any remote domain, connect to the production Render backend
+        // Only use local development websocket if specifically accessed via localhost:3000 in browser
         if (
-            window.location.hostname.includes('vercel.app') ||
-            (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+            window.location.hostname === 'localhost' &&
+            window.location.port === '3000' &&
+            window.location.protocol !== 'capacitor:' &&
+            !window['Capacitor']?.isNativePlatform?.() &&
+            !navigator.userAgent.includes('Capacitor')
         ) {
-            return 'wss://lovelink-sfzx.onrender.com';
+            return 'ws://localhost:8000';
         }
-        return `${isHttps ? 'wss://' : 'ws://'}${window.location.hostname}:8000`;
     }
 
-    return 'ws://localhost:8000';
+    return 'wss://lovelink-sfzx.onrender.com';
 };

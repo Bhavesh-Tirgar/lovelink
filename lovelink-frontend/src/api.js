@@ -5,14 +5,18 @@ import { app } from "./utils/firebase";
 const getDefaultBaseUrl = () => {
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
   if (typeof window !== 'undefined') {
+    // Only use local development backend if specifically accessed via localhost:3000 in browser
     if (
-      window.location.hostname.includes('vercel.app') ||
-      (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      window.location.hostname === 'localhost' &&
+      window.location.port === '3000' &&
+      window.location.protocol !== 'capacitor:' &&
+      !window['Capacitor']?.isNativePlatform?.() &&
+      !navigator.userAgent.includes('Capacitor')
     ) {
-      return 'https://lovelink-sfzx.onrender.com';
+      return 'http://localhost:8000';
     }
   }
-  return 'http://localhost:8000';
+  return 'https://lovelink-sfzx.onrender.com';
 };
 
 const api = axios.create({

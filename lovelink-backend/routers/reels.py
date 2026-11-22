@@ -10,7 +10,7 @@ from database import get_db, AsyncSessionLocal
 from models.user import User
 from models.couple import Couple
 from models.reel import Reel
-from routers.auth import get_current_user
+from routers.auth import get_current_user, get_optional_user
 from ws_manager.manager import manager
 
 router = APIRouter()
@@ -240,12 +240,12 @@ class AddCustomReelRequest(BaseModel):
 
 @router.get("/feed")
 async def get_reels_feed(
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Returns couple's custom queued reels + dynamic Reddit memes/clips + curated viral feed."""
     custom_reels = []
-    if current_user.couple_id:
+    if current_user and current_user.couple_id:
         stmt = (
             select(Reel, User.name.label("added_by_name"))
             .outerjoin(User, Reel.added_by == User.id)
