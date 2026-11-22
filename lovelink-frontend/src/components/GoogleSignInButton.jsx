@@ -23,7 +23,10 @@ export default function GoogleSignInButton({ onError }) {
         }
 
         setLoading(true);
+        const toastId = toast.loading('Signing into LoveLink... 💖');
+
         try {
+            console.log('[GoogleAuth] Submitting credential to /auth/google...');
             const res = await api.post('/auth/google', {
                 credential: response.credential,
             });
@@ -31,39 +34,49 @@ export default function GoogleSignInButton({ onError }) {
             const { access_token, user, couple_id } = res.data;
             const activeCoupleId = couple_id || user?.couple_id;
 
-            // If returning from a Chrome Custom Tab OAuth flow for Capacitor APK
-            const urlParams = new URLSearchParams(window.location.search);
-            const isCapacitorFlow = response.isCapacitorFlow || urlParams.get('oauth_source') === 'capacitor' || urlParams.get('state') === 'capacitor' || window.location.hash.includes('state=capacitor');
-
-            if (isCapacitorFlow) {
-                // Return seamlessly to the Android APK via custom scheme deep-link!
-                const deepLink = `lovelink://auth?token=${access_token}&refresh_token=${res.data.refresh_token || ''}&couple_id=${activeCoupleId || ''}&user=${encodeURIComponent(JSON.stringify(user))}`;
-                window.location.href = deepLink;
-                return;
-            }
-
+            // 1. Always persist credentials in the local session
             window.localStorage.setItem('token', access_token);
             if (res.data.refresh_token) window.localStorage.setItem('refresh_token', res.data.refresh_token);
             window.localStorage.setItem('user', JSON.stringify({ ...user, couple_id: activeCoupleId }));
             if (activeCoupleId) {
                 window.localStorage.setItem('couple_id', activeCoupleId);
+            }
+
+            // 2. If running in external Chrome Custom Tabs, return to the Native APK via deep-link
+            const urlParams = new URLSearchParams(window.location.search);
+            const isExternalReturn = !isNativePlatform && (
+                response.isCapacitorFlow ||
+                urlParams.get('oauth_source') === 'capacitor' ||
+                urlParams.get('state') === 'capacitor' ||
+                (typeof window !== 'undefined' && window.location.hash.includes('state=capacitor'))
+            );
+
+            if (isExternalReturn) {
+                toast.success('Authenticated! Returning to app...', { id: toastId });
+                const deepLink = `lovelink://auth?token=${access_token}&refresh_token=${res.data.refresh_token || ''}&couple_id=${activeCoupleId || ''}&user=${encodeURIComponent(JSON.stringify(user))}`;
+                window.location.href = deepLink;
+                return;
+            }
+
+            toast.success(`Welcome to LoveLink, ${user.name}! 💖`, { id: toastId });
+
+            // 3. Navigate inside native app or web browser
+            if (activeCoupleId) {
                 navigate('/dashboard', { replace: true });
             } else {
                 navigate('/link', { replace: true });
             }
-
-            toast.success(`Welcome to LoveLink, ${user.name}! 💖`);
         } catch (err) {
-            console.error('Google auth failed:', err);
-            const msg = err.response?.data?.detail || 'Google sign-in failed. Please try again.';
+            console.error('[GoogleAuth] Failed:', err);
+            const msg = err.response?.data?.detail || err.message || 'Google sign-in failed. Please try again.';
+            toast.error(msg, { id: toastId });
             if (onError) onError(msg);
-            else toast.error(msg);
         } finally {
             setLoading(false);
         }
-    }, [navigate, onError]);
+    }, [navigate, onError, isNativePlatform]);
 
-    // 1. Listen to Firebase Auth state changes (catches successful redirect or popup logins seamlessly on Web)
+    // 1. Listen to Firebase Auth state changes (Web only)
     useEffect(() => {
         if (isNativePlatform) return;
         let isMounted = true;
@@ -86,7 +99,7 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [handleGoogleResponse, isNativePlatform]);
 
-    // 2. Check for Firebase Redirect Result on mount (for mobile Web browser redirect flows)
+    // 2. Check for Firebase Redirect Result on mount (Web only)
     useEffect(() => {
         if (isNativePlatform) return;
         let isMounted = true;
@@ -111,14 +124,14 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [handleGoogleResponse, isNativePlatform]);
 
-    // 3. Handle OAuth2 redirect return (extracts id_token from URL hash)
+    // 3. Handle OAuth2 redirect return (extracts id_token or token from URL hash)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const hash = window.location.hash;
-        if (hash && hash.includes('id_token=')) {
+        if (hash && (hash.includes('id_token=') || hash.includes('access_token='))) {
             try {
                 const params = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
-                const idToken = params.get('id_token');
+                const idToken = params.get('id_token') || params.get('access_token');
                 const state = params.get('state');
                 if (idToken) {
                     window.history.replaceState(null, '', window.location.pathname);
@@ -135,8 +148,6 @@ export default function GoogleSignInButton({ onError }) {
 
     // 4. Initialize Google Identity Services for Web only
     useEffect(() => {
-        // DO NOT mount Google Identity iframe in Native Capacitor WebView!
-        // Google blocks embedded WebViews from using GSI popups, creating a blank white screen.
         if (typeof window === 'undefined' || !clientId || isNativePlatform) return;
 
         let checkInterval = null;
@@ -198,36 +209,39 @@ export default function GoogleSignInButton({ onError }) {
         if (isNativePlatform) {
             // 1. Attempt native Google Play Services sign-in if available
             try {
+                console.log('[NativeAuth] Initializing @capawesome/capacitor-google-sign-in...');
                 const { GoogleSignIn } = await import('@capawesome/capacitor-google-sign-in');
                 await GoogleSignIn.initialize({ clientId });
                 const result = await GoogleSignIn.signIn();
-                if (result && result.idToken) {
-                    await handleGoogleResponse({ credential: result.idToken });
-                    return;
+                console.log('[NativeAuth] GoogleSignIn.signIn result:', result ? 'Received result' : 'null');
+                if (result) {
+                    const token = result.idToken || result.accessToken;
+                    if (token) {
+                        await handleGoogleResponse({ credential: token });
+                        return;
+                    }
                 }
             } catch (nativeErr) {
-                console.warn('Native Google Play Services sign-in not available:', nativeErr);
-                // User cancelled or closed dialog
-                if (nativeErr?.message?.includes('cancel') || nativeErr?.code === '16' || nativeErr?.code === '12501') {
+                console.warn('[NativeAuth] Google Play Services sign-in error:', nativeErr);
+                // User explicitly dismissed the dialog
+                if (nativeErr?.message?.includes('cancel') || nativeErr?.code === '16' || nativeErr?.code === '12501' || nativeErr?.code === 'SIGN_IN_CANCELED') {
                     setLoading(false);
                     return;
                 }
             }
 
-            // 2. Open external Chrome Custom Tabs via @capacitor/browser.
-            // External Chrome is a trusted browser that Google allows (no WebView white screen).
+            // 2. Fallback: Open external Chrome Custom Tabs via @capacitor/browser.
             try {
                 toast('Opening secure Google Sign-In...', { icon: '🌐' });
                 const redirectUri = 'https://lovelink-pearl.vercel.app/login';
                 const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&state=capacitor&nonce=${Date.now()}`;
                 await Browser.open({ url: oauthUrl, windowName: '_system' });
             } catch (browserErr) {
-                console.error('Failed to open external browser for Google auth:', browserErr);
+                console.error('[NativeAuth] Failed to open external browser for Google auth:', browserErr);
                 toast.error('Unable to open Google sign-in. Please use Email OTP login below!');
             } finally {
                 setLoading(false);
             }
-            // CRITICAL: NEVER navigate the internal WebView to oauthUrl!
             return;
         }
 

@@ -327,37 +327,64 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
     email = None
     name = None
     picture = None
+    cred_str = payload.credential.strip()
 
+    # Strategy 1: Google OAuth2 ID Token offline verification using Google public certificates
     try:
         request = google_requests.Request()
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        if client_id:
-            google_data = google_id_token.verify_oauth2_token(
-                payload.credential, request, audience=client_id
-            )
-        else:
-            google_data = google_id_token.verify_oauth2_token(
-                payload.credential, request
-            )
-            # Verify valid Google issuers
-            if google_data.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
-                raise ValueError("Untrusted Google token issuer.")
-        email = google_data.get("email")
-        name = google_data.get("name") or (email.split("@")[0] if email else "Partner")
-        picture = google_data.get("picture")
+        google_data = google_id_token.verify_oauth2_token(cred_str, request)
+        if google_data.get("iss") in ["accounts.google.com", "https://accounts.google.com"]:
+            email = google_data.get("email")
+            name = google_data.get("name") or (email.split("@")[0] if email else "Partner")
+            picture = google_data.get("picture")
     except Exception as e:
-        # Fallback: Attempt verification using Firebase Admin Auth (for Firebase Google Sign-In)
+        print(f"Direct Google cert verification fallback: {e}")
+
+    # Strategy 2: Google Tokeninfo API (verifies with Google's live servers)
+    if not email:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://oauth2.googleapis.com/tokeninfo",
+                    params={"id_token": cred_str}
+                )
+                if resp.status_code == 200:
+                    info = resp.json()
+                    if info.get("email"):
+                        email = info.get("email")
+                        name = info.get("name") or (email.split("@")[0] if email else "Partner")
+                        picture = info.get("picture")
+                else:
+                    # Check if it was an access_token
+                    resp2 = await client.get(
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        headers={"Authorization": f"Bearer {cred_str}"}
+                    )
+                    if resp2.status_code == 200:
+                        info2 = resp2.json()
+                        if info2.get("email"):
+                            email = info2.get("email")
+                            name = info2.get("name") or (email.split("@")[0] if email else "Partner")
+                            picture = info2.get("picture")
+        except Exception as e:
+            print(f"Google Tokeninfo/Userinfo API check fallback: {e}")
+
+    # Strategy 3: Firebase Admin Auth verification (for Firebase-issued ID tokens)
+    if not email:
         try:
             from firebase_admin import auth as fb_auth
-            fb_data = fb_auth.verify_id_token(payload.credential)
+            fb_data = fb_auth.verify_id_token(cred_str)
             email = fb_data.get("email")
             name = fb_data.get("name") or (email.split("@")[0] if email else "Partner")
             picture = fb_data.get("picture")
         except Exception as fb_err:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Google token cryptographic verification failed: {str(e)} (Firebase check: {str(fb_err)})"
-            )
+            print(f"Firebase verification check fallback: {fb_err}")
+
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Google cryptographic token verification failed. Please try again or use Email OTP login."
+        )
 
     if not email:
         raise HTTPException(status_code=400, detail="Google account has no verified email")
