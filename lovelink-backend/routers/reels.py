@@ -5,7 +5,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from database import get_db, AsyncSessionLocal
 from models.user import User
 from models.couple import Couple
@@ -238,6 +238,17 @@ class AddCustomReelRequest(BaseModel):
     category: Optional[str] = "custom"
 
 
+async def get_user_couple_id(user_id: str, db: AsyncSession) -> Optional[str]:
+    """Helper to query the user's active couple ID safely without crashing on User model."""
+    if not user_id:
+        return None
+    res = await db.execute(
+        select(Couple).where(or_(Couple.user1_id == user_id, Couple.user2_id == user_id))
+    )
+    couple = res.scalars().first()
+    return str(couple.id) if couple else None
+
+
 @router.get("/feed")
 async def get_reels_feed(
     current_user: Optional[User] = Depends(get_optional_user),
@@ -245,30 +256,32 @@ async def get_reels_feed(
 ):
     """Returns couple's custom queued reels + dynamic Reddit memes/clips + curated viral feed."""
     custom_reels = []
-    if current_user and current_user.couple_id:
-        stmt = (
-            select(Reel, User.name.label("added_by_name"))
-            .outerjoin(User, Reel.added_by == User.id)
-            .where(Reel.couple_id == current_user.couple_id)
-            .order_by(Reel.created_at.desc())
-        )
-        res = await db.execute(stmt)
-        rows = res.all()
-        for r, author_name in rows:
-            custom_reels.append({
-                "id": str(r.id),
-                "title": r.title,
-                "caption": r.caption or "",
-                "video_id": r.video_id,
-                "source_type": r.source_type,
-                "thumbnail_url": r.thumbnail_url or f"https://img.youtube.com/vi/{r.video_id}/hqdefault.jpg",
-                "category": r.category,
-                "likes_count": r.likes_count,
-                "is_custom": True,
-                "added_by_id": str(r.added_by) if r.added_by else None,
-                "added_by_name": author_name or "Partner",
-                "created_at": r.created_at.isoformat() if r.created_at else None
-            })
+    if current_user:
+        couple_id = await get_user_couple_id(current_user.id, db)
+        if couple_id:
+            stmt = (
+                select(Reel, User.name.label("added_by_name"))
+                .outerjoin(User, Reel.added_by == User.id)
+                .where(Reel.couple_id == couple_id)
+                .order_by(Reel.created_at.desc())
+            )
+            res = await db.execute(stmt)
+            rows = res.all()
+            for r, author_name in rows:
+                custom_reels.append({
+                    "id": str(r.id),
+                    "title": r.title,
+                    "caption": r.caption or "",
+                    "video_id": r.video_id,
+                    "source_type": r.source_type,
+                    "thumbnail_url": r.thumbnail_url or f"https://img.youtube.com/vi/{r.video_id}/hqdefault.jpg",
+                    "category": r.category,
+                    "likes_count": r.likes_count,
+                    "is_custom": True,
+                    "added_by_id": str(r.added_by) if r.added_by else None,
+                    "added_by_name": author_name or "Partner",
+                    "created_at": r.created_at.isoformat() if r.created_at else None
+                })
 
     # Fetch dynamic viral clips
     dynamic_clips = await fetch_dynamic_reddit_clips()
@@ -285,7 +298,8 @@ async def add_custom_reel(
     db: AsyncSession = Depends(get_db)
 ):
     """Add a YouTube Short, MP4 or video link to couple's shared co-scroll queue."""
-    if not current_user.couple_id:
+    couple_id = await get_user_couple_id(current_user.id, db)
+    if not couple_id:
         raise HTTPException(status_code=400, detail="You must be linked in a couple to add shared reels.")
 
     video_id = extract_youtube_video_id(req.url)
@@ -304,7 +318,7 @@ async def add_custom_reel(
 
     new_reel = Reel(
         id=str(uuid.uuid4()),
-        couple_id=current_user.couple_id,
+        couple_id=couple_id,
         added_by=current_user.id,
         title=req.title.strip() or "Cute Reel ❤️",
         caption=req.caption.strip() if req.caption else None,
@@ -319,7 +333,7 @@ async def add_custom_reel(
     await db.refresh(new_reel)
 
     # Broadcast real-time notification to partner
-    room = f"reels_{current_user.couple_id}"
+    room = f"reels_{couple_id}"
     broadcast_payload = {
         "type": "reel_added",
         "reel": {
@@ -348,11 +362,12 @@ async def delete_custom_reel(
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a custom reel from couple's queue."""
-    if not current_user.couple_id:
+    couple_id = await get_user_couple_id(current_user.id, db)
+    if not couple_id:
         raise HTTPException(status_code=400, detail="Not linked in a couple.")
 
     res = await db.execute(
-        select(Reel).where(Reel.id == reel_id, Reel.couple_id == current_user.couple_id)
+        select(Reel).where(Reel.id == reel_id, Reel.couple_id == couple_id)
     )
     reel = res.scalars().first()
     if not reel:
@@ -361,7 +376,7 @@ async def delete_custom_reel(
     await db.delete(reel)
     await db.commit()
 
-    room = f"reels_{current_user.couple_id}"
+    room = f"reels_{couple_id}"
     await manager.broadcast({"type": "reel_deleted", "reel_id": reel_id}, room)
     return {"message": "Reel removed from queue."}
 
@@ -387,8 +402,9 @@ async def toggle_like_reel(
                 likes = cr["likes_count"]
                 break
 
-    if current_user.couple_id:
-        room = f"reels_{current_user.couple_id}"
+    couple_id = await get_user_couple_id(current_user.id, db)
+    if couple_id:
+        room = f"reels_{couple_id}"
         await manager.broadcast({
             "type": "reel_liked",
             "reel_id": reel_id,
