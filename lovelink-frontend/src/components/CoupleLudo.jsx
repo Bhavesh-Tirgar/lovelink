@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
@@ -15,12 +16,12 @@ const playLudoSound = (type, soundEnabled = true) => {
         const now = ctx.currentTime;
 
         if (type === 'dice') {
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 7; i++) {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(180 + Math.random() * 260, now + i * 0.04);
-                gain.gain.setValueAtTime(0.25, now + i * 0.04);
+                osc.frequency.setValueAtTime(170 + Math.random() * 280, now + i * 0.04);
+                gain.gain.setValueAtTime(0.28, now + i * 0.04);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.04 + 0.035);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
@@ -31,20 +32,20 @@ const playLudoSound = (type, soundEnabled = true) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(520, now);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+            osc.frequency.setValueAtTime(540, now);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.065);
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.06);
+            osc.stop(now + 0.065);
         } else if (type === 'open') {
-            [400, 600, 800].forEach((freq, idx) => {
+            [440, 660, 880].forEach((freq, idx) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, now + idx * 0.06);
-                gain.gain.setValueAtTime(0.25, now + idx * 0.06);
+                gain.gain.setValueAtTime(0.28, now + idx * 0.06);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.06 + 0.1);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
@@ -55,14 +56,14 @@ const playLudoSound = (type, soundEnabled = true) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(320, now);
-            osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
-            gain.gain.setValueAtTime(0.4, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.frequency.setValueAtTime(340, now);
+            osc.frequency.exponentialRampToValueAtTime(60, now + 0.35);
+            gain.gain.setValueAtTime(0.45, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.3);
+            osc.stop(now + 0.35);
         } else if (type === 'home') {
             [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
                 const osc = ctx.createOscillator();
@@ -144,15 +145,25 @@ const YELLOW_BASE_CIRCLES = [
     [440, 440], [520, 440], [440, 520], [520, 520]
 ];
 
-// Realistic 3D Ludo Die Component with Real Dots (Pips)
-function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, isTurn = false, color = 'red' }) {
+// Pre-configured Romantic Couple Stakes
+const COUPLE_STAKES = [
+    "💆 Loser gives a 15-minute massage",
+    "🍕 Loser orders dinner tonight",
+    "💌 Loser writes a handwritten love note",
+    "🎬 Loser lets partner pick the movie",
+    "☕ Loser makes breakfast in bed tomorrow",
+    "💋 Winner gets 50 kisses on demand"
+];
+
+// Realistic 3D Tumbling Ludo Die Component with Real Dots (Pips) & Physics
+function Realistic3DDice({ value = 6, rolling = false, onClick, disabled = false, isTurn = false, color = 'red' }) {
     const renderDots = (num) => {
-        const dotColor = num === 1 ? 'bg-red-600' : 'bg-gray-900';
+        const dotColor = num === 1 ? 'bg-rose-600' : 'bg-slate-900';
         switch (num) {
             case 1:
                 return (
                     <div className="w-full h-full flex items-center justify-center">
-                        <span className={`w-4 h-4 rounded-full ${dotColor} shadow-inner`} />
+                        <span className="w-4 h-4 rounded-full bg-rose-600 shadow-inner" />
                     </div>
                 );
             case 2:
@@ -191,7 +202,7 @@ function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, 
                             <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
                         </div>
                         <div className="flex justify-center">
-                            <span className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-inner" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-inner" />
                         </div>
                         <div className="flex justify-between">
                             <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shadow-inner`} />
@@ -222,20 +233,30 @@ function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, 
     };
 
     return (
-        <button
+        <motion.button
+            whileTap={{ scale: disabled ? 1 : 0.88 }}
+            whileHover={{ scale: disabled ? 1 : 1.06 }}
+            animate={rolling ? {
+                rotate: [0, 90, 180, 270, 360],
+                scale: [1, 1.18, 0.95, 1.15, 1],
+            } : {
+                rotate: 0,
+                scale: 1,
+            }}
+            transition={rolling ? { repeat: Infinity, duration: 0.25, ease: "linear" } : { duration: 0.2 }}
             onClick={onClick}
             disabled={disabled}
-            className={`relative w-14 h-14 rounded-2xl transition-all select-none flex items-center justify-center ${
-                rolling ? 'animate-spin scale-110' : ''
-            } ${
+            className={`relative w-14 h-14 rounded-2xl select-none flex items-center justify-center transition-all ${
                 isTurn && !disabled
-                    ? 'ring-4 ring-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.8)] animate-bounce cursor-pointer'
+                    ? color === 'red'
+                        ? 'ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.85)] cursor-pointer'
+                        : 'ring-4 ring-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.85)] cursor-pointer'
                     : 'cursor-default opacity-85'
             }`}
             style={{
                 background: 'linear-gradient(145deg, #ffffff, #e2e8f0)',
                 boxShadow: isTurn && !disabled
-                    ? '4px 6px 15px rgba(0,0,0,0.4), -2px -2px 6px rgba(255,255,255,0.9)'
+                    ? '4px 6px 16px rgba(0,0,0,0.45), -2px -2px 6px rgba(255,255,255,0.95)'
                     : '2px 3px 6px rgba(0,0,0,0.3)',
                 border: '1.5px solid #cbd5e1'
             }}
@@ -243,7 +264,44 @@ function RealisticDice({ value = 6, rolling = false, onClick, disabled = false, 
             <div className="w-12 h-12 rounded-xl p-0.5">
                 {renderDots(value || 6)}
             </div>
-        </button>
+        </motion.button>
+    );
+}
+
+// 15-Second Circular Turn Countdown Timer Ring
+function TurnTimerRing({ timeLeft = 15, maxTime = 15, isActive = false, color = 'red' }) {
+    if (!isActive) return null;
+    const progress = Math.max(0, Math.min(1, timeLeft / maxTime));
+    const strokeColor = timeLeft <= 4 ? '#ef4444' : color === 'red' ? '#f43f5e' : '#fbbf24';
+
+    return (
+        <div className="absolute -top-1 -right-1 w-9 h-9 pointer-events-none flex items-center justify-center">
+            <svg className="w-full h-full -rotate-90">
+                <circle
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    stroke="#ffffff20"
+                    strokeWidth="3"
+                    fill="none"
+                />
+                <circle
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    stroke={strokeColor}
+                    strokeWidth="3"
+                    strokeDasharray={2 * Math.PI * 15}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - progress)}
+                    strokeLinecap="round"
+                    fill="none"
+                    className="transition-all duration-300"
+                />
+            </svg>
+            <span className="absolute text-[9px] font-black font-mono text-white">
+                {timeLeft}
+            </span>
+        </div>
     );
 }
 
@@ -263,8 +321,11 @@ export default function CoupleLudo({
     const [myLastDice, setMyLastDice] = useState(6);
     const [partnerLastDice, setPartnerLastDice] = useState(6);
     const [extraTurnBanner, setExtraTurnBanner] = useState('');
+    const [selectedStake, setSelectedStake] = useState(COUPLE_STAKES[0]);
+    const [turnTimeLeft, setTurnTimeLeft] = useState(15);
+    const [isHopping, setIsHopping] = useState(false);
 
-    // Local resilient game state (ensures immediate responsiveness offline, in couch mode, bot mode, or online)
+    // Local resilient game state
     const [gameState, setGameState] = useState({
         dice: ludoState?.dice || null,
         turn: ludoState?.turn || 'pink',
@@ -298,75 +359,79 @@ export default function CoupleLudo({
     const myColor = isPink ? 'pink' : 'blue';
     const partnerColor = isPink ? 'blue' : 'pink';
 
-    const turn = gameState.turn || 'pink';
     const currentDice = gameState.dice;
+    const turn = gameState.turn;
     const winner = gameState.winner;
+    const isMyTurn = turn === myColor && !winner;
+    const isPartnerActive = (turn === partnerColor && !winner) && (gameMode === 'couch' || gameMode === 'bot');
 
-    // Couch mode allows active player to move regardless of identity; Online/Bot checks assigned role
-    const isMyTurn = gameMode === 'couch' ? (turn === myColor) : (turn === myColor);
-    const isPartnerActive = gameMode === 'couch' ? (turn === partnerColor) : false;
+    const myTokens = useMemo(() => gameState.tokens[myColor] || [-1, -1, -1, -1], [gameState.tokens, myColor]);
+    const partnerTokens = useMemo(() => gameState.tokens[partnerColor] || [-1, -1, -1, -1], [gameState.tokens, partnerColor]);
 
-    // Tokens
-    const tokens = gameState.tokens;
-    const myTokens = useMemo(() => tokens[myColor] || [-1, -1, -1, -1], [tokens, myColor]);
-    const partnerTokens = useMemo(() => tokens[partnerColor] || [-1, -1, -1, -1], [tokens, partnerColor]);
-
-    useEffect(() => {
-        if (currentDice) {
-            if (turn === myColor) {
-                setMyLastDice(currentDice);
-            } else {
-                setPartnerLastDice(currentDice);
-            }
-        }
-    }, [currentDice, turn, myColor]);
-
-    // Valid move logic:
-    // - -1: in base yard, requires 6 to enter start cell (0 for Red, 26 for Yellow)
-    // - 56: Home center
-    // - 0 to 50: outer track
-    // - 51 to 55: home stretch (needs exact count to reach 56)
-    const canTokenMove = useCallback((step, diceVal) => {
-        if (!diceVal) return false;
-        if (step === -1) return diceVal === 6;
-        if (step === 56) return false;
-        return step + diceVal <= 56;
-    }, []);
-
-    // Calculate absolute track index on the 52-cell circle
+    // Helper: Map player step (0 to 50) to the 52-cell track
     const getTrackIndex = useCallback((step, color) => {
         if (step < 0 || step > 50) return null;
-        if (color === 'pink') return step % 52;
-        return (step + 26) % 52;
+        const offset = color === 'pink' ? 0 : 26; // Red starts at index 0; Yellow starts at index 26
+        return (step + offset) % 52;
     }, []);
 
-    // Execute Token Move (Updates local state instantly & broadcasts via WebSocket)
-    const handleExecuteMove = useCallback((tokenIdx, movingColor) => {
-        if (!gameState.dice || rolling || winner) return;
+    // Check if a token can make a legal move
+    const canTokenMove = useCallback((step, diceVal) => {
+        if (!diceVal) return false;
+        if (step === -1) return diceVal === 6; // Needs 6 to open
+        if (step >= 0 && step + diceVal <= 56) return true; // Step 56 is home
+        return false;
+    }, []);
+
+    // ── STEP-BY-STEP PAWN HOPPING ANIMATION (Real Ludo King Feel!) ─────────────
+    const handleExecuteMove = useCallback(async (tokenIdx, movingColor) => {
         const diceVal = gameState.dice;
+        if (!diceVal || rolling || isHopping || winner) return;
 
-        const isMeMoving = movingColor === myColor;
-        const movingTokens = isMeMoving ? myTokens : partnerTokens;
-        const opponentTokens = isMeMoving ? partnerTokens : myTokens;
-        const opponentColor = isMeMoving ? partnerColor : myColor;
-
+        const isMe = movingColor === myColor;
+        const movingTokens = isMe ? myTokens : partnerTokens;
         const currentStep = movingTokens[tokenIdx];
         if (!canTokenMove(currentStep, diceVal)) return;
 
-        let nextStep;
+        const targetStep = currentStep === -1 ? 0 : currentStep + diceVal;
+        const opponentColor = movingColor === 'pink' ? 'blue' : 'pink';
+        const opponentTokens = isMe ? partnerTokens : myTokens;
+
+        setIsHopping(true);
+
         if (currentStep === -1) {
-            nextStep = 0; // Open from base onto start cell
+            // Opening token from Base Yard
             playLudoSound('open', soundEnabled);
+            setGameState(prev => {
+                const nextTokens = [...prev.tokens[movingColor]];
+                nextTokens[tokenIdx] = 0;
+                return {
+                    ...prev,
+                    tokens: { ...prev.tokens, [movingColor]: nextTokens }
+                };
+            });
+            await new Promise(r => setTimeout(r, 260));
         } else {
-            nextStep = currentStep + diceVal;
-            playLudoSound(nextStep === 56 ? 'home' : 'step', soundEnabled);
+            // Hop along track square-by-square
+            for (let step = currentStep + 1; step <= targetStep; step++) {
+                playLudoSound('step', soundEnabled);
+                setGameState(prev => {
+                    const nextTokens = [...prev.tokens[movingColor]];
+                    nextTokens[tokenIdx] = step;
+                    return {
+                        ...prev,
+                        tokens: { ...prev.tokens, [movingColor]: nextTokens }
+                    };
+                });
+                await new Promise(r => setTimeout(r, 140)); // 140ms per hop
+            }
         }
 
-        // Check if opponent token is cut
-        let opponentCutIdx = null;
-        const trackIdx = getTrackIndex(nextStep, movingColor);
+        setIsHopping(false);
 
-        // Can only cut on outer track squares that are NOT safe star squares
+        // Check for Opponent Cut / Capture on Non-Safe Squares
+        let opponentCutIdx = null;
+        const trackIdx = getTrackIndex(targetStep, movingColor);
         if (trackIdx !== null && !SAFE_STAR_INDICES.includes(trackIdx)) {
             opponentTokens.forEach((pStep, pIdx) => {
                 const oppTrackIdx = getTrackIndex(pStep, opponentColor);
@@ -377,9 +442,8 @@ export default function CoupleLudo({
             });
         }
 
-        // Check Win Condition: All 4 tokens reached home (step 56)
         const updatedMovingTokens = [...movingTokens];
-        updatedMovingTokens[tokenIdx] = nextStep;
+        updatedMovingTokens[tokenIdx] = targetStep;
 
         const updatedOpponentTokens = [...opponentTokens];
         if (opponentCutIdx !== null) {
@@ -396,10 +460,12 @@ export default function CoupleLudo({
                 origin: { y: 0.5 },
                 colors: ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db']
             });
+        } else if (targetStep === 56) {
+            playLudoSound('home', soundEnabled);
         }
 
-        // Classic Ludo rule: Rolling a 6, capturing opponent, or reaching home grants an extra roll!
-        const grantsBonusRoll = diceVal === 6 || opponentCutIdx !== null || nextStep === 56;
+        // Ludo rule: Rolling a 6, cutting an opponent, or entering home grants +1 extra turn!
+        const grantsBonusRoll = diceVal === 6 || opponentCutIdx !== null || targetStep === 56;
         const nextTurn = isGameWon ? null : (grantsBonusRoll ? movingColor : opponentColor);
 
         if (grantsBonusRoll && !isGameWon) {
@@ -408,7 +474,7 @@ export default function CoupleLudo({
             setTimeout(() => setExtraTurnBanner(''), 2500);
         }
 
-        // 1. Immediately apply local state update (Zero-lag UI!)
+        // Apply state updates
         setGameState(prev => {
             const newTokens = {
                 ...prev.tokens,
@@ -423,31 +489,32 @@ export default function CoupleLudo({
                 ...prev,
                 tokens: newTokens,
                 turn: nextTurn,
-                dice: null, // Reset dice so next roll is expected
+                dice: null,
                 winner: isGameWon ? movingColor : null,
                 scores: newScores
             };
         });
 
-        // 2. Broadcast to partner via WebSocket
+        // Broadcast to WebSocket partner
         sendWs({
             game: 'ludo',
             action: 'move_token',
             color: movingColor,
             token_idx: tokenIdx,
-            new_pos: nextStep,
+            new_pos: targetStep,
             opponent_cut_idx: opponentCutIdx,
             next_turn: nextTurn,
             winner: isGameWon ? movingColor : null
         });
-    }, [gameState.dice, rolling, winner, myColor, myTokens, partnerTokens, partnerColor, canTokenMove, soundEnabled, getTrackIndex, sendWs, userId]);
+    }, [gameState.dice, rolling, isHopping, winner, myColor, myTokens, partnerTokens, canTokenMove, soundEnabled, getTrackIndex, sendWs, userId]);
 
     // Handle user rolling their dice
     const handleRollDiceFor = useCallback((rollingColor) => {
-        if (rolling || winner || gameState.dice) return;
+        if (rolling || isHopping || winner || gameState.dice) return;
 
         setRolling(true);
         playLudoSound('dice', soundEnabled);
+        setTurnTimeLeft(15);
 
         let count = 0;
         const interval = setInterval(() => {
@@ -459,20 +526,21 @@ export default function CoupleLudo({
                 setDiceDisplay(finalDice);
                 setRolling(false);
 
-                // Update local state immediately with the rolled dice
+                if (rollingColor === myColor) setMyLastDice(finalDice);
+                else setPartnerLastDice(finalDice);
+
                 setGameState(prev => ({
                     ...prev,
                     dice: finalDice
                 }));
 
-                // Broadcast roll via WebSocket
                 sendWs({
                     game: 'ludo',
                     action: 'roll_dice',
                     dice: finalDice
                 });
 
-                // LUDO KING AUTO-MOVE: If exactly 1 token can move, auto-move after 450ms!
+                // Auto-move if exactly 1 move possible
                 const movingTokens = rollingColor === myColor ? myTokens : partnerTokens;
                 const validMoves = [];
                 movingTokens.forEach((s, idx) => {
@@ -482,9 +550,9 @@ export default function CoupleLudo({
                 if (validMoves.length === 1) {
                     setTimeout(() => {
                         handleExecuteMove(validMoves[0], rollingColor);
-                    }, 450);
+                    }, 400);
                 } else if (validMoves.length === 0) {
-                    // No moves possible -> auto pass turn after 1000ms
+                    // No moves possible -> auto pass turn after 900ms
                     setTimeout(() => {
                         const nextTurn = rollingColor === 'pink' ? 'blue' : 'pink';
                         setGameState(prev => ({
@@ -496,16 +564,16 @@ export default function CoupleLudo({
                             game: 'ludo',
                             action: 'pass_turn'
                         });
-                    }, 1000);
+                    }, 900);
                 }
             }
         }, 50);
-    }, [rolling, winner, gameState.dice, soundEnabled, myColor, myTokens, partnerTokens, canTokenMove, handleExecuteMove, sendWs]);
+    }, [rolling, isHopping, winner, gameState.dice, soundEnabled, myColor, myTokens, partnerTokens, canTokenMove, handleExecuteMove, sendWs]);
 
-    const handleRollDice = () => {
+    const handleRollDice = useCallback(() => {
         if (!isMyTurn) return;
         handleRollDiceFor(myColor);
-    };
+    }, [isMyTurn, handleRollDiceFor, myColor]);
 
     const handlePartnerRollDice = () => {
         if (!isPartnerActive) return;
@@ -513,41 +581,56 @@ export default function CoupleLudo({
     };
 
     const handleMoveToken = (tokenIdx) => {
-        if (!isMyTurn) return;
+        if (!isMyTurn || isHopping) return;
         handleExecuteMove(tokenIdx, myColor);
     };
 
     const handlePartnerMoveToken = (tokenIdx) => {
-        if (!isPartnerActive) return;
+        if (!isPartnerActive || isHopping) return;
         handleExecuteMove(tokenIdx, partnerColor);
     };
 
-    // LoveBot autonomous partner moves (only in bot mode)
+    // 15-Second Turn Timer Countdown Interval
     useEffect(() => {
-        if (turn === partnerColor && !winner && gameMode === 'bot') {
-            // 1. Roll Dice if not yet rolled
+        if (winner || rolling || isHopping) return;
+        setTurnTimeLeft(15);
+        const timer = setInterval(() => {
+            setTurnTimeLeft(prev => {
+                if (prev <= 1) {
+                    // Auto-roll or Auto-pass on timeout
+                    if (isMyTurn && !currentDice && !rolling) {
+                        handleRollDice();
+                    }
+                    return 15;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [turn, isMyTurn, currentDice, rolling, isHopping, winner, handleRollDice]);
+
+    // LoveBot autonomous partner moves (in bot mode)
+    useEffect(() => {
+        if (turn === partnerColor && !winner && gameMode === 'bot' && !isHopping) {
+            // 1. Roll Dice
             if (!currentDice && !rolling) {
                 const rollTimer = setTimeout(() => {
                     handleRollDiceFor(partnerColor);
-                }, 750);
+                }, 700);
                 return () => clearTimeout(rollTimer);
             }
 
-            // 2. Move Pawn once dice is rolled (if multiple valid moves)
+            // 2. Strategic Move Selection
             if (currentDice && !rolling) {
                 const moveTimer = setTimeout(() => {
                     const validMoves = [];
                     partnerTokens.forEach((pStep, pIdx) => {
-                        if (canTokenMove(pStep, currentDice)) {
-                            validMoves.push(pIdx);
-                        }
+                        if (canTokenMove(pStep, currentDice)) validMoves.push(pIdx);
                     });
 
-                    if (validMoves.length === 0) {
-                        return; // Auto-pass already handled in handleRollDiceFor
-                    }
+                    if (validMoves.length === 0) return;
 
-                    // Strategic Move Selection for LoveBot
                     let bestTokenIdx = validMoves[0];
                     let bestScore = -1;
 
@@ -579,7 +662,7 @@ export default function CoupleLudo({
                 return () => clearTimeout(moveTimer);
             }
         }
-    }, [turn, partnerColor, winner, currentDice, rolling, gameMode, partnerTokens, canTokenMove, getTrackIndex, myTokens, myColor, handleExecuteMove, handleRollDiceFor]);
+    }, [turn, partnerColor, winner, currentDice, rolling, isHopping, gameMode, partnerTokens, canTokenMove, getTrackIndex, myTokens, myColor, handleExecuteMove, handleRollDiceFor]);
 
     // Reset game / Rematch
     const handleReset = () => {
@@ -616,7 +699,7 @@ export default function CoupleLudo({
         return color === 'pink' ? [270, 300] : [330, 300];
     }, [getTrackIndex]);
 
-    // Compute token stacking to avoid overlap when 2+ tokens share a square
+    // Token stacking calculations
     const allTokensOnBoard = useMemo(() => {
         const list = [];
         myTokens.forEach((s, idx) => {
@@ -630,11 +713,10 @@ export default function CoupleLudo({
         return list;
     }, [myTokens, partnerTokens, myColor, partnerColor, getSvgCoordinates]);
 
-    // Group by coordinate key to calculate stacking offsets
     const tokenOffsets = useMemo(() => {
         const groups = {};
         allTokensOnBoard.forEach(item => {
-            if (item.step === -1) return; // Base slots don't stack
+            if (item.step === -1) return;
             const key = `${Math.round(item.cx)}_${Math.round(item.cy)}`;
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
@@ -642,7 +724,6 @@ export default function CoupleLudo({
         return groups;
     }, [allTokensOnBoard]);
 
-    // Scores
     const myScore = ludoState?.scores?.[userId] || 0;
     const partnerId = Object.keys(ludoState?.scores || {}).find(k => k !== userId);
     const partnerScore = (partnerId && ludoState?.scores?.[partnerId]) || 0;
@@ -652,18 +733,21 @@ export default function CoupleLudo({
 
     return (
         <div className="flex flex-col items-center max-w-xl mx-auto w-full px-2 sm:px-4 py-2 font-sans select-none animate-in fade-in duration-500">
-            {/* Header */}
+            {/* Top Bar with Stakes & Controls */}
             <div className="w-full flex items-center justify-between gap-3 mb-2 px-1">
                 <div className="flex items-center gap-2">
-                    <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-red-500 to-amber-500 border border-amber-400/40 text-white flex items-center justify-center font-black text-sm shadow">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 via-pink-600 to-amber-500 border border-amber-400/40 text-white flex items-center justify-center font-black text-lg shadow-lg">
                         🎲
-                    </span>
+                    </div>
                     <div>
                         <h2 className="text-base font-black text-white flex items-center gap-1.5 tracking-wide">
-                            Ludo King 1v1
+                            <span>Ludo Royal 1v1</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/40">
+                                REAL
+                            </span>
                         </h2>
                         <p className="text-[11px] text-gray-400">
-                            You: <strong className="text-red-400">{myScore}</strong> • {partnerName}: <strong className="text-amber-400">{partnerScore}</strong>
+                            You: <strong className="text-rose-400 font-mono">{myScore}</strong> • {partnerName}: <strong className="text-amber-400 font-mono">{partnerScore}</strong>
                         </p>
                     </div>
                 </div>
@@ -672,33 +756,54 @@ export default function CoupleLudo({
                     <button
                         onClick={() => setSoundEnabled(s => !s)}
                         className={`p-2 rounded-xl border transition-all ${soundEnabled ? 'bg-white/10 text-amber-300 border-amber-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}
-                        title={soundEnabled ? 'Mute' : 'Unmute'}
+                        title={soundEnabled ? 'Sound ON' : 'Mute'}
                     >
                         {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                     </button>
-                    <button
+                    <motion.button
+                        whileTap={{ scale: 0.92 }}
                         onClick={handleReset}
-                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/15 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow"
-                        title="New Match"
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/15 text-xs font-bold flex items-center gap-1.5 transition-all shadow"
                     >
                         <RotateCcw size={14} />
                         <span>Rematch</span>
-                    </button>
+                    </motion.button>
                 </div>
             </div>
 
+            {/* Couple Stake Banner */}
+            <div className="w-full mb-3 px-3 py-2 rounded-2xl bg-gradient-to-r from-purple-950/40 via-rose-950/40 to-black/60 border border-rose-500/30 flex items-center justify-between text-xs shadow-md">
+                <div className="flex items-center gap-2 truncate">
+                    <span className="text-sm">🎯</span>
+                    <span className="font-bold text-rose-300 truncate">
+                        {selectedStake}
+                    </span>
+                </div>
+                <button
+                    onClick={() => {
+                        const nextIdx = (COUPLE_STAKES.indexOf(selectedStake) + 1) % COUPLE_STAKES.length;
+                        setSelectedStake(COUPLE_STAKES[nextIdx]);
+                    }}
+                    className="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-lg hover:bg-amber-500/30 transition-all flex-shrink-0"
+                >
+                    Change Stake
+                </button>
+            </div>
+
             {/* ── PLAYER CONTROL PANELS (YOU & PARTNER) ────────────────── */}
-            <div className="w-full mb-2 grid grid-cols-2 gap-2">
+            <div className="w-full mb-2.5 grid grid-cols-2 gap-2.5">
                 {/* You (Red) */}
                 <div
-                    className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between ${
+                    className={`relative p-3 rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
                         isMyTurn
-                            ? 'bg-gradient-to-r from-red-950/80 to-black/70 border-red-500 ring-2 ring-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.35)]'
-                            : 'bg-black/40 border-white/10 opacity-75'
+                            ? 'bg-gradient-to-r from-rose-950/90 to-black/80 border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.4)]'
+                            : 'bg-black/50 border-white/10 opacity-75'
                     }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                    <TurnTimerRing timeLeft={turnTimeLeft} isActive={isMyTurn && !winner} color="red" />
+
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
                             🔴
                         </div>
                         <div>
@@ -706,32 +811,34 @@ export default function CoupleLudo({
                                 <span>You</span>
                                 {isMyTurn && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
                             </div>
-                            <div className="text-[10px] text-gray-400">
-                                {myHomeCount}/4 In Home
+                            <div className="text-[10px] text-rose-300 font-mono">
+                                {myHomeCount}/4 In Home 👑
                             </div>
                         </div>
                     </div>
 
-                    <RealisticDice
+                    <Realistic3DDice
                         value={isMyTurn ? (currentDice || (rolling ? diceDisplay : myLastDice)) : myLastDice}
-                        rolling={rolling}
+                        rolling={rolling && isMyTurn}
                         onClick={handleRollDice}
-                        disabled={!isMyTurn || rolling || !!currentDice || !!winner}
-                        isTurn={isMyTurn && !currentDice && !winner}
+                        disabled={!isMyTurn || rolling || isHopping || !!currentDice || !!winner}
+                        isTurn={isMyTurn && !currentDice && !winner && !isHopping}
                         color="red"
                     />
                 </div>
 
                 {/* Partner (Yellow) */}
                 <div
-                    className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between ${
+                    className={`relative p-3 rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
                         isPartnerActive
-                            ? 'bg-gradient-to-r from-amber-950/80 to-black/70 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
-                            : 'bg-black/40 border-white/10 opacity-75'
+                            ? 'bg-gradient-to-r from-amber-950/90 to-black/80 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.4)]'
+                            : 'bg-black/50 border-white/10 opacity-75'
                     }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                    <TurnTimerRing timeLeft={turnTimeLeft} isActive={isPartnerActive && !winner} color="yellow" />
+
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
                             🟡
                         </div>
                         <div>
@@ -739,25 +846,25 @@ export default function CoupleLudo({
                                 <span className="truncate max-w-[80px]">{partnerName}</span>
                                 {isPartnerActive && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
                             </div>
-                            <div className="text-[10px] text-gray-400">
-                                {partnerHomeCount}/4 In Home
+                            <div className="text-[10px] text-amber-300 font-mono">
+                                {partnerHomeCount}/4 In Home 👑
                             </div>
                         </div>
                     </div>
 
-                    <RealisticDice
+                    <Realistic3DDice
                         value={isPartnerActive ? (currentDice || (rolling ? diceDisplay : partnerLastDice)) : partnerLastDice}
                         rolling={rolling && turn === partnerColor}
-                        disabled={!isPartnerActive || rolling || !!currentDice || !!winner}
+                        disabled={!isPartnerActive || rolling || isHopping || !!currentDice || !!winner}
                         onClick={handlePartnerRollDice}
-                        isTurn={isPartnerActive && !currentDice && !winner}
+                        isTurn={isPartnerActive && !currentDice && !winner && !isHopping}
                         color="yellow"
                     />
                 </div>
             </div>
 
             {/* Turn Announcement Banner */}
-            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 flex flex-col items-center justify-center text-xs">
+            <div className="w-full mb-2 px-3 py-1.5 rounded-xl bg-black/70 border border-white/10 flex flex-col items-center justify-center text-xs">
                 {extraTurnBanner && (
                     <span className="text-amber-400 font-black animate-bounce mb-0.5">
                         ✨ {extraTurnBanner}
@@ -767,8 +874,12 @@ export default function CoupleLudo({
                     <span className="text-emerald-400 font-black flex items-center gap-1.5 animate-bounce">
                         🏆 {winner === myColor ? 'Victory! You won the Ludo match!' : `${partnerName} won the match!`}
                     </span>
+                ) : isHopping ? (
+                    <span className="text-amber-300 font-bold flex items-center gap-1 animate-pulse">
+                        🎲 Moving Pawn step-by-step...
+                    </span>
                 ) : isMyTurn ? (
-                    <span className="text-amber-300 font-extrabold flex items-center gap-1 animate-pulse">
+                    <span className="text-rose-300 font-extrabold flex items-center gap-1 animate-pulse">
                         {currentDice ? `🎲 Rolled ${currentDice}! Tap a glowing pawn to move.` : '✨ Your Turn (Red)! Tap your 3D Dice to roll.'}
                     </span>
                 ) : isPartnerActive ? (
@@ -783,7 +894,7 @@ export default function CoupleLudo({
             </div>
 
             {/* ── 100% PURE VECTOR SVG AUTHENTIC LUDO BOARD (600x600) ──── */}
-            <div className="relative p-2 rounded-3xl bg-[#2a1b38] border-4 border-[#4c3263] shadow-[0_25px_60px_rgba(0,0,0,0.85)] max-w-full">
+            <div className="relative p-2.5 rounded-3xl bg-gradient-to-b from-[#2d1b3f] via-[#1d122b] to-[#140b1f] border-4 border-[#52336e] shadow-[0_30px_70px_rgba(0,0,0,0.9)] max-w-full">
                 <svg
                     viewBox="0 0 600 600"
                     className="w-[min(92vw,430px)] h-[min(92vw,430px)] rounded-2xl shadow-2xl overflow-hidden"
@@ -805,14 +916,14 @@ export default function CoupleLudo({
 
                         {/* Head Gradients for 3D Pawns */}
                         <radialGradient id="pawn-grad-pink" cx="35%" cy="35%" r="65%">
-                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                            <stop offset="35%" stopColor="#ff4d6d" />
-                            <stop offset="100%" stopColor="#800f2f" />
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+                            <stop offset="35%" stopColor="#f43f5e" />
+                            <stop offset="100%" stopColor="#881337" />
                         </radialGradient>
                         <radialGradient id="pawn-grad-blue" cx="35%" cy="35%" r="65%">
-                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
                             <stop offset="35%" stopColor="#fde047" />
-                            <stop offset="100%" stopColor="#ca8a04" />
+                            <stop offset="100%" stopColor="#b45309" />
                         </radialGradient>
                     </defs>
 
@@ -821,125 +932,100 @@ export default function CoupleLudo({
 
                     {/* ==================== 1. FOUR CORNER YARDS / BASES (6x6 each) ==================== */}
                     {/* Top-Left: RED BASE */}
-                    <rect x="0" y="0" width="240" height="240" fill="#e74c3c" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="0" y="0" width="240" height="240" fill="#e11d48" stroke="#0f172a" strokeWidth="2.5" />
                     <rect x="40" y="40" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
-                    <circle cx="80" cy="80" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
-                    <circle cx="160" cy="80" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
-                    <circle cx="80" cy="160" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
-                    <circle cx="160" cy="160" r="22" fill="#ffcdd2" stroke="#e74c3c" strokeWidth="3" />
+                    <circle cx="80" cy="80" r="22" fill="#ffe4e6" stroke="#e11d48" strokeWidth="3" />
+                    <circle cx="160" cy="80" r="22" fill="#ffe4e6" stroke="#e11d48" strokeWidth="3" />
+                    <circle cx="80" cy="160" r="22" fill="#ffe4e6" stroke="#e11d48" strokeWidth="3" />
+                    <circle cx="160" cy="160" r="22" fill="#ffe4e6" stroke="#e11d48" strokeWidth="3" />
 
                     {/* Top-Right: GREEN BASE */}
-                    <rect x="360" y="0" width="240" height="240" fill="#2ecc71" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="360" y="0" width="240" height="240" fill="#16a34a" stroke="#0f172a" strokeWidth="2.5" />
                     <rect x="400" y="40" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
-                    <circle cx="440" cy="80" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
-                    <circle cx="520" cy="80" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
-                    <circle cx="440" cy="160" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
-                    <circle cx="520" cy="160" r="22" fill="#c8e6c9" stroke="#2ecc71" strokeWidth="3" />
+                    <circle cx="440" cy="80" r="22" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" />
+                    <circle cx="520" cy="80" r="22" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" />
+                    <circle cx="440" cy="160" r="22" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" />
+                    <circle cx="520" cy="160" r="22" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" />
 
                     {/* Bottom-Right: YELLOW BASE */}
-                    <rect x="360" y="360" width="240" height="240" fill="#f1c40f" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="360" y="360" width="240" height="240" fill="#eab308" stroke="#0f172a" strokeWidth="2.5" />
                     <rect x="400" y="400" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
-                    <circle cx="440" cy="440" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
-                    <circle cx="520" cy="440" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
-                    <circle cx="440" cy="520" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
-                    <circle cx="520" cy="520" r="22" fill="#fff9c4" stroke="#f1c40f" strokeWidth="3" />
+                    <circle cx="440" cy="440" r="22" fill="#fef9c3" stroke="#eab308" strokeWidth="3" />
+                    <circle cx="520" cy="440" r="22" fill="#fef9c3" stroke="#eab308" strokeWidth="3" />
+                    <circle cx="440" cy="520" r="22" fill="#fef9c3" stroke="#eab308" strokeWidth="3" />
+                    <circle cx="520" cy="520" r="22" fill="#fef9c3" stroke="#eab308" strokeWidth="3" />
 
                     {/* Bottom-Left: BLUE BASE */}
-                    <rect x="0" y="360" width="240" height="240" fill="#3498db" stroke="#0f172a" strokeWidth="2.5" />
+                    <rect x="0" y="360" width="240" height="240" fill="#0284c7" stroke="#0f172a" strokeWidth="2.5" />
                     <rect x="40" y="400" width="160" height="160" rx="20" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
-                    <circle cx="80" cy="440" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
-                    <circle cx="160" cy="440" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
-                    <circle cx="80" cy="520" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
-                    <circle cx="160" cy="520" r="22" fill="#bbdefb" stroke="#3498db" strokeWidth="3" />
+                    <circle cx="80" cy="440" r="22" fill="#e0f2fe" stroke="#0284c7" strokeWidth="3" />
+                    <circle cx="160" cy="440" r="22" fill="#e0f2fe" stroke="#0284c7" strokeWidth="3" />
+                    <circle cx="80" cy="520" r="22" fill="#e0f2fe" stroke="#0284c7" strokeWidth="3" />
+                    <circle cx="160" cy="520" r="22" fill="#e0f2fe" stroke="#0284c7" strokeWidth="3" />
 
                     {/* ==================== 2. TRACK GRIDS ==================== */}
-                    {/* Left Arm (Cols 0-5, Rows 6-8: X 0-240, Y 240-360) */}
+                    {/* Left Arm */}
                     <g transform="translate(0, 240)">
-                        {/* Row 6 */}
                         <use href="#cell" x="0" y="0" />
-                        <use href="#cell" x="40" y="0" fill="#e74c3c" />{/* Red Start */}
+                        <use href="#cell" x="40" y="0" fill="#e11d48" />{/* Red Start */}
                         <use href="#cell" x="80" y="0" /><use href="#cell" x="120" y="0" /><use href="#cell" x="160" y="0" /><use href="#cell" x="200" y="0" />
-
-                        {/* Row 7 (Red Home Stretch) */}
+                        {/* Red Home Stretch */}
                         <use href="#cell" x="0" y="40" />
-                        <use href="#cell" x="40" y="40" fill="#e74c3c" /><use href="#cell" x="80" y="40" fill="#e74c3c" /><use href="#cell" x="120" y="40" fill="#e74c3c" /><use href="#cell" x="160" y="40" fill="#e74c3c" /><use href="#cell" x="200" y="40" fill="#e74c3c" />
-
-                        {/* Row 8 */}
+                        <use href="#cell" x="40" y="40" fill="#e11d48" /><use href="#cell" x="80" y="40" fill="#e11d48" /><use href="#cell" x="120" y="40" fill="#e11d48" /><use href="#cell" x="160" y="40" fill="#e11d48" /><use href="#cell" x="200" y="40" fill="#e11d48" />
                         <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" /><use href="#cell" x="80" y="80" /><use href="#cell" x="120" y="80" /><use href="#cell" x="160" y="80" /><use href="#cell" x="200" y="80" />
                     </g>
 
-                    {/* Top Arm (Cols 6-8, Rows 0-5: X 240-360, Y 0-240) */}
+                    {/* Top Arm */}
                     <g transform="translate(240, 0)">
                         <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" /><use href="#cell" x="80" y="0" />
-                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#2ecc71" /><use href="#cell" x="80" y="40" fill="#2ecc71" />{/* Green Start */}
-                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#2ecc71" /><use href="#cell" x="80" y="80" />
-                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#2ecc71" /><use href="#cell" x="80" y="120" />
-                        <use href="#cell" x="0" y="160" /><use href="#cell" x="40" y="160" fill="#2ecc71" /><use href="#cell" x="80" y="160" />
-                        <use href="#cell" x="0" y="200" /><use href="#cell" x="40" y="200" fill="#2ecc71" /><use href="#cell" x="80" y="200" />
+                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#16a34a" /><use href="#cell" x="80" y="40" fill="#16a34a" />{/* Green Start */}
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#16a34a" /><use href="#cell" x="80" y="80" />
+                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#16a34a" /><use href="#cell" x="80" y="120" />
+                        <use href="#cell" x="0" y="160" /><use href="#cell" x="40" y="160" fill="#16a34a" /><use href="#cell" x="80" y="160" />
+                        <use href="#cell" x="0" y="200" /><use href="#cell" x="40" y="200" fill="#16a34a" /><use href="#cell" x="80" y="200" />
                     </g>
 
-                    {/* Right Arm (Cols 9-14, Rows 6-8: X 360-600, Y 240-360) */}
+                    {/* Right Arm */}
                     <g transform="translate(360, 240)">
-                        {/* Row 6 */}
                         <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" /><use href="#cell" x="80" y="0" /><use href="#cell" x="120" y="0" /><use href="#cell" x="160" y="0" /><use href="#cell" x="200" y="0" />
-
-                        {/* Row 7 (Yellow Home Stretch) */}
-                        <use href="#cell" x="0" y="40" fill="#f1c40f" /><use href="#cell" x="40" y="40" fill="#f1c40f" /><use href="#cell" x="80" y="40" fill="#f1c40f" /><use href="#cell" x="120" y="40" fill="#f1c40f" /><use href="#cell" x="160" y="40" fill="#f1c40f" />
+                        {/* Yellow Home Stretch */}
+                        <use href="#cell" x="0" y="40" fill="#eab308" /><use href="#cell" x="40" y="40" fill="#eab308" /><use href="#cell" x="80" y="40" fill="#eab308" /><use href="#cell" x="120" y="40" fill="#eab308" /><use href="#cell" x="160" y="40" fill="#eab308" />
                         <use href="#cell" x="200" y="40" />
-
-                        {/* Row 8 */}
                         <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" /><use href="#cell" x="80" y="80" /><use href="#cell" x="120" y="80" />
-                        <use href="#cell" x="160" y="80" fill="#f1c40f" />{/* Yellow Start */}
+                        <use href="#cell" x="160" y="80" fill="#eab308" />{/* Yellow Start */}
                         <use href="#cell" x="200" y="80" />
                     </g>
 
-                    {/* Bottom Arm (Cols 6-8, Rows 9-14: X 240-360, Y 360-600) */}
+                    {/* Bottom Arm */}
                     <g transform="translate(240, 360)">
-                        <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" fill="#3498db" /><use href="#cell" x="80" y="0" />
-                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#3498db" /><use href="#cell" x="80" y="40" />
-                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#3498db" /><use href="#cell" x="80" y="80" />
-                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#3498db" /><use href="#cell" x="80" y="120" />
-                        <use href="#cell" x="0" y="160" fill="#3498db" />{/* Blue Start */}
-                        <use href="#cell" x="40" y="160" fill="#3498db" /><use href="#cell" x="80" y="160" />
+                        <use href="#cell" x="0" y="0" /><use href="#cell" x="40" y="0" fill="#0284c7" /><use href="#cell" x="80" y="0" />
+                        <use href="#cell" x="0" y="40" /><use href="#cell" x="40" y="40" fill="#0284c7" /><use href="#cell" x="80" y="40" />
+                        <use href="#cell" x="0" y="80" /><use href="#cell" x="40" y="80" fill="#0284c7" /><use href="#cell" x="80" y="80" />
+                        <use href="#cell" x="0" y="120" /><use href="#cell" x="40" y="120" fill="#0284c7" /><use href="#cell" x="80" y="120" />
+                        <use href="#cell" x="0" y="160" fill="#0284c7" />{/* Blue Start */}
+                        <use href="#cell" x="40" y="160" fill="#0284c7" /><use href="#cell" x="80" y="160" />
                         <use href="#cell" x="0" y="200" /><use href="#cell" x="40" y="200" /><use href="#cell" x="80" y="200" />
                     </g>
 
-                    {/* ==================== 3. CENTER HOME TRIANGLES (3x3: 240 to 360) ==================== */}
+                    {/* ==================== 3. CENTER HOME TRIANGLES ==================== */}
                     <g transform="translate(240, 240)">
                         <rect x="0" y="0" width="120" height="120" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
-                        {/* Red Triangle (Left) */}
-                        <polygon points="0,0 60,60 0,120" fill="#e74c3c" stroke="#0f172a" strokeWidth="1.5" />
-                        {/* Green Triangle (Top) */}
-                        <polygon points="0,0 120,0 60,60" fill="#2ecc71" stroke="#0f172a" strokeWidth="1.5" />
-                        {/* Yellow Triangle (Right) */}
-                        <polygon points="120,0 120,120 60,60" fill="#f1c40f" stroke="#0f172a" strokeWidth="1.5" />
-                        {/* Blue Triangle (Bottom) */}
-                        <polygon points="0,120 60,60 120,120" fill="#3498db" stroke="#0f172a" strokeWidth="1.5" />
-
-                        {/* Golden Center Medallion */}
+                        <polygon points="0,0 60,60 0,120" fill="#e11d48" stroke="#0f172a" strokeWidth="1.5" />
+                        <polygon points="0,0 120,0 60,60" fill="#16a34a" stroke="#0f172a" strokeWidth="1.5" />
+                        <polygon points="120,0 120,120 60,60" fill="#eab308" stroke="#0f172a" strokeWidth="1.5" />
+                        <polygon points="0,120 60,60 120,120" fill="#0284c7" stroke="#0f172a" strokeWidth="1.5" />
                         <circle cx="60" cy="60" r="16" fill="#fbbf24" stroke="#ffffff" strokeWidth="2" />
                         <text x="60" y="65" textAnchor="middle" fontSize="14" fill="#78350f" fontWeight="bold">👑</text>
                     </g>
 
                     {/* ==================== 4. 8 SAFE STARS ==================== */}
-                    {/* Red Start Star */}
                     <use href="#star" x="40" y="240" />
-                    {/* Left Arm Safe Star */}
                     <use href="#star" x="80" y="320" />
-
-                    {/* Green Start Star */}
                     <use href="#star" x="320" y="40" />
-                    {/* Top Arm Safe Star */}
                     <use href="#star" x="240" y="80" />
-
-                    {/* Yellow Start Star */}
                     <use href="#star" x="520" y="320" />
-                    {/* Right Arm Safe Star */}
                     <use href="#star" x="480" y="240" />
-
-                    {/* Blue Start Star */}
                     <use href="#star" x="240" y="520" />
-                    {/* Bottom Arm Safe Star */}
                     <use href="#star" x="320" y="480" />
 
                     {/* Directional Arrows for Home Stretch */}
@@ -951,8 +1037,8 @@ export default function CoupleLudo({
                     {/* ==================== 5. 3D GLOSSY PAWNS (GOTTIYAN) ==================== */}
                     {allTokensOnBoard.map((item) => {
                         const { isMe, color, tokenIdx, step, cx, cy } = item;
-                        const canMove = (isMe && isMyTurn && canTokenMove(step, currentDice)) ||
-                                        (!isMe && isPartnerActive && canTokenMove(step, currentDice));
+                        const canMove = (isMe && isMyTurn && canTokenMove(step, currentDice) && !isHopping) ||
+                                        (!isMe && isPartnerActive && canTokenMove(step, currentDice) && !isHopping);
 
                         // Multi-token stacking offsets
                         let ox = 0;
@@ -988,19 +1074,18 @@ export default function CoupleLudo({
                                 }}
                                 className={canMove ? 'cursor-pointer' : ''}
                             >
-                                {/* Full-area Touch Target Circle for Mobile Fingers */}
                                 <circle cx="0" cy="0" r="26" fill="#ffffff" opacity="0.001" />
 
                                 {/* Highlight Pulsing Ring on Playable Pawn */}
                                 {canMove && (
                                     <>
-                                        <circle cx="0" cy="0" r="22" fill="none" stroke="#facc15" strokeWidth="3" opacity="0.8" />
-                                        <circle cx="0" cy="0" r="26" fill="none" stroke="#facc15" strokeWidth="2" opacity="0.5" className="animate-ping" />
+                                        <circle cx="0" cy="0" r="22" fill="none" stroke="#facc15" strokeWidth="3" opacity="0.85" />
+                                        <circle cx="0" cy="0" r="26" fill="none" stroke="#facc15" strokeWidth="2" opacity="0.6" className="animate-ping" />
                                     </>
                                 )}
 
                                 {/* Pawn Shadow */}
-                                <ellipse cx="0" cy="14" rx="14" ry="5" fill="#000000" opacity="0.35" />
+                                <ellipse cx="0" cy="14" rx="14" ry="5" fill="#000000" opacity="0.4" />
 
                                 {/* Pawn Flared Base */}
                                 <ellipse
@@ -1008,7 +1093,7 @@ export default function CoupleLudo({
                                     cy="11"
                                     rx="13"
                                     ry="4"
-                                    fill={isRedPawn ? '#c9184a' : '#d97706'}
+                                    fill={isRedPawn ? '#be123c' : '#b45309'}
                                     stroke="#ffffff"
                                     strokeWidth="1.5"
                                 />
@@ -1016,7 +1101,7 @@ export default function CoupleLudo({
                                 {/* Pawn Stem */}
                                 <path
                                     d="M -9,10 C -9,4 -4,0 -4,-3 L 4,-3 C 4,0 9,4 9,10 Z"
-                                    fill={isRedPawn ? '#ff4d6d' : '#facc15'}
+                                    fill={isRedPawn ? '#f43f5e' : '#facc15'}
                                     stroke="#ffffff"
                                     strokeWidth="1"
                                 />
@@ -1041,17 +1126,49 @@ export default function CoupleLudo({
             </div>
 
             {/* Bottom Rules Legend */}
-            <div className="w-full mt-2 p-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-[11px] text-gray-300">
+            <div className="w-full mt-2.5 p-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-[11px] text-gray-300">
                 <span className="flex items-center gap-1">
                     <span className="text-amber-400 font-bold">★</span> Safe Star
                 </span>
                 <span className="flex items-center gap-1">
-                    <span className="text-red-400 font-bold">🎲 6</span> Opens Pawn & Extra Roll
+                    <span className="text-rose-400 font-bold">🎲 6</span> Opens & Extra Roll
                 </span>
                 <span className="flex items-center gap-1">
                     <span className="text-emerald-400 font-bold">⚡ Cut</span> Gives Bonus Turn
                 </span>
             </div>
+
+            {/* ── WINNER ROMANTIC CELEBRATION MODAL ── */}
+            <AnimatePresence>
+                {winner && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-fade-in">
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            className="relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1c1228] to-black border border-amber-400/40 p-6 text-center shadow-2xl space-y-4"
+                        >
+                            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-4xl shadow-lg shadow-amber-500/40 animate-bounce">
+                                👑
+                            </div>
+                            <h3 className="text-xl font-black text-white">
+                                {winner === myColor ? "You Won the Ludo Match! 🏆" : `${partnerName} Won the Match! 🏆`}
+                            </h3>
+                            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-amber-200">
+                                <p className="font-bold uppercase tracking-wider text-[10px] text-gray-400 mb-1">Claimable Stake</p>
+                                <p className="text-sm font-extrabold">{selectedStake}</p>
+                            </div>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleReset}
+                                className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-rose-500/30"
+                            >
+                                Play Rematch 🎲
+                            </motion.button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
