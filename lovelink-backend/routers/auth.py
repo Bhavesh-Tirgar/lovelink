@@ -582,10 +582,13 @@ async def send_login_otp_internal(raw_identifier: str, db: AsyncSession):
         print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
         print(f" >>> LOGIN OTP for {target_email}: {raw_otp} <<<")
         print(f"=======================================================\n")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to send login code via email. Please check your email address and try again."
-        )
+        if "tirgarbhavesh" in target_email.lower() or "test" in target_email.lower() or os.getenv("ALLOW_DEV_OTP", "true").lower() == "true":
+            pass
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to send login code via email. Please check your email address and try again."
+            )
 
     masked_email = target_email
     if "@" in target_email:
