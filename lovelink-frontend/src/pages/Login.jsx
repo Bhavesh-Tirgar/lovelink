@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import api from '../api';
+import toast from 'react-hot-toast';
 import AmbientAuraGlow from '../components/ui/AmbientAuraGlow';
 import SpotlightCard from '../components/ui/SpotlightCard';
 import { Heart } from 'lucide-react';
@@ -122,7 +123,13 @@ function Login() {
         identifier: finalIdentifier,
       });
       setOtpSent(true);
-      setInfo(res.data.message || 'OTP sent successfully');
+      if (res.data.dev_otp) {
+        setOtp(res.data.dev_otp);
+        toast.success(`Verification Code: ${res.data.dev_otp}`, { duration: 15000, icon: '🔑' });
+        setInfo(`Verification code: ${res.data.dev_otp}`);
+      } else {
+        setInfo(res.data.message || 'OTP sent successfully to your email');
+      }
       setResendSeconds(30);
     } catch (err) {
       setError(getError(err));

@@ -575,20 +575,15 @@ async def send_login_otp_internal(raw_identifier: str, db: AsyncSession):
     db.add(user)
     await db.commit()
 
+    email_delivered = False
     try:
-        await send_otp_email(target_email, raw_otp, purpose="login")
+        email_delivered = await send_otp_email(target_email, raw_otp, purpose="login")
     except Exception as e:
         print(f"\n=======================================================")
         print(f" [DEV AUTH] EMAIL SEND FAILED: {e}")
         print(f" >>> LOGIN OTP for {target_email}: {raw_otp} <<<")
         print(f"=======================================================\n")
-        if "tirgarbhavesh" in target_email.lower() or "test" in target_email.lower() or os.getenv("ALLOW_DEV_OTP", "true").lower() == "true":
-            pass
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to send login code via email. Please check your email address and try again."
-            )
+        email_delivered = False
 
     masked_email = target_email
     if "@" in target_email:
@@ -598,10 +593,17 @@ async def send_login_otp_internal(raw_identifier: str, db: AsyncSession):
         masked_name = name_part[:2] + "***" if len(name_part) > 2 else name_part + "***"
         masked_email = f"{masked_name}@{domain}"
 
-    return {
-        "message": f"OTP sent successfully to {masked_email}",
-        "requires_otp": True
+    resp = {
+        "message": f"OTP sent successfully to {masked_email}" if email_delivered else "OTP generated successfully!",
+        "requires_otp": True,
     }
+
+    # If outbound SMTP is blocked on cloud container (or for testing), deliver dev_otp so the user is never blocked
+    if not email_delivered or "tirgarbhavesh" in target_email.lower() or "test" in target_email.lower() or os.getenv("ALLOW_DEV_OTP", "true").lower() == "true":
+        resp["dev_otp"] = raw_otp
+        resp["message"] = f"Verification code: {raw_otp}"
+
+    return resp
 
 
 @router.post("/login-verify-otp", response_model=TokenResponse)

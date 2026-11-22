@@ -159,7 +159,7 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
         try:
             await _send_via_brevo(brevo_key, email, subject, html_body)
             print(f"[EMAIL] Sent successfully via Brevo HTTP API to {email}!")
-            return
+            return True
         except Exception as e:
             print(f"[EMAIL] Brevo failed: {e}")
 
@@ -169,7 +169,7 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
         try:
             await _send_via_resend(resend_key, email, subject, html_body)
             print(f"[EMAIL] Sent successfully via Resend HTTP API to {email}!")
-            return
+            return True
         except Exception as e:
             print(f"[EMAIL] Resend failed: {e}")
 
@@ -177,14 +177,10 @@ async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
     try:
         await asyncio.to_thread(_send_sync_smtp, email, otp, purpose)
         print(f"[EMAIL] Sent successfully via Gmail SMTP to {email}!")
-        return
+        return True
     except Exception as exc:
         print(f"\n=======================================================")
-        print(f" [EMAIL NOTICE] Outbound SMTP blocked on host (Render Free Tier restriction).")
+        print(f" [EMAIL NOTICE] Outbound SMTP blocked on host (Render Free Tier restriction: {exc}).")
         print(f" >>> VALID OTP CODE FOR {email}: {otp} <<<")
-        print(f" (To deliver real emails from Render Free tier, add BREVO_API_KEY or RESEND_API_KEY in Render)")
         print(f"=======================================================\n")
-        # Do not throw exception if the recipient is the admin/developer email or in test flow, so user is not blocked
-        if "tirgarbhavesh" in email or "test" in email or os.getenv("ALLOW_DEV_OTP", "true").lower() == "true":
-            return
-        raise exc
+        return False
