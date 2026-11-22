@@ -1,4 +1,6 @@
 import os
+import socket
+import ssl
 import smtplib
 import asyncio
 from email.mime.multipart import MIMEMultipart
@@ -8,6 +10,37 @@ from dotenv import load_dotenv
 _ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
 load_dotenv(_ENV_PATH)
 load_dotenv()
+
+
+def _create_connection_ipv4(address, timeout=12):
+    """
+    Force IPv4 connection to prevent '[Errno 101] Network is unreachable'
+    on cloud environments (like Render or Docker containers) without IPv6 default routes.
+    """
+    host, port = address
+    last_err = None
+    for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        sock = socket.socket(af, socktype, proto)
+        try:
+            sock.settimeout(timeout)
+            sock.connect(sa)
+            return sock
+        except Exception as e:
+            sock.close()
+            last_err = e
+    raise last_err or RuntimeError(f"Could not connect via IPv4 to {host}:{port}")
+
+
+class SMTP_IPv4(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return _create_connection_ipv4((host, port), timeout)
+
+
+class SMTP_SSL_IPv4(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        sock = _create_connection_ipv4((host, port), timeout)
+        return self.context.wrap_socket(sock, server_hostname=self._host)
 
 
 def _send_sync(email: str, otp: str, purpose: str):
@@ -30,7 +63,7 @@ def _send_sync(email: str, otp: str, purpose: str):
           </span>
         </div>
         <p style="color:#9ca3af; font-size:13px; margin-bottom:8px;">
-          This code expires in <strong>10 minutes</strong>.
+          This code expires in <strong>5 minutes</strong>.
         </p>
         <p style="color:#6b7280; font-size:12px; line-height:1.5;">
           If you didn't request this, you can safely ignore this email.
@@ -45,14 +78,28 @@ def _send_sync(email: str, otp: str, purpose: str):
     msg["To"] = email
     msg.attach(MIMEText(html_body, "html"))
 
-    # Gmail SMTP Port 465 SSL connection
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=12) as server:
+    # Try Port 587 STARTTLS (standard for cloud hosts like Render)
+    try:
+        server = SMTP_IPv4("smtp.gmail.com", 587, timeout=12)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
         server.login(mail_user, mail_pass)
         server.sendmail(mail_from, [email], msg.as_string())
+        server.quit()
+        return
+    except Exception as e587:
+        print(f"[EMAIL] Port 587 STARTTLS failed ({e587}). Falling back to Port 465 SSL...")
+
+    # Fallback to Port 465 SSL
+    server = SMTP_SSL_IPv4("smtp.gmail.com", 465, timeout=12)
+    server.login(mail_user, mail_pass)
+    server.sendmail(mail_from, [email], msg.as_string())
+    server.quit()
 
 
 async def send_otp_email(email: str, otp: str, purpose: str = "verification"):
-    print(f"Sending OTP email to {email} for {purpose} via Gmail SSL (Port 465)...")
+    print(f"Sending OTP email to {email} for {purpose} via IPv4 SMTP...")
     try:
         await asyncio.to_thread(_send_sync, email, otp, purpose)
         print(f"OTP email sent successfully to {email}!")

@@ -35,8 +35,8 @@ function App() {
       CapApp.addListener('appUrlOpen', async (data) => {
         if (data?.url && (data.url.includes('lovelink://auth') || data.url.includes('token='))) {
           try {
-            Browser.close().catch(() => {});
-            
+            Browser.close().catch(() => { });
+
             const rawUrl = data.url;
             const queryString = rawUrl.includes('?') ? rawUrl.substring(rawUrl.indexOf('?') + 1) : '';
             const params = new URLSearchParams(queryString);
@@ -56,8 +56,8 @@ function App() {
             console.error('Failed to parse OAuth deep link:', e);
           }
         }
-      }).then(h => { handler = h; }).catch(() => {});
-    } catch (e) {}
+      }).then(h => { handler = h; }).catch(() => { });
+    } catch (e) { }
 
     return () => {
       if (handler && handler.remove) handler.remove();
