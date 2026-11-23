@@ -42,14 +42,14 @@ export default function Layout({ children }) {
                 {children}
             </main>
 
-            {/* Floating Synchronized Music Player (Disable on Reels to avoid audio collision) */}
-            {!isAuthPage && !isFullscreen && !isReels && <FloatingMusicPlayer />}
+            {/* Floating Synchronized Music Player (Disable on Reels & Calls to avoid audio collision) */}
+            {!isAuthPage && !location.pathname.startsWith('/call/') && !isReels && <FloatingMusicPlayer />}
 
             {/* PWA Add to Home Screen Prompt */}
             {!isAuthPage && !isFullscreen && <InstallPrompt />}
 
-            {/* Persistent Floating Dock */}
-            {!isAuthPage && !location.pathname.startsWith('/call/') && !location.pathname.startsWith('/watch/') && <NavigationDock />}
+            {/* Persistent Floating Dock (Hidden on fullscreen pages like /chat, /doodle, /call, etc. to prevent blocking input) */}
+            {!isAuthPage && !isFullscreen && <NavigationDock />}
 
         </div>
     );

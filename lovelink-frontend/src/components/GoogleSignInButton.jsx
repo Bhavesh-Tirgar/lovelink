@@ -11,6 +11,7 @@ export default function GoogleSignInButton({ onError }) {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [gsiLoaded, setGsiLoaded] = useState(false);
+    const [externalReturnLink, setExternalReturnLink] = useState(null);
     const googleBtnRef = useRef(null);
 
     const isNativePlatform = Capacitor.isNativePlatform();
@@ -54,7 +55,12 @@ export default function GoogleSignInButton({ onError }) {
             if (isExternalReturn) {
                 toast.success('Authenticated! Returning to app...', { id: toastId });
                 const deepLink = `lovelink://auth?token=${access_token}&refresh_token=${res.data.refresh_token || ''}&couple_id=${activeCoupleId || ''}&user=${encodeURIComponent(JSON.stringify(user))}`;
-                window.location.href = deepLink;
+                setExternalReturnLink(deepLink);
+                try {
+                    window.location.href = deepLink;
+                } catch (e) {
+                    console.warn('Auto redirect blocked:', e);
+                }
                 return;
             }
 
@@ -124,25 +130,38 @@ export default function GoogleSignInButton({ onError }) {
         };
     }, [handleGoogleResponse, isNativePlatform]);
 
-    // 3. Handle OAuth2 redirect return (extracts id_token or token from URL hash)
+    // 3. Handle OAuth2 redirect return (extracts id_token or token from URL hash or query params)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const hash = window.location.hash;
+        const search = window.location.search;
+        let idToken = null;
+        let isCapFlow = false;
+
         if (hash && (hash.includes('id_token=') || hash.includes('access_token='))) {
             try {
                 const params = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
-                const idToken = params.get('id_token') || params.get('access_token');
-                const state = params.get('state');
-                if (idToken) {
-                    window.history.replaceState(null, '', window.location.pathname);
-                    handleGoogleResponse({ 
-                        credential: idToken,
-                        isCapacitorFlow: state === 'capacitor'
-                    });
-                }
+                idToken = params.get('id_token') || params.get('access_token');
+                isCapFlow = params.get('state') === 'capacitor';
             } catch (e) {
-                console.error('Failed to parse OAuth redirect hash:', e);
+                console.error('Failed to parse OAuth hash:', e);
             }
+        } else if (search && (search.includes('id_token=') || search.includes('credential='))) {
+            try {
+                const params = new URLSearchParams(search.startsWith('?') ? search.substring(1) : search);
+                idToken = params.get('id_token') || params.get('credential');
+                isCapFlow = params.get('state') === 'capacitor' || params.get('oauth_source') === 'capacitor';
+            } catch (e) {
+                console.error('Failed to parse OAuth search params:', e);
+            }
+        }
+
+        if (idToken) {
+            window.history.replaceState(null, '', window.location.pathname);
+            handleGoogleResponse({ 
+                credential: idToken,
+                isCapacitorFlow: isCapFlow
+            });
         }
     }, [handleGoogleResponse]);
 
@@ -308,6 +327,25 @@ export default function GoogleSignInButton({ onError }) {
                     </svg>
                     <span>{loading ? 'Connecting with Google...' : 'Continue with Google'}</span>
                 </button>
+            )}
+
+            {/* External Return Modal (for Chrome Custom Tabs returning to APK) */}
+            {externalReturnLink && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-sm p-6 rounded-3xl bg-gradient-to-b from-[#1e1026] via-[#120a18] to-black border border-rose-500/40 text-center shadow-2xl space-y-4">
+                        <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl shadow-inner animate-pulse">
+                            💖
+                        </div>
+                        <h3 className="text-xl font-black text-white">Signed in with Google!</h3>
+                        <p className="text-xs text-gray-300">Tap below to open and continue in the LoveLink App:</p>
+                        <a
+                            href={externalReturnLink}
+                            className="block w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-extrabold text-sm shadow-lg shadow-rose-500/40 hover:scale-105 active:scale-95 transition-all text-center"
+                        >
+                            Open LoveLink App ❤️
+                        </a>
+                    </div>
+                </div>
             )}
         </div>
     );

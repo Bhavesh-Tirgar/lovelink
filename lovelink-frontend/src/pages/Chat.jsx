@@ -49,7 +49,7 @@ function Chat() {
     const handleAddReaction = (msgId, emoji) => {
         setReactions(prev => {
             const next = { ...prev, [msgId]: emoji };
-            try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch {}
+            try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch { }
             return next;
         });
         setActiveReactionMsgId(null);
@@ -142,7 +142,7 @@ function Chat() {
             // Auto-burn ephemeral message when received and viewed
             if (incoming.is_ephemeral && !incoming.is_burned && incoming.sender_id !== myUserId) {
                 setTimeout(() => {
-                    api.post(`/chat/messages/${incoming.id}/burn`).catch(() => {});
+                    api.post(`/chat/messages/${incoming.id}/burn`).catch(() => { });
                 }, (incoming.burn_after_seconds || 10) * 1000);
             }
 
@@ -177,7 +177,7 @@ function Chat() {
             if (data.message_id && data.emoji) {
                 setReactions(prev => {
                     const next = { ...prev, [data.message_id]: data.emoji };
-                    try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch {}
+                    try { localStorage.setItem('lovelink_reactions', JSON.stringify(next)); } catch { }
                     return next;
                 });
             }
@@ -227,7 +227,7 @@ function Chat() {
                 try {
                     localStorage.setItem('partner_user', JSON.stringify(dashRes.data.partner_user));
                     localStorage.setItem('couple_id', dashRes.data.couple_id);
-                } catch {}
+                } catch { }
 
                 const msgRes = await api.get('/chat/messages');
                 const decryptedList = await Promise.all(msgRes.data.map(async m => {
@@ -380,7 +380,7 @@ function Chat() {
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
+
             // Cross-platform audio format negotiation (iOS Safari vs Chromium)
             let mimeType = '';
             let fileExt = 'webm';
@@ -502,32 +502,33 @@ function Chat() {
     return (
         <div className="flex flex-col h-[100dvh] w-full bg-[#07080c] text-gray-100 overflow-hidden animate-in fade-in duration-700">
             {/* Top Bar */}
-            <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-4 bg-[#07080c]/85 backdrop-blur-md border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.4)] z-20">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-gray-300 hover:text-white">
-                        <ArrowLeft size={20} />
+            <header className="flex-none flex items-center justify-between px-2.5 sm:px-6 py-2.5 sm:py-3.5 bg-[#07080c]/90 backdrop-blur-md border-b border-white/[0.08] shadow-[0_10px_30px_rgba(0,0,0,0.4)] z-20">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                    <button onClick={() => navigate('/dashboard')} className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-gray-300 hover:text-white flex-shrink-0">
+                        <ArrowLeft size={18} />
                     </button>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative group cursor-pointer">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold shadow-inner group-hover:shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-shadow">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="relative group cursor-pointer flex-shrink-0">
+                            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm sm:text-base font-bold shadow-inner group-hover:shadow-[0_0_15px_rgba(236,72,153,0.5)] transition-shadow">
                                 {partner?.name?.[0] || '?'}
                             </div>
-                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-brand-darker transition-colors duration-500 ${isConnected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-500'}`} />
+                            <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-brand-darker transition-colors duration-500 ${isConnected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-500'}`} />
                         </div>
-                        <div>
-                            <h2 className="font-bold text-lg leading-tight tracking-tight text-white">{partner?.name || 'Partner'}</h2>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-xs font-medium uppercase tracking-widest text-pink-300/80">
+                        <div className="min-w-0">
+                            <h2 className="font-bold text-sm sm:text-base leading-tight tracking-tight text-white truncate max-w-[100px] sm:max-w-[180px]">{partner?.name || 'Partner'}</h2>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-pink-300/80">
                                     {typingPartner ? 'typing...' : (isConnected ? 'Online' : 'Offline')}
                                 </p>
                                 <button
                                     type="button"
                                     onClick={() => setShowSafetyCode(true)}
-                                    className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/25 px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono transition cursor-pointer"
+                                    className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/25 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono transition cursor-pointer"
                                     title="View E2EE Safety Code & Verify Keys"
                                 >
-                                    <ShieldCheck size={11} /> E2EE Verified
+                                    <ShieldCheck size={10} />
+                                    <span className="hidden sm:inline">E2EE Verified</span>
                                 </button>
                             </div>
                         </div>
@@ -535,29 +536,29 @@ function Chat() {
                 </div>
 
                 {partner && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         <button
                             onClick={() => { setIsSearching(!isSearching); if (isSearching) setSearchQuery(''); }}
-                            className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full border transition-all ${isSearching ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-white/5 text-gray-200 border-white/10 hover:bg-white/15'}`}
+                            className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border transition-all flex-shrink-0 ${isSearching ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-white/5 text-gray-200 border-white/10 hover:bg-white/15'}`}
                             title="Search Messages"
                         >
-                            <Search size={18} />
+                            <Search size={16} />
                         </button>
                         <button
                             onClick={() => startCall('voice')}
                             disabled={calling}
-                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-white/5 text-gray-200 border border-white/10 hover:bg-white/15 hover:text-white transition-all disabled:opacity-50"
-                            title="Voice Call"
+                            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/35 transition-all disabled:opacity-50 flex-shrink-0 shadow-sm"
+                            title="Start Voice Call"
                         >
-                            <Phone size={18} />
+                            <Phone size={16} />
                         </button>
                         <button
                             onClick={() => startCall('video')}
                             disabled={calling}
-                            className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/20 text-rose-300 border border-rose-500/20 hover:border-rose-500/50 hover:bg-rose-500/30 transition-all disabled:opacity-50 shadow-sm"
-                            title="Video Call"
+                            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-rose-600 text-white shadow-md shadow-rose-500/30 border border-rose-400/50 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex-shrink-0"
+                            title="Start Video Call"
                         >
-                            <Video size={18} />
+                            <Video size={16} />
                         </button>
                     </div>
                 )}
@@ -760,12 +761,12 @@ function Chat() {
                 </div>
             )}
 
-            {/* Input Nav */}
-            <div className="flex-none p-2.5 sm:p-4 pb-safe bg-[#07080c]/90 backdrop-blur-md border-t border-white/[0.08] shadow-[0_-10px_30px_rgba(0,0,0,0.4)] z-20">
-                <div className="max-w-4xl mx-auto flex items-end gap-3 relative">
+            {/* Input Bar */}
+            <div className="flex-none px-2 sm:px-4 py-2.5 sm:py-3.5 pb-[max(12px,env(safe-area-inset-bottom))] bg-[#07080c]/95 backdrop-blur-md border-t border-white/[0.08] shadow-[0_-10px_30px_rgba(0,0,0,0.4)] z-20">
+                <div className="max-w-4xl mx-auto flex items-center gap-1.5 sm:gap-3 relative">
 
-                    <label className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 mb-0 border border-transparent hover:border-pink-500/20" title="Send Photo">
-                        <Paperclip size={20} />
+                    <label className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-gray-400 hover:text-pink-400 hover:bg-pink-500/10 rounded-full cursor-pointer transition-colors flex-shrink-0 border border-transparent hover:border-pink-500/20" title="Send Photo">
+                        <Paperclip size={18} />
                         <input
                             type="file"
                             accept="image/*"
@@ -777,32 +778,31 @@ function Chat() {
                     <button
                         type="button"
                         onClick={() => setIsEphemeralMode(!isEphemeralMode)}
-                        className={`w-11 h-11 flex items-center justify-center rounded-full transition-all flex-shrink-0 border ${
-                            isEphemeralMode 
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-all flex-shrink-0 border ${isEphemeralMode
                                 ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
                                 : 'text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 border-transparent hover:border-amber-500/20'
-                        }`}
+                            }`}
                         title={isEphemeralMode ? "Self-Destruct Active (Burns in 10s)" : "Toggle Self-Destruct Mode"}
                     >
-                        <Flame size={20} className={isEphemeralMode ? "animate-bounce text-amber-300" : ""} />
+                        <Flame size={18} className={isEphemeralMode ? "animate-bounce text-amber-300" : ""} />
                     </button>
 
-                    <form onSubmit={sendTextMessage} className="flex-1 flex max-w-full glass-card rounded-[28px] focus-within:border-pink-500/50 focus-within:ring-1 focus-within:ring-pink-500/30 transition-all shadow-inner overflow-hidden">
+                    <form onSubmit={sendTextMessage} className="flex-1 flex items-center min-w-0 bg-white/[0.06] border border-white/10 rounded-2xl focus-within:border-pink-500/50 focus-within:ring-1 focus-within:ring-pink-500/30 transition-all shadow-inner overflow-hidden">
                         <input
                             type="text"
                             value={inputValue}
                             onChange={handleInputChange}
                             onKeyDown={(e) => { if (e.key === 'Enter') sendTextMessage(e); }}
-                            placeholder={isRecording ? "Recording audio... Speak now" : "Type a romantic message..."}
+                            placeholder={isRecording ? "Recording audio... Speak now" : "Type a message..."}
                             disabled={isRecording}
-                            className="w-full bg-transparent px-5 py-4 text-[15px] font-medium text-white placeholder-gray-500 focus:outline-none"
+                            className="w-full bg-transparent px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white placeholder-gray-500 focus:outline-none"
                         />
                         {inputValue.trim() && (
                             <button
                                 type="submit"
-                                className="w-10 h-10 m-1 text-white bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(236,72,153,0.4)] hover:shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 transition-all"
+                                className="w-8 h-8 sm:w-9 sm:h-9 mr-1.5 text-white bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(236,72,153,0.4)] hover:shadow-[0_0_20px_rgba(236,72,153,0.6)] hover:scale-105 transition-all"
                             >
-                                <Send size={18} className="translate-x-[-1px] translate-y-[1px]" />
+                                <Send size={15} />
                             </button>
                         )}
                     </form>
@@ -813,7 +813,7 @@ function Chat() {
                             onMouseUp={stopRecording}
                             onTouchStart={startRecording}
                             onTouchEnd={stopRecording}
-                            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 mb-0 transition-all border
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all border
                 ${isRecording
                                     ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
                                     : 'text-gray-400 bg-white/5 border-white/5 hover:bg-white/10 hover:text-purple-400 hover:border-purple-400/30'}
@@ -822,10 +822,10 @@ function Chat() {
                             {isRecording ? (
                                 <div className="relative flex items-center justify-center">
                                     <div className="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-40 scale-150" />
-                                    <Mic size={22} className="relative z-10" />
+                                    <Mic size={18} className="relative z-10" />
                                 </div>
                             ) : (
-                                <Mic size={22} />
+                                <Mic size={18} />
                             )}
                         </button>
                     )}

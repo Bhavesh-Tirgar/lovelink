@@ -246,7 +246,7 @@ function Realistic3DDice({ value = 6, rolling = false, onClick, disabled = false
             transition={rolling ? { repeat: Infinity, duration: 0.25, ease: "linear" } : { duration: 0.2 }}
             onClick={onClick}
             disabled={disabled}
-            className={`relative w-14 h-14 rounded-2xl select-none flex items-center justify-center transition-all ${
+            className={`relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl select-none flex items-center justify-center transition-all ${
                 isTurn && !disabled
                     ? color === 'red'
                         ? 'ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.85)] cursor-pointer'
@@ -791,10 +791,10 @@ export default function CoupleLudo({
             </div>
 
             {/* ── PLAYER CONTROL PANELS (YOU & PARTNER) ────────────────── */}
-            <div className="w-full mb-2.5 grid grid-cols-2 gap-2.5">
+            <div className="w-full mb-2 grid grid-cols-2 gap-1.5 sm:gap-2.5">
                 {/* You (Red) */}
                 <div
-                    className={`relative p-3 rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
+                    className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
                         isMyTurn
                             ? 'bg-gradient-to-r from-rose-950/90 to-black/80 border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.4)]'
                             : 'bg-black/50 border-white/10 opacity-75'
@@ -802,17 +802,17 @@ export default function CoupleLudo({
                 >
                     <TurnTimerRing timeLeft={turnTimeLeft} isActive={isMyTurn && !winner} color="red" />
 
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                        <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-black shadow border border-white/40 flex-shrink-0">
                             🔴
                         </div>
-                        <div>
-                            <div className="text-xs font-bold text-white flex items-center gap-1">
+                        <div className="min-w-0">
+                            <div className="text-[11px] sm:text-xs font-bold text-white flex items-center gap-1">
                                 <span>You</span>
-                                {isMyTurn && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+                                {isMyTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />}
                             </div>
-                            <div className="text-[10px] text-rose-300 font-mono">
-                                {myHomeCount}/4 In Home 👑
+                            <div className="text-[9px] sm:text-[10px] text-rose-300 font-mono truncate">
+                                {myHomeCount}/4 Home 👑
                             </div>
                         </div>
                     </div>
@@ -829,7 +829,7 @@ export default function CoupleLudo({
 
                 {/* Partner (Yellow) */}
                 <div
-                    className={`relative p-3 rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
+                    className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between overflow-hidden ${
                         isPartnerActive
                             ? 'bg-gradient-to-r from-amber-950/90 to-black/80 border-amber-500 ring-2 ring-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.4)]'
                             : 'bg-black/50 border-white/10 opacity-75'
@@ -837,17 +837,17 @@ export default function CoupleLudo({
                 >
                     <TurnTimerRing timeLeft={turnTimeLeft} isActive={isPartnerActive && !winner} color="yellow" />
 
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-white text-xs font-black shadow border border-white/40">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                        <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-black shadow border border-white/40 flex-shrink-0">
                             🟡
                         </div>
-                        <div>
-                            <div className="text-xs font-bold text-white flex items-center gap-1">
-                                <span className="truncate max-w-[80px]">{partnerName}</span>
-                                {isPartnerActive && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+                        <div className="min-w-0">
+                            <div className="text-[11px] sm:text-xs font-bold text-white flex items-center gap-1">
+                                <span className="truncate max-w-[60px] sm:max-w-[80px]">{partnerName}</span>
+                                {isPartnerActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />}
                             </div>
-                            <div className="text-[10px] text-amber-300 font-mono">
-                                {partnerHomeCount}/4 In Home 👑
+                            <div className="text-[9px] sm:text-[10px] text-amber-300 font-mono truncate">
+                                {partnerHomeCount}/4 Home 👑
                             </div>
                         </div>
                     </div>
@@ -894,10 +894,10 @@ export default function CoupleLudo({
             </div>
 
             {/* ── 100% PURE VECTOR SVG AUTHENTIC LUDO BOARD (600x600) ──── */}
-            <div className="relative p-2.5 rounded-3xl bg-gradient-to-b from-[#2d1b3f] via-[#1d122b] to-[#140b1f] border-4 border-[#52336e] shadow-[0_30px_70px_rgba(0,0,0,0.9)] max-w-full">
+            <div className="relative w-full max-w-[min(94vw,410px)] mx-auto aspect-square p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#2d1b3f] via-[#1d122b] to-[#140b1f] border-2 sm:border-4 border-[#52336e] shadow-2xl flex items-center justify-center overflow-hidden">
                 <svg
                     viewBox="0 0 600 600"
-                    className="w-[min(92vw,430px)] h-[min(92vw,430px)] rounded-2xl shadow-2xl overflow-hidden"
+                    className="w-full h-full aspect-square rounded-xl sm:rounded-2xl shadow-inner overflow-hidden"
                     style={{ touchAction: 'manipulation' }}
                 >
                     <defs>

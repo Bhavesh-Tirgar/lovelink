@@ -8,7 +8,7 @@ import {
   Heart, MessageCircle, Compass,
   MapPin, Film, Gamepad2, Camera,
   Settings, LogOut, Copy, Check, QrCode, Volume2, VolumeX, X,
-  Clapperboard, Sparkles, Clock
+  Clapperboard, Sparkles, Clock, Phone, Video
 } from 'lucide-react';
 import SpotlightCard from '../components/ui/SpotlightCard';
 import ShinyText from '../components/ui/ShinyText';
@@ -28,9 +28,36 @@ export default function Dashboard() {
   // Settings Modal State
   const [showSettings, setShowSettings] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [startingCall, setStartingCall] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(
     localStorage.getItem('lovelink_sound') !== 'false'
   );
+
+  const startCall = async (callType = 'video') => {
+    if (startingCall) return;
+    setStartingCall(true);
+    try {
+      const res = await api.post('/calls/initiate', { call_type: callType });
+      navigate(`/call/${res.data.call_id}`, {
+        state: {
+          token: res.data.token,
+          room_id: res.data.room_id,
+          zego_app_id: res.data.zego_app_id,
+          user_id: res.data.user_id,
+          user_name: res.data.user_name,
+          partner_id: res.data.partner_id,
+          partner_name: res.data.partner_name,
+          partner_photo: res.data.partner_photo,
+          call_type: callType,
+          status: 'initiated'
+        }
+      });
+    } catch (err) {
+      console.error("Failed to initiate call from dashboard:", err);
+    } finally {
+      setStartingCall(false);
+    }
+  };
 
   // Load Dashboard Data
   useEffect(() => {
@@ -243,7 +270,7 @@ export default function Dashboard() {
         onClick={() => navigate('/reels')}
         spotlightColor="rgba(244, 63, 94, 0.25)"
         borderColor="rgba(244, 63, 94, 0.45)"
-        className="mb-5 p-3.5 sm:p-4 bg-gradient-to-r from-pink-950/40 via-purple-950/30 to-black/80 cursor-pointer"
+        className="mb-4 p-3.5 sm:p-4 bg-gradient-to-r from-pink-950/40 via-purple-950/30 to-black/80 cursor-pointer"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -267,6 +294,35 @@ export default function Dashboard() {
           </div>
         </div>
       </SpotlightCard>
+
+      {/* Quick Couple Call Bar (Voice & Video Call 1-Tap) */}
+      {linked && partner_user && (
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => startCall('voice')}
+            disabled={startingCall}
+            className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-emerald-900/40 to-black/80 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 hover:border-emerald-500/70 transition-all disabled:opacity-50"
+          >
+            <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+              <Phone size={14} className="text-emerald-400" />
+            </div>
+            <span>Voice Call</span>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => startCall('video')}
+            disabled={startingCall}
+            className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-pink-900/40 to-black/80 border border-rose-500/40 text-rose-300 font-bold text-xs sm:text-sm shadow-lg shadow-rose-950/40 hover:border-rose-500/70 transition-all disabled:opacity-50"
+          >
+            <div className="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0">
+              <Video size={14} className="text-rose-400" />
+            </div>
+            <span>Video Call</span>
+          </motion.button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">

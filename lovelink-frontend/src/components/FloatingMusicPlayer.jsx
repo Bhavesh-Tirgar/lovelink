@@ -80,41 +80,13 @@ export default function FloatingMusicPlayer() {
         }
     };
 
-    const isYouTube = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
-
     return (
         <>
-            {/* ── EMBEDDED YOUTUBE ENGINE (Robust offscreen container ensures mobile browsers never throttle media) ── */}
-            {isYouTube && currentTrack.videoId && (
-                <div
-                    className="fixed -left-[9999px] top-0 w-[320px] h-[240px] pointer-events-none z-[-1] overflow-hidden"
-                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '320px', height: '240px' }}
-                >
-                    <iframe
-                        id="yt-music-iframe"
-                        title="YouTube Music Player"
-                        width="320"
-                        height="240"
-                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                        allow="autoplay; encrypted-media"
-                        onLoad={() => {
-                            const iframe = document.getElementById('yt-music-iframe');
-                            if (iframe?.contentWindow) {
-                                iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt-music-iframe' }), '*');
-                                if (isPlaying) {
-                                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                                }
-                            }
-                        }}
-                    />
-                </div>
-            )}
-
             {/* ── EXPANDED FULL PLAYER MODAL ── */}
             {isPlayerOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-fade-in">
                     <div className="relative w-full max-w-lg bg-gradient-to-b from-gray-900/95 to-purple-950/95 border border-purple-500/30 rounded-3xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[92vh]">
-                        
+
                         {/* Background subtle glow */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl -z-10 pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -z-10 pointer-events-none" />
@@ -357,15 +329,13 @@ export default function FloatingMusicPlayer() {
 
             {/* ── MINIMIZED FLOATING PILL (Docked right above bottom navigation, or top-right on /room to avoid wardrobe collision) ── */}
             {!isPlayerOpen && (
-                <div className={`fixed z-40 w-auto min-w-[270px] transition-all duration-300 animate-slide-up ${
-                    location.pathname === '/room'
+                <div className={`fixed z-40 w-auto min-w-[270px] transition-all duration-300 animate-slide-up ${location.pathname === '/room'
                         ? 'top-20 right-4 md:right-8 max-w-xs scale-90 md:scale-100'
                         : 'bottom-24 left-1/2 -translate-x-1/2 max-w-md'
-                }`}>
-                    <div className={`flex items-center justify-between gap-3 px-4 py-2.5 bg-[#08090d]/85 hover:bg-[#0c0d14]/95 backdrop-blur-md border rounded-full transition-all group ${
-                        isPlaying ? 'shadow-[0_8px_30px_rgba(244,63,94,0.35)] border-rose-500/40' : 'shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-white/10 hover:border-rose-500/30'
                     }`}>
-                        
+                    <div className={`flex items-center justify-between gap-3 px-4 py-2.5 bg-[#08090d]/85 hover:bg-[#0c0d14]/95 backdrop-blur-md border rounded-full transition-all group ${isPlaying ? 'shadow-[0_8px_30px_rgba(244,63,94,0.35)] border-rose-500/40' : 'shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-white/10 hover:border-rose-500/30'
+                        }`}>
+
                         {/* Mini Spinning Album Art */}
                         <div
                             onClick={() => setIsPlayerOpen(true)}

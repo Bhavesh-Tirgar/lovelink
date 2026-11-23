@@ -57,6 +57,7 @@ export default function VideoCall() {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const remoteAudioRef = useRef(null);
+    const audioCtxRef = useRef(null);
     const pcRef = useRef(null);
     const localStreamRef = useRef(null);
     const pendingCandidatesRef = useRef([]);
@@ -80,11 +81,20 @@ export default function VideoCall() {
 
     const isVoice = (callState?.call_type === 'voice');
 
-    // 1. Browser Autoplay Audio Unlocker
+    // 1. Browser Autoplay Audio Unlocker & Speaker Activator
     useEffect(() => {
         const unlockAudio = () => {
-            if (remoteAudioRef.current && remoteAudioRef.current.paused && remoteAudioRef.current.srcObject) {
-                remoteAudioRef.current.play().catch(() => {});
+            if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+                audioCtxRef.current.resume().catch(() => {});
+            }
+            if (remoteAudioRef.current) {
+                remoteAudioRef.current.volume = 1.0;
+                if (remoteAudioRef.current.paused && remoteAudioRef.current.srcObject) {
+                    remoteAudioRef.current.play().catch(() => {});
+                }
+            }
+            if (remoteVideoRef.current && remoteVideoRef.current.paused && remoteVideoRef.current.srcObject) {
+                remoteVideoRef.current.play().catch(() => {});
             }
         };
         window.addEventListener('click', unlockAudio);
@@ -177,7 +187,11 @@ export default function VideoCall() {
             localStreamRef.current = null;
         }
 
-        // Close PeerConnection
+        // Close PeerConnection & AudioContext
+        if (audioCtxRef.current) {
+            try { audioCtxRef.current.close(); } catch (e) {}
+            audioCtxRef.current = null;
+        }
         if (pcRef.current) {
             try { pcRef.current.close(); } catch (e) {}
             pcRef.current = null;
@@ -255,18 +269,48 @@ export default function VideoCall() {
                     pc.addTrack(track, stream);
                 });
 
-                // Listen for incoming remote tracks
+                // Listen for incoming remote tracks with Web Audio API speakerphone routing
                 pc.ontrack = (event) => {
                     console.log("[WebRTC] Received remote stream track:", event.track.kind);
-                    const [remoteStream] = event.streams;
-                    if (remoteVideoRef.current) {
+                    let remoteStream = (event.streams && event.streams[0]) ? event.streams[0] : null;
+                    if (!remoteStream) {
+                        remoteStream = new MediaStream([event.track]);
+                    }
+
+                    if (event.track.kind === 'video' && remoteVideoRef.current) {
                         remoteVideoRef.current.srcObject = remoteStream;
                         remoteVideoRef.current.play().catch(() => {});
                     }
-                    if (remoteAudioRef.current) {
-                        remoteAudioRef.current.srcObject = remoteStream;
-                        remoteAudioRef.current.play().catch(() => {});
+
+                    // Route Audio through both HTML5 Audio & Web Audio API destination for 100% audibility on mobile speaker
+                    if (event.track.kind === 'audio' || remoteStream.getAudioTracks().length > 0) {
+                        if (remoteAudioRef.current) {
+                            remoteAudioRef.current.srcObject = remoteStream;
+                            remoteAudioRef.current.volume = 1.0;
+                            remoteAudioRef.current.play().catch(() => {});
+                        }
+
+                        try {
+                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                            if (AudioCtx) {
+                                if (!audioCtxRef.current) {
+                                    audioCtxRef.current = new AudioCtx();
+                                }
+                                const ctx = audioCtxRef.current;
+                                if (ctx.state === 'suspended') {
+                                    ctx.resume().catch(() => {});
+                                }
+                                const source = ctx.createMediaStreamSource(remoteStream);
+                                const gainNode = ctx.createGain();
+                                gainNode.gain.setValueAtTime(1.5, ctx.currentTime); // 150% volume boost for clear speaker audio
+                                source.connect(gainNode);
+                                gainNode.connect(ctx.destination);
+                            }
+                        } catch (err) {
+                            console.warn("[WebRTC] AudioContext routing fallback:", err);
+                        }
                     }
+
                     setPartnerConnected(true);
                 };
 

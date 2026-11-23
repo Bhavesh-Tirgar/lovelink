@@ -1008,7 +1008,7 @@ export default function Games() {
     onMessageRef.current = handleIncomingWsMessage;
 
     return (
-        <div className="min-h-screen pb-32 pt-8 px-4 sm:px-6 max-w-4xl mx-auto animate-fade-in text-white">
+        <div className="min-h-screen pb-32 pt-4 sm:pt-8 px-2 sm:px-6 max-w-4xl mx-auto animate-fade-in text-white">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
                 <div>
