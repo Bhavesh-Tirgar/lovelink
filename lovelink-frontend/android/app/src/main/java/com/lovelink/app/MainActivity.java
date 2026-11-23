@@ -23,7 +23,6 @@ public class MainActivity extends BridgeActivity {
                 wakeLock.setReferenceCounted(false);
             }
 
-        try {
             // Request OS-level permissions for Camera, Microphone, Audio, and Notifications (Android 13+)
             java.util.List<String> permList = new java.util.ArrayList<>();
             permList.add(android.Manifest.permission.RECORD_AUDIO);
