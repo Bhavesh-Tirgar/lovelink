@@ -157,8 +157,22 @@ export default function Snap() {
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        canvas.width = video.videoWidth || 720;
-        canvas.height = video.videoHeight || 1280;
+        
+        // Memory-safe scaling: clamp max resolution to 1280 to prevent Android OOM
+        let targetW = video.videoWidth || 720;
+        let targetH = video.videoHeight || 1280;
+        const maxDimension = 1280;
+        if (targetW > maxDimension || targetH > maxDimension) {
+            if (targetW > targetH) {
+                targetH = Math.round((targetH * maxDimension) / targetW);
+                targetW = maxDimension;
+            } else {
+                targetW = Math.round((targetW * maxDimension) / targetH);
+                targetH = maxDimension;
+            }
+        }
+        canvas.width = targetW;
+        canvas.height = targetH;
 
         const ctx = canvas.getContext('2d');
         if (facingMode === 'user') {
@@ -167,7 +181,7 @@ export default function Snap() {
         }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
         setCapturedImage(dataUrl);
 
         if (streamRef.current) {
@@ -181,8 +195,32 @@ export default function Snap() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-            setCapturedImage(reader.result);
-            playSnapSound('pop');
+            const rawData = reader.result;
+            // Downscale uploaded gallery photos to prevent massive Base64 memory bloating
+            const img = new Image();
+            img.onload = () => {
+                const offscreenCanvas = document.createElement('canvas');
+                let w = img.width;
+                let h = img.height;
+                const maxDim = 1280;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                offscreenCanvas.width = w;
+                offscreenCanvas.height = h;
+                const ctx = offscreenCanvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const compressedUrl = offscreenCanvas.toDataURL('image/jpeg', 0.80);
+                setCapturedImage(compressedUrl);
+                playSnapSound('pop');
+            };
+            img.src = rawData;
         };
         reader.readAsDataURL(file);
     };

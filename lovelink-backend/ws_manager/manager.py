@@ -19,8 +19,8 @@ class ConnectionManager:
                 del self.connections[couple_id]
 
     async def broadcast(self, couple_id: str, data: dict, exclude: WebSocket = None):
-        """Broadcast data to all connected partners in a couple, cleaning up dead sockets"""
-        connections = self.connections.get(couple_id, [])
+        """Broadcast data to all connected partners in a couple, cleaning up dead sockets safely"""
+        connections = list(self.connections.get(couple_id, []))
         dead_sockets = []
 
         for connection in connections:
@@ -38,6 +38,10 @@ class ConnectionManager:
                     self.connections[couple_id].remove(dead)
             if not self.connections[couple_id]:
                 del self.connections[couple_id]
+
+    def is_connected(self, couple_id: str) -> bool:
+        """Check if any partner is actively connected for a couple"""
+        return bool(self.connections.get(couple_id))
 
     async def send_personal(self, websocket: WebSocket, data: dict):
         try:

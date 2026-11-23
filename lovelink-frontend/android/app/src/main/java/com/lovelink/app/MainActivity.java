@@ -54,12 +54,22 @@ public class MainActivity extends BridgeActivity {
                 // Chrome Mobile user agent string to eliminate Google 'disallowed_useragent' errors
                 settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36");
 
-                // Explicitly grant camera & microphone permissions to WebRTC calls
+                // Explicitly grant camera & microphone permissions to WebRTC calls only for trusted origins
                 webView.setWebChromeClient(new WebChromeClient() {
                     @Override
                     public void onPermissionRequest(final PermissionRequest request) {
                         runOnUiThread(() -> {
-                            request.grant(request.getResources());
+                            if (request.getOrigin() != null) {
+                                String origin = request.getOrigin().toString();
+                                if (origin.startsWith("capacitor://") ||
+                                    origin.startsWith("https://lovelink-pearl.vercel.app") ||
+                                    origin.startsWith("https://lovelink.vercel.app") ||
+                                    origin.startsWith("http://localhost")) {
+                                    request.grant(request.getResources());
+                                    return;
+                                }
+                            }
+                            request.deny();
                         });
                     }
                 });
@@ -70,9 +80,8 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-        // Prevent background suspension of audio playback, WebSockets & timers
+    public void onResume() {
+        super.onResume();
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView wv = getBridge().getWebView();
@@ -83,14 +92,20 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
+    public void onPause() {
+        super.onPause();
+        // Allow audio timers to continue without fighting Android activity lifecycle
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView wv = getBridge().getWebView();
                 wv.resumeTimers();
-                wv.onResume();
             }
         } catch (Exception ignored) {}
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        // Respect OS lifecycle onStop so LowMemoryKiller doesn't prioritize killing the app
     }
 }
