@@ -7,6 +7,9 @@ const MusicContext = createContext();
 
 export const useMusic = () => useContext(MusicContext);
 
+const SPOTIFY_STATE_KEY = 'lovelink_spotify_playback_state';
+const SPOTIFY_LIKES_KEY = 'lovelink_spotify_liked_tracks';
+
 export const MusicProvider = ({ children }) => {
     const location = useLocation();
     const [channels, setChannels] = useState([]);
@@ -19,6 +22,15 @@ export const MusicProvider = ({ children }) => {
     const [isPlayerOpen, setIsPlayerOpen] = useState(false);
     const [djName, setDjName] = useState(null);
     const [isSynced, setIsSynced] = useState(false);
+    const [isShuffle, setIsShuffle] = useState(false);
+    const [repeatMode, setRepeatMode] = useState('off'); // 'off', 'all', 'one'
+
+    const [likedTracks, setLikedTracks] = useState(() => {
+        try {
+            const saved = typeof window !== 'undefined' ? localStorage.getItem(SPOTIFY_LIKES_KEY) : null;
+            return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+    });
 
     const [token, setToken] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('token') : null));
     const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('couple_id') : null));
@@ -27,6 +39,64 @@ export const MusicProvider = ({ children }) => {
     const wsRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
     const isLocalAction = useRef(true);
+    const savedPositionRef = useRef(0);
+
+    // Restore saved Spotify playback state on startup (Resume exact track & timestamp)
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(SPOTIFY_STATE_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.track) {
+                    setCurrentTrack(data.track);
+                    if (data.currentTime && data.currentTime > 0) {
+                        setCurrentTime(data.currentTime);
+                        savedPositionRef.current = data.currentTime;
+                    }
+                    if (data.duration && data.duration > 0) {
+                        setDuration(data.duration);
+                    }
+                    if (data.volume !== undefined) {
+                        setVolume(data.volume);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Could not restore saved Spotify state:", e);
+        }
+    }, []);
+
+    // Persist playback state to localStorage periodically
+    useEffect(() => {
+        if (!currentTrack) return;
+        try {
+            localStorage.setItem(SPOTIFY_STATE_KEY, JSON.stringify({
+                track: currentTrack,
+                currentTime: Math.floor(currentTime || 0),
+                duration: duration || currentTrack.duration || 0,
+                volume,
+                savedAt: Date.now()
+            }));
+        } catch { }
+    }, [currentTrack, currentTime, duration, volume]);
+
+    // Save on beforeunload / app background
+    useEffect(() => {
+        const handleSave = () => {
+            if (!currentTrack) return;
+            try {
+                localStorage.setItem(SPOTIFY_STATE_KEY, JSON.stringify({
+                    track: currentTrack,
+                    currentTime: Math.floor(currentTime || 0),
+                    duration: duration || currentTrack.duration || 0,
+                    volume,
+                    savedAt: Date.now()
+                }));
+            } catch { }
+        };
+        window.addEventListener('beforeunload', handleSave);
+        return () => window.removeEventListener('beforeunload', handleSave);
+    }, [currentTrack, currentTime, duration, volume]);
 
     const SILENT_CARRIER_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
@@ -89,14 +159,14 @@ export const MusicProvider = ({ children }) => {
                     audio.loop = true;
                     audio.volume = 0.05;
                 }
-                audio.play().catch(() => {});
-            } catch {}
+                audio.play().catch(() => { });
+            } catch { }
         } else {
             try {
                 if (audio.src === SILENT_CARRIER_URI) {
                     audio.pause();
                 }
-            } catch {}
+            } catch { }
         }
     };
 
@@ -457,46 +527,101 @@ export const MusicProvider = ({ children }) => {
         audioRef.current.volume = newVol;
     };
 
+    const toggleShuffle = () => setIsShuffle(prev => !prev);
+
+    const toggleRepeat = () => {
+        setRepeatMode(prev => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+    };
+
+    const toggleLikeTrack = (trackToToggle) => {
+        const target = trackToToggle || currentTrack;
+        if (!target) return;
+        const targetId = target.id || target.videoId;
+        setLikedTracks(prev => {
+            const exists = prev.some(t => (t.id || t.videoId) === targetId);
+            const updated = exists
+                ? prev.filter(t => (t.id || t.videoId) !== targetId)
+                : [target, ...prev];
+            try {
+                localStorage.setItem(SPOTIFY_LIKES_KEY, JSON.stringify(updated));
+            } catch { }
+            return updated;
+        });
+    };
+
+    const isLiked = (targetTrack) => {
+        const target = targetTrack || currentTrack;
+        if (!target) return false;
+        const targetId = target.id || target.videoId;
+        return likedTracks.some(t => (t.id || t.videoId) === targetId);
+    };
+
     const playNext = () => {
         if (!currentTrack) return;
+
+        if (repeatMode === 'one') {
+            seek(0);
+            if (isPlaying) controlYouTube('play');
+            return;
+        }
+
+        let pool = [];
         if (customPlaylist && customPlaylist.length > 0) {
-            const idx = customPlaylist.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
-            if (idx !== -1) {
-                const nextTrack = customPlaylist[(idx + 1) % customPlaylist.length];
-                playTrack(nextTrack);
-                return;
+            pool = customPlaylist;
+        } else {
+            for (const channel of channels) {
+                if (channel.tracks?.some(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId))) {
+                    pool = channel.tracks;
+                    break;
+                }
+            }
+            if (pool.length === 0 && channels.length > 0 && channels[0].tracks) {
+                pool = channels[0].tracks;
             }
         }
-        for (const channel of channels) {
-            const idx = channel.tracks.findIndex(t => t.id === currentTrack.id);
-            if (idx !== -1) {
-                const nextTrack = channel.tracks[(idx + 1) % channel.tracks.length];
-                playTrack(nextTrack);
-                return;
-            }
+
+        if (pool.length === 0) return;
+
+        if (isShuffle && pool.length > 1) {
+            const randomIdx = Math.floor(Math.random() * pool.length);
+            playTrack(pool[randomIdx]);
+            return;
         }
-        if (channels.length > 0 && channels[0].tracks.length > 0) {
-            playTrack(channels[0].tracks[0]);
+
+        const idx = pool.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+        if (idx !== -1) {
+            const nextTrack = pool[(idx + 1) % pool.length];
+            playTrack(nextTrack);
+        } else if (pool.length > 0) {
+            playTrack(pool[0]);
         }
     };
 
     const playPrev = () => {
         if (!currentTrack) return;
+        let pool = [];
         if (customPlaylist && customPlaylist.length > 0) {
-            const idx = customPlaylist.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
-            if (idx !== -1) {
-                const prevTrack = customPlaylist[(idx - 1 + customPlaylist.length) % customPlaylist.length];
-                playTrack(prevTrack);
-                return;
+            pool = customPlaylist;
+        } else {
+            for (const channel of channels) {
+                if (channel.tracks?.some(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId))) {
+                    pool = channel.tracks;
+                    break;
+                }
+            }
+            if (pool.length === 0 && channels.length > 0 && channels[0].tracks) {
+                pool = channels[0].tracks;
             }
         }
-        for (const channel of channels) {
-            const idx = channel.tracks.findIndex(t => t.id === currentTrack.id);
-            if (idx !== -1) {
-                const prevTrack = channel.tracks[(idx - 1 + channel.tracks.length) % channel.tracks.length];
-                playTrack(prevTrack);
-                return;
-            }
+
+        if (pool.length === 0) return;
+
+        const idx = pool.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+        if (idx !== -1) {
+            const prevTrack = pool[(idx - 1 + pool.length) % pool.length];
+            playTrack(prevTrack);
+        } else if (pool.length > 0) {
+            playTrack(pool[0]);
         }
     };
 
@@ -559,6 +684,13 @@ export const MusicProvider = ({ children }) => {
             setIsPlayerOpen,
             djName,
             isSynced,
+            isShuffle,
+            toggleShuffle,
+            repeatMode,
+            toggleRepeat,
+            likedTracks,
+            toggleLikeTrack,
+            isLiked,
             playTrack,
             togglePlay,
             seek,
@@ -568,7 +700,7 @@ export const MusicProvider = ({ children }) => {
             addCustomTrack,
         }}>
             {children}
-            {/* Permanent Root YouTube Audio Carrier: Never unmounts across route transitions */}
+            {/* Permanent Root YouTube Audio Carrier: Never unmounts across route transitions & resumes exact timestamp */}
             {isYouTube && currentTrack.videoId && (
                 <div
                     className="fixed -left-[9999px] top-0 w-[320px] h-[240px] pointer-events-none z-[-1] overflow-hidden"
@@ -579,12 +711,16 @@ export const MusicProvider = ({ children }) => {
                         title="YouTube Music Player"
                         width="320"
                         height="240"
-                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                        src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&start=${Math.floor(currentTime || savedPositionRef.current || 0)}&enablejsapi=1&controls=0&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                         allow="autoplay; encrypted-media"
                         onLoad={() => {
                             const iframe = document.getElementById('yt-music-iframe');
                             if (iframe?.contentWindow) {
                                 iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'yt-music-iframe' }), '*');
+                                const resumePos = currentTime || savedPositionRef.current;
+                                if (resumePos > 0) {
+                                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [resumePos, true] }), '*');
+                                }
                                 if (isPlaying) {
                                     iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                 }
