@@ -35,7 +35,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Arijit Singh & Pritam",
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "type": "audio",
+                "videoId": "BddP6PYo2gs",
+                "type": "youtube",
                 "duration": 268
             },
             {
@@ -44,7 +45,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Arijit Singh (Aashiqui 2)",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
-                "type": "audio",
+                "videoId": "IJq0yyWug1k",
+                "type": "youtube",
                 "duration": 262
             },
             {
@@ -53,7 +55,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Jubin Nautiyal & Asees Kaur",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "type": "audio",
+                "videoId": "gvyUuxdRdR4",
+                "type": "youtube",
                 "duration": 230
             },
             {
@@ -62,7 +65,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Arijit Singh & Sachin-Jigar",
                 "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
-                "type": "audio",
+                "videoId": "ElZfdU54Cp8",
+                "type": "youtube",
                 "duration": 261
             },
             {
@@ -71,7 +75,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Vishal Mishra (Animal)",
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "type": "audio",
+                "videoId": "iAIBF2ngbWY",
+                "type": "youtube",
                 "duration": 250
             },
             {
@@ -80,7 +85,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Akhil Sachdeva & Tulsi Kumar",
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
-                "type": "audio",
+                "videoId": "eLmMomv753E",
+                "type": "youtube",
                 "duration": 236
             }
         ]
@@ -96,7 +102,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Hindi Lo-Fi Collective",
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
-                "type": "audio",
+                "videoId": "jHNNMj5bNQw",
+                "type": "youtube",
                 "duration": 215
             },
             {
@@ -105,7 +112,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Bollywood Chill Room",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "type": "audio",
+                "videoId": "fSS_R91Nimw",
+                "type": "youtube",
                 "duration": 230
             },
             {
@@ -114,7 +122,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Cozy Monsoon Lo-Fi",
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "type": "audio",
+                "videoId": "sK7riqg2mr4",
+                "type": "youtube",
                 "duration": 240
             },
             {
@@ -123,7 +132,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Desi Lo-Fi Hub",
                 "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
-                "type": "audio",
+                "videoId": "cYOB941gyXI",
+                "type": "youtube",
                 "duration": 210
             },
             {
@@ -132,7 +142,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Lucky Ali Chill Tribute",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "type": "audio",
+                "videoId": "1eO74UmRBs",
+                "type": "youtube",
                 "duration": 205
             }
         ]
@@ -148,7 +159,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Kumar Sanu & Lata Mangeshkar",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "type": "audio",
+                "videoId": "cNV5hLKh9Sg",
+                "type": "youtube",
                 "duration": 280
             },
             {
@@ -157,7 +169,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Sonu Nigam & Shankar-Ehsaan-Loy",
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
-                "type": "audio",
+                "videoId": "g0eO74UmRBs",
+                "type": "youtube",
                 "duration": 290
             },
             {
@@ -166,7 +179,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Sonu Nigam & Alka Yagnik",
                 "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/02/07/audio_d0c6ff1bab.mp3?filename=emotional-piano-10837.mp3",
-                "type": "audio",
+                "videoId": "L0zKs8i7Nc8",
+                "type": "youtube",
                 "duration": 310
             },
             {
@@ -175,7 +189,8 @@ DEFAULT_CHANNELS = [
                 "artist": "Bombay Jayashri",
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "type": "audio",
+                "videoId": "0b9zS8c-B-E",
+                "type": "youtube",
                 "duration": 275
             },
             {
@@ -184,8 +199,9 @@ DEFAULT_CHANNELS = [
                 "artist": "Mohit Chauhan (OUATIM)",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "type": "audio",
-                "duration": 288
+                "videoId": "Y_SdtLms1e0",
+                "type": "youtube",
+                "duration": 285
             }
         ]
     },

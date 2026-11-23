@@ -9,9 +9,19 @@ import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private android.os.PowerManager.WakeLock wakeLock;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        try {
+            // Initialize Partial WakeLock to prevent CPU sleep during background audio playback
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(android.content.Context.POWER_SERVICE);
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "LoveLink:AudioPlaybackLock");
+                wakeLock.setReferenceCounted(false);
+            }
 
         try {
             // Request OS-level permissions for Camera, Microphone, Audio, and Notifications (Android 13+)
@@ -105,6 +115,9 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView wv = getBridge().getWebView();
                 wv.resumeTimers();
@@ -116,8 +129,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        // Allow audio timers to continue without fighting Android activity lifecycle
+        // Hold Partial WakeLock so CPU does not sleep when screen is locked during audio streaming
         try {
+            if (wakeLock != null && !wakeLock.isHeld()) {
+                wakeLock.acquire(30 * 60 * 1000L); // 30 minutes max
+            }
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView wv = getBridge().getWebView();
                 wv.resumeTimers();
@@ -128,6 +144,16 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
-        // Respect OS lifecycle onStop so LowMemoryKiller doesn't prioritize killing the app
+        // Respect OS lifecycle onStop while WakeLock keeps audio thread processing
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+        } catch (Exception ignored) {}
     }
 }
