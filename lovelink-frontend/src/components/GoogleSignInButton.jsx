@@ -224,38 +224,13 @@ export default function GoogleSignInButton({ onError }) {
     const handleGoogleSignInClick = async () => {
         setLoading(true);
 
-        // Native Android APK: Never navigate in-app WebView to accounts.google.com!
+        // Native Android APK: Open secure Google OAuth in external Chrome Custom Tabs.
+        // Bypasses Android Credential Manager which fails without a SHA-1 registered Android client ID.
         if (isNativePlatform) {
-            // 1. Attempt native Google Play Services sign-in if available
-            try {
-                console.log('[NativeAuth] Initializing @capawesome/capacitor-google-sign-in...');
-                const { GoogleSignIn } = await import('@capawesome/capacitor-google-sign-in');
-                await GoogleSignIn.initialize({ clientId });
-                const result = await GoogleSignIn.signIn();
-                console.log('[NativeAuth] GoogleSignIn.signIn result:', result ? 'Received result' : 'null');
-                if (result) {
-                    const token = result.idToken || result.accessToken;
-                    if (token) {
-                        await handleGoogleResponse({ credential: token });
-                        return;
-                    }
-                }
-            } catch (nativeErr) {
-                console.warn('[NativeAuth] Google Play Services sign-in error:', nativeErr);
-                // Only treat explicit user cancellation as a silent dismissal
-                const errMsg = (nativeErr?.message || '').toLowerCase();
-                const isExplicitCancel = errMsg.includes('user cancel') || nativeErr?.code === 'SIGN_IN_CANCELED';
-                if (isExplicitCancel) {
-                    setLoading(false);
-                    return;
-                }
-                toast('Switching to secure browser sign-in...', { icon: '🌐' });
-            }
-
-            // 2. Fallback: Open external Chrome Custom Tabs via @capacitor/browser.
             try {
                 const redirectUri = 'https://lovelink-pearl.vercel.app/login';
                 const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token%20id_token&scope=openid%20email%20profile&state=capacitor&nonce=${Date.now()}`;
+                console.log('[NativeAuth] Opening Chrome Custom Tabs with redirect URI:', redirectUri);
                 await Browser.open({ url: oauthUrl, windowName: '_system' });
             } catch (browserErr) {
                 console.error('[NativeAuth] Failed to open external browser for Google auth:', browserErr);
