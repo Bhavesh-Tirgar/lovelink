@@ -331,19 +331,29 @@ export default function GoogleSignInButton({ onError }) {
 
             {/* External Return Modal (for Chrome Custom Tabs returning to APK) */}
             {externalReturnLink && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-                    <div className="w-full max-w-sm p-6 rounded-3xl bg-gradient-to-b from-[#1e1026] via-[#120a18] to-black border border-rose-500/40 text-center shadow-2xl space-y-4">
-                        <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl shadow-inner animate-pulse">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-[#050608]/98 backdrop-blur-2xl select-none animate-fade-in">
+                    <div className="w-full max-w-sm p-8 rounded-3xl bg-gradient-to-b from-[#1c1228] via-[#100918] to-black border-2 border-emerald-500/50 text-center shadow-[0_0_50px_rgba(16,185,129,0.3)] space-y-5">
+                        <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-3xl shadow-inner animate-bounce">
                             💖
                         </div>
-                        <h3 className="text-xl font-black text-white">Signed in with Google!</h3>
-                        <p className="text-xs text-gray-300">Tap below to open and continue in the LoveLink App:</p>
+                        <div>
+                            <h3 className="text-2xl font-black text-white">Signed in with Google!</h3>
+                            <p className="text-xs text-gray-300 mt-2">Tap below to return to your LoveLink App:</p>
+                        </div>
                         <a
                             href={externalReturnLink}
-                            className="block w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-extrabold text-sm shadow-lg shadow-rose-500/40 hover:scale-105 active:scale-95 transition-all text-center"
+                            onClick={() => {
+                                try {
+                                    window.location.href = externalReturnLink;
+                                } catch {}
+                            }}
+                            className="block w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-black text-base shadow-[0_0_25px_rgba(244,63,94,0.6)] hover:scale-105 active:scale-95 transition-all text-center"
                         >
                             Open LoveLink App ❤️
                         </a>
+                        <p className="text-[11px] text-gray-400">
+                            If the app didn't switch automatically, tapping the button opens it instantly!
+                        </p>
                     </div>
                 </div>
             )}

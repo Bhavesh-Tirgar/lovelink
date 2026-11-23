@@ -70,10 +70,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        // Prevent background suspension of audio playback & timers
+        // Prevent background suspension of audio playback, WebSockets & timers
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
-                getBridge().getWebView().resumeTimers();
+                WebView wv = getBridge().getWebView();
+                wv.resumeTimers();
+                wv.onResume();
             }
         } catch (Exception ignored) {}
     }
@@ -83,7 +85,9 @@ public class MainActivity extends BridgeActivity {
         super.onStop();
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
-                getBridge().getWebView().resumeTimers();
+                WebView wv = getBridge().getWebView();
+                wv.resumeTimers();
+                wv.onResume();
             }
         } catch (Exception ignored) {}
     }
