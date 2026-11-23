@@ -454,15 +454,21 @@ export default function Games() {
     };
 
     const handleTttClick = (index) => {
-        // Enforce turn: if in online mode, only allow clicking when strictly your turn
         if (tttBoard[index] || tttWinner) return;
-        if (gameMode !== 'couch') {
-            if (!tttMySymbol || !tttTurn || tttTurn !== tttMySymbol) return; // Not your turn!
+
+        const activeTurn = tttTurn || '❤️';
+        const mySymbol = tttMySymbol || '❤️';
+        if (!tttMySymbol) {
+            setTttMySymbol('❤️');
+        }
+
+        if (gameMode !== 'couch' && gameMode !== 'bot') {
+            if (activeTurn !== mySymbol) return; // Wait for your turn in online mode
         }
 
         playSound('click');
         const newBoard = [...tttBoard];
-        newBoard[index] = tttTurn;
+        newBoard[index] = activeTurn;
         setTttBoard(newBoard);
 
         const winResult = checkTttWinner(newBoard);
@@ -480,7 +486,7 @@ export default function Games() {
                 setTttScores(s => ({ ...s, draws: s.draws + 1 }));
             }
         } else {
-            setTttTurn(tttTurn === '❤️' ? '💋' : '❤️');
+            setTttTurn(activeTurn === '❤️' ? '💋' : '❤️');
         }
 
         // Send move to partner
@@ -488,7 +494,7 @@ export default function Games() {
             game: 'ttt',
             action: 'move',
             index: index,
-            symbol: tttTurn
+            symbol: activeTurn
         });
     };
 

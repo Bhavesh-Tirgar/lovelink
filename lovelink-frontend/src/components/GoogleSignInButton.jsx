@@ -158,7 +158,7 @@ export default function GoogleSignInButton({ onError }) {
 
         if (idToken) {
             window.history.replaceState(null, '', window.location.pathname);
-            handleGoogleResponse({ 
+            handleGoogleResponse({
                 credential: idToken,
                 isCapacitorFlow: isCapFlow
             });
@@ -320,7 +320,7 @@ export default function GoogleSignInButton({ onError }) {
                             onClick={() => {
                                 try {
                                     window.location.href = externalReturnLink;
-                                } catch {}
+                                } catch { }
                             }}
                             className="block w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-black text-base shadow-[0_0_25px_rgba(244,63,94,0.6)] hover:scale-105 active:scale-95 transition-all text-center"
                         >

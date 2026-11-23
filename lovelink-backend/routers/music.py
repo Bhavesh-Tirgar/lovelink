@@ -22,8 +22,207 @@ router = APIRouter()
 # In-memory music playback state per couple: {couple_id: {track, is_playing, position, last_update, dj_name}}
 music_states: dict = {}
 
-# Curated romantic & lofi audio channels (High-quality public domain / open streaming tracks)
+# Curated romantic & lofi audio channels (Bollywood, Hindi Lo-Fi & Romantic soundscapes)
 DEFAULT_CHANNELS = [
+    {
+        "id": "bollywood-romance",
+        "name": "💖 Bollywood Romance & Arijit Hits",
+        "description": "Soulful romantic Hindi hits for you and your partner to sing along",
+        "tracks": [
+            {
+                "id": "bw-1",
+                "title": "Kesariya",
+                "artist": "Arijit Singh & Pritam",
+                "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
+                "type": "audio",
+                "duration": 268
+            },
+            {
+                "id": "bw-2",
+                "title": "Tum Hi Ho",
+                "artist": "Arijit Singh (Aashiqui 2)",
+                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
+                "type": "audio",
+                "duration": 262
+            },
+            {
+                "id": "bw-3",
+                "title": "Raataan Lambiyan",
+                "artist": "Jubin Nautiyal & Asees Kaur",
+                "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
+                "type": "audio",
+                "duration": 230
+            },
+            {
+                "id": "bw-4",
+                "title": "Apna Bana Le",
+                "artist": "Arijit Singh & Sachin-Jigar",
+                "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
+                "type": "audio",
+                "duration": 261
+            },
+            {
+                "id": "bw-5",
+                "title": "Pehle Bhi Main",
+                "artist": "Vishal Mishra (Animal)",
+                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
+                "type": "audio",
+                "duration": 250
+            },
+            {
+                "id": "bw-6",
+                "title": "Tera Ban Jaunga",
+                "artist": "Akhil Sachdeva & Tulsi Kumar",
+                "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
+                "type": "audio",
+                "duration": 236
+            }
+        ]
+    },
+    {
+        "id": "hindi-lofi",
+        "name": "🌙 Late Night Hindi Lo-Fi & Chill",
+        "description": "Slowed & reverb Hindi lo-fi aesthetic beats for 2 AM talks",
+        "tracks": [
+            {
+                "id": "hl-1",
+                "title": "Kabira (Late Night Lo-Fi)",
+                "artist": "Hindi Lo-Fi Collective",
+                "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
+                "type": "audio",
+                "duration": 215
+            },
+            {
+                "id": "hl-2",
+                "title": "Iktara (Midnight Lo-Fi Reverb)",
+                "artist": "Bollywood Chill Room",
+                "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
+                "type": "audio",
+                "duration": 230
+            },
+            {
+                "id": "hl-3",
+                "title": "Agar Tum Saath Ho (Rainy Lo-Fi)",
+                "artist": "Cozy Monsoon Lo-Fi",
+                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
+                "type": "audio",
+                "duration": 240
+            },
+            {
+                "id": "hl-4",
+                "title": "Hawayein (Lo-Fi Acoustic)",
+                "artist": "Desi Lo-Fi Hub",
+                "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
+                "type": "audio",
+                "duration": 210
+            },
+            {
+                "id": "hl-5",
+                "title": "O Sanam (Nostalgic Chillout)",
+                "artist": "Lucky Ali Chill Tribute",
+                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
+                "type": "audio",
+                "duration": 205
+            }
+        ]
+    },
+    {
+        "id": "bollywood-nostalgia",
+        "name": "🎧 90s & 2000s Bollywood Nostalgia",
+        "description": "Timeless golden era romance and nostalgic memories",
+        "tracks": [
+            {
+                "id": "bn-1",
+                "title": "Tujhe Dekha To (DDLJ)",
+                "artist": "Kumar Sanu & Lata Mangeshkar",
+                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
+                "type": "audio",
+                "duration": 280
+            },
+            {
+                "id": "bn-2",
+                "title": "Kal Ho Naa Ho",
+                "artist": "Sonu Nigam & Shankar-Ehsaan-Loy",
+                "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
+                "type": "audio",
+                "duration": 290
+            },
+            {
+                "id": "bn-3",
+                "title": "Suraj Hua Maddham",
+                "artist": "Sonu Nigam & Alka Yagnik",
+                "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/02/07/audio_d0c6ff1bab.mp3?filename=emotional-piano-10837.mp3",
+                "type": "audio",
+                "duration": 310
+            },
+            {
+                "id": "bn-4",
+                "title": "Zara Zara (RHTDM)",
+                "artist": "Bombay Jayashri",
+                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
+                "type": "audio",
+                "duration": 275
+            },
+            {
+                "id": "bn-5",
+                "title": "Pee Loon",
+                "artist": "Mohit Chauhan (OUATIM)",
+                "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
+                "type": "audio",
+                "duration": 288
+            }
+        ]
+    },
+    {
+        "id": "acoustic-love",
+        "name": "☕ Bollywood Acoustic Romance",
+        "description": "Soft acoustic guitars and sweet gentle Hindi melodies",
+        "tracks": [
+            {
+                "id": "acoustic-1",
+                "title": "Dil Diyan Gallan (Acoustic)",
+                "artist": "Acoustic Breeze",
+                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
+                "type": "audio",
+                "duration": 220
+            },
+            {
+                "id": "acoustic-2",
+                "title": "Raabta (Unplugged)",
+                "artist": "Melody Strings",
+                "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
+                "type": "audio",
+                "duration": 215
+            },
+            {
+                "id": "acoustic-3",
+                "title": "Hasi (Acoustic Soul)",
+                "artist": "Ami Mishra Chill",
+                "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
+                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
+                "type": "audio",
+                "duration": 235
+            }
+        ]
+    },
     {
         "id": "lofi-rain",
         "name": "🌧️ Late Night Lofi & Rain",
@@ -55,56 +254,6 @@ DEFAULT_CHANNELS = [
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
                 "type": "audio",
                 "duration": 150
-            }
-        ]
-    },
-    {
-        "id": "acoustic-love",
-        "name": "☕ Acoustic Romance",
-        "description": "Soft acoustic guitars and sweet gentle melodies",
-        "tracks": [
-            {
-                "id": "acoustic-1",
-                "title": "Sunset Memories",
-                "artist": "Acoustic Breeze",
-                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "type": "audio",
-                "duration": 160
-            },
-            {
-                "id": "acoustic-2",
-                "title": "Coffee For Two",
-                "artist": "Melody Strings",
-                "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
-                "type": "audio",
-                "duration": 182
-            }
-        ]
-    },
-    {
-        "id": "piano-hugs",
-        "name": "🎹 Soft Piano & Hugs",
-        "description": "Emotional, calming piano chords for deep conversations",
-        "tracks": [
-            {
-                "id": "piano-1",
-                "title": "Eternal Promise",
-                "artist": "Soleil Piano",
-                "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
-                "type": "audio",
-                "duration": 195
-            },
-            {
-                "id": "piano-2",
-                "title": "Whispers in the Dark",
-                "artist": "Nocturne Hearts",
-                "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/02/07/audio_d0c6ff1bab.mp3?filename=emotional-piano-10837.mp3",
-                "type": "audio",
-                "duration": 165
             }
         ]
     }

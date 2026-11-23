@@ -21,7 +21,13 @@ export default function NotificationBell() {
 
     useEffect(() => {
         fetchNotifs();
-        // In a real app we'd trigger this on websocket messages too
+        const interval = setInterval(fetchNotifs, 25000);
+        const onFocus = () => fetchNotifs();
+        window.addEventListener('focus', onFocus);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', onFocus);
+        };
     }, []);
 
     const handleClickOutside = (event) => {

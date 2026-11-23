@@ -14,21 +14,23 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         try {
-            // Request OS-level permissions for WebRTC Microphone and Camera
-            String[] perms = {
-                android.Manifest.permission.RECORD_AUDIO,
-                android.Manifest.permission.CAMERA,
-                android.Manifest.permission.MODIFY_AUDIO_SETTINGS
-            };
-            boolean needPerm = false;
-            for (String p : perms) {
+            // Request OS-level permissions for Camera, Microphone, Audio, and Notifications (Android 13+)
+            java.util.List<String> permList = new java.util.ArrayList<>();
+            permList.add(android.Manifest.permission.RECORD_AUDIO);
+            permList.add(android.Manifest.permission.CAMERA);
+            permList.add(android.Manifest.permission.MODIFY_AUDIO_SETTINGS);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                permList.add("android.permission.POST_NOTIFICATIONS");
+            }
+
+            java.util.List<String> needPerms = new java.util.ArrayList<>();
+            for (String p : permList) {
                 if (androidx.core.content.ContextCompat.checkSelfPermission(this, p) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    needPerm = true;
-                    break;
+                    needPerms.add(p);
                 }
             }
-            if (needPerm) {
-                androidx.core.app.ActivityCompat.requestPermissions(this, perms, 101);
+            if (!needPerms.isEmpty()) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, needPerms.toArray(new String[0]), 101);
             }
 
             // Ensure Speakerphone is available for WebRTC calls

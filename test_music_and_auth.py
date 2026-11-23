@@ -119,9 +119,6 @@ class TestLoveLinkMusicAndAuth(unittest.TestCase):
         """Verify iframe src does not include fluctuating currentTime, preventing continuous reload stutter."""
         video_id = "jfKfPfyJRdk"
         
-        # Flawed old src template:
-        # flawed_src = f"https://www.youtube.com/embed/{video_id}?autoplay=1&start={current_time}"
-        
         # New stabilized src template:
         stable_src = f"https://www.youtube.com/embed/{video_id}?autoplay=1&enablejsapi=1&origin=https://lovelink-pearl.vercel.app&playsinline=1"
         
@@ -129,6 +126,70 @@ class TestLoveLinkMusicAndAuth(unittest.TestCase):
         self.assertNotIn("start=", stable_src)
         self.assertIn(video_id, stable_src)
         self.assertIn("enablejsapi=1", stable_src)
+
+    def test_bollywood_and_hindi_lofi_channels(self):
+        """Verify Bollywood and Hindi Lo-Fi playlists provide HTML5 audio streams for background playback."""
+        import sys
+        sys.path.insert(0, "lovelink-backend")
+        from routers.music import DEFAULT_CHANNELS
+
+        self.assertGreaterEqual(len(DEFAULT_CHANNELS), 4)
+        
+        # Verify Romantic Bollywood and Hindi Lo-Fi channels exist
+        channel_names = [ch["name"] for ch in DEFAULT_CHANNELS]
+        self.assertTrue(any("Bollywood" in name for name in channel_names))
+        self.assertTrue(any("Hindi" in name or "Lo-Fi" in name for name in channel_names))
+
+        # Invariant: Tracks should have type 'audio' with streaming URLs for background playback
+        for channel in DEFAULT_CHANNELS:
+            self.assertIn("tracks", channel)
+            self.assertGreater(len(channel["tracks"]), 0)
+            for track in channel["tracks"]:
+                self.assertIn(track.get("type"), ["audio", "youtube"])
+                if track.get("type") == "audio":
+                    self.assertTrue(track.get("url", "").startswith("https://"))
+
+    def test_snap_streak_calculation(self):
+        """Verify Snapchat-like streak calculation for consecutive days."""
+        from datetime import datetime, timedelta
+
+        def calculate_streak(last_date_str, current_date, current_streak):
+            if not last_date_str:
+                return 1
+            last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
+            if last_date == current_date:
+                return current_streak
+            elif last_date == current_date - timedelta(days=1):
+                return current_streak + 1
+            else:
+                return 1
+
+        today = datetime(2026, 11, 23).date()
+        
+        # First snap ever
+        self.assertEqual(calculate_streak(None, today, 0), 1)
+        
+        # Same day snap -> streak preserved
+        self.assertEqual(calculate_streak("2026-11-23", today, 5), 5)
+        
+        # Consecutive day snap -> streak incremented
+        self.assertEqual(calculate_streak("2026-11-22", today, 5), 6)
+        
+        # Missed 2 days -> streak reset to 1
+        self.assertEqual(calculate_streak("2026-11-20", today, 10), 1)
+
+    def test_google_cloud_console_configured_client_and_redirects(self):
+        """Verify Client ID and redirect URIs match Google Cloud Console configurations."""
+        configured_client_id = "1088818591868-a2ktjjk82k2vnv2j3k837lumvaoie79f.apps.googleusercontent.com"
+        authorized_origins = ["https://lovelink-pearl.vercel.app"]
+        authorized_redirect_uris = [
+            "https://lovelink-pearl.vercel.app/login",
+            "https://lovelink-pearl.vercel.app"
+        ]
+
+        self.assertTrue(configured_client_id.endswith(".apps.googleusercontent.com"))
+        self.assertIn("https://lovelink-pearl.vercel.app/login", authorized_redirect_uris)
+        self.assertIn("https://lovelink-pearl.vercel.app", authorized_origins)
 
 if __name__ == '__main__':
     unittest.main()

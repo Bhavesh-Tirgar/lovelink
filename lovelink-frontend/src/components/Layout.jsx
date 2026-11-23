@@ -7,14 +7,13 @@ import { useLocation } from 'react-router-dom';
 export default function Layout({ children }) {
     const location = useLocation();
     const hiddenPaths = ['/login', '/signup', '/link'];
-    const isReels = location.pathname === '/reels';
     const isFullscreen = location.pathname.startsWith('/call/') || 
         location.pathname.startsWith('/watch/') || 
         location.pathname === '/touch' || 
         location.pathname === '/universe' || 
         location.pathname === '/map' || 
         location.pathname === '/chat' || 
-        location.pathname === '/reels' ||
+        location.pathname === '/snap' ||
         location.pathname === '/doodle';
     const isAuthPage = hiddenPaths.includes(location.pathname);
 
@@ -42,8 +41,8 @@ export default function Layout({ children }) {
                 {children}
             </main>
 
-            {/* Floating Synchronized Music Player (Disable on Reels & Calls to avoid audio collision) */}
-            {!isAuthPage && !location.pathname.startsWith('/call/') && !isReels && <FloatingMusicPlayer />}
+            {/* Floating Synchronized Music Player (Disable on Snap & Calls to avoid camera/audio collision) */}
+            {!isAuthPage && !location.pathname.startsWith('/call/') && location.pathname !== '/snap' && <FloatingMusicPlayer />}
 
             {/* PWA Add to Home Screen Prompt */}
             {!isAuthPage && !isFullscreen && <InstallPrompt />}

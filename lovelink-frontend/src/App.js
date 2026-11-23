@@ -16,7 +16,7 @@ import Games from './pages/Games';
 import LiveMap from './pages/LiveMap';
 import CycleTracker from './pages/CycleTracker';
 import Hub from './pages/Hub';
-import Reels from './pages/Reels';
+import Snap from './pages/Snap';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import { CallProvider } from './context/CallContext';
@@ -89,7 +89,8 @@ function App() {
                 <Route path="/map" element={<ProtectedRoute><LiveMap /></ProtectedRoute>} />
                 <Route path="/cycle" element={<ProtectedRoute><CycleTracker /></ProtectedRoute>} />
                 <Route path="/hub" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
-                <Route path="/reels" element={<ProtectedRoute><Reels /></ProtectedRoute>} />
+                <Route path="/snap" element={<ProtectedRoute><Snap /></ProtectedRoute>} />
+                <Route path="/reels" element={<Navigate to="/snap" replace />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

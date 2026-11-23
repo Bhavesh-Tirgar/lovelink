@@ -597,9 +597,23 @@ export default function CoupleLudo({
         const timer = setInterval(() => {
             setTurnTimeLeft(prev => {
                 if (prev <= 1) {
-                    // Auto-roll or Auto-pass on timeout
-                    if (isMyTurn && !currentDice && !rolling) {
-                        handleRollDice();
+                    // Auto-roll or Auto-move/pass on timeout to prevent freezing
+                    if (isMyTurn) {
+                        if (!currentDice && !rolling) {
+                            handleRollDice();
+                        } else if (currentDice && !rolling && !isHopping) {
+                            const validMoves = [];
+                            myTokens.forEach((s, idx) => {
+                                if (canTokenMove(s, currentDice)) validMoves.push(idx);
+                            });
+                            if (validMoves.length > 0) {
+                                handleExecuteMove(validMoves[0], myColor);
+                            } else {
+                                const nextTurn = myColor === 'pink' ? 'blue' : 'pink';
+                                setGameState(p => ({ ...p, turn: nextTurn, dice: null }));
+                                sendWs({ game: 'ludo', action: 'pass_turn' });
+                            }
+                        }
                     }
                     return 15;
                 }
@@ -608,7 +622,7 @@ export default function CoupleLudo({
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [turn, isMyTurn, currentDice, rolling, isHopping, winner, handleRollDice]);
+    }, [turn, isMyTurn, currentDice, rolling, isHopping, winner, handleRollDice, myTokens, canTokenMove, handleExecuteMove, myColor, sendWs]);
 
     // LoveBot autonomous partner moves (in bot mode)
     useEffect(() => {

@@ -8,7 +8,7 @@ import {
   Heart, MessageCircle, Compass,
   MapPin, Film, Gamepad2, Camera,
   Settings, LogOut, Copy, Check, QrCode, Volume2, VolumeX, X,
-  Clapperboard, Sparkles, Clock, Phone, Video
+  Sparkles, Clock, Phone, Video
 } from 'lucide-react';
 import SpotlightCard from '../components/ui/SpotlightCard';
 import ShinyText from '../components/ui/ShinyText';
@@ -265,32 +265,32 @@ export default function Dashboard() {
         </div>
       </motion.header>
 
-      {/* Top Prominent Quick Pill for Reels Lounge */}
+      {/* Top Prominent Quick Pill for Instant Snap */}
       <SpotlightCard
-        onClick={() => navigate('/reels')}
-        spotlightColor="rgba(244, 63, 94, 0.25)"
-        borderColor="rgba(244, 63, 94, 0.45)"
-        className="mb-4 p-3.5 sm:p-4 bg-gradient-to-r from-pink-950/40 via-purple-950/30 to-black/80 cursor-pointer"
+        onClick={() => navigate('/snap')}
+        spotlightColor="rgba(234, 179, 8, 0.25)"
+        borderColor="rgba(234, 179, 8, 0.45)"
+        className="mb-4 p-3.5 sm:p-4 bg-gradient-to-r from-amber-950/40 via-yellow-950/30 to-black/80 cursor-pointer"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500/25 to-purple-500/25 border border-rose-500/40 flex items-center justify-center text-xl shadow-inner">
-              🎬
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500/25 to-yellow-500/25 border border-yellow-500/40 flex items-center justify-center text-xl shadow-inner">
+              📸
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <ShinyText text="Reels Lounge" className="text-sm font-black tracking-wide" />
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 font-bold border border-rose-500/40 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                  <span>Live Feed</span>
+                <ShinyText text="Instant Snap & Streaks" className="text-sm font-black tracking-wide" />
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-300 font-bold border border-amber-500/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  <span>Snap Streak 🔥</span>
                 </span>
               </div>
-              <p className="text-[11px] text-gray-300">Watch viral couple reels together with real-time co-scroll</p>
+              <p className="text-[11px] text-gray-300">Send disappearing photos, camera filters & keep your love streak alive</p>
             </div>
           </div>
-          <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-purple-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1">
-            <span>Watch</span>
-            <span>→</span>
+          <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-extrabold text-xs transition-all shadow-md flex items-center gap-1">
+            <span>Snap</span>
+            <span>⚡</span>
           </div>
         </div>
       </SpotlightCard>
@@ -452,7 +452,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               {[
                 { title: 'Chat', desc: 'E2EE Messages', icon: MessageCircle, path: '/chat', color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
-                { title: 'Reels', desc: 'Co-Scroll Lounge', icon: Clapperboard, path: '/reels', color: 'text-pink-400 bg-pink-500/10 border-pink-500/20' },
+                { title: 'Snap', desc: 'Instant & Disappearing', icon: Camera, path: '/snap', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' },
                 { title: 'Games', desc: 'Authentic Ludo & 1v1', icon: Gamepad2, path: '/games', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
                 { title: 'Watch', desc: 'Sync Movies', icon: Film, path: '/movies', color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
                 { title: 'Snap Map', desc: 'Live Radar', icon: MapPin, path: '/map', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },

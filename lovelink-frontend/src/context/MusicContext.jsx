@@ -244,12 +244,23 @@ export const MusicProvider = ({ children }) => {
                 console.warn("Using curated couple lofi channels:", err);
                 const defaultChannels = [
                     {
-                        id: 'midnight_lofi',
-                        title: 'Midnight Lofi',
-                        icon: '🌙',
+                        id: 'bollywood-romance',
+                        name: '💖 Bollywood Romance & Arijit Hits',
+                        title: '💖 Bollywood Romance',
                         tracks: [
-                            { id: 'track_1', title: 'Coffee Under The Stars', artist: 'LoveLink Lofi', videoId: 'jfKfPfyJRdk', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', duration: 240, type: 'youtube' },
-                            { id: 'track_2', title: 'Sunset Boulevard & You', artist: 'Acoustic Dreams', videoId: '5qap5aO4i9A', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', duration: 210, type: 'youtube' }
+                            { id: 'bw-1', title: 'Kesariya', artist: 'Arijit Singh & Pritam', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3', duration: 268, type: 'audio' },
+                            { id: 'bw-2', title: 'Tum Hi Ho', artist: 'Arijit Singh', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3', duration: 262, type: 'audio' },
+                            { id: 'bw-3', title: 'Raataan Lambiyan', artist: 'Jubin Nautiyal & Asees Kaur', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3', duration: 230, type: 'audio' },
+                            { id: 'bw-4', title: 'Apna Bana Le', artist: 'Arijit Singh', cover: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3', duration: 261, type: 'audio' }
+                        ]
+                    },
+                    {
+                        id: 'hindi-lofi',
+                        name: '🌙 Late Night Hindi Lo-Fi',
+                        title: '🌙 Hindi Lo-Fi',
+                        tracks: [
+                            { id: 'hl-1', title: 'Kabira (Late Night Lo-Fi)', artist: 'Hindi Lo-Fi Collective', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3', duration: 215, type: 'audio' },
+                            { id: 'hl-2', title: 'Iktara (Midnight Lo-Fi Reverb)', artist: 'Bollywood Chill Room', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3', duration: 230, type: 'audio' }
                         ]
                     }
                 ];

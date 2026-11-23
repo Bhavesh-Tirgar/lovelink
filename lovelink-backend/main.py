@@ -24,6 +24,7 @@ from routers.calls import router as calls_router
 from routers.notifications import router as notifs_router
 from routers.music import router as music_router
 from routers.reels import router as reels_router
+from routers.snap import router as snap_router
 from scheduler.jobs import check_milestones, prune_stale_sessions, prune_stale_sensitive_data
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -159,7 +160,7 @@ app.include_router(music_router, prefix="/music", tags=["music"])
 app.include_router(games_router, prefix="/games", tags=["games"])
 app.include_router(cycle_router, prefix="/cycle", tags=["cycle"])
 app.include_router(room_router, prefix="/room", tags=["room"])
-app.include_router(reels_router, prefix="/reels", tags=["reels"])
+app.include_router(snap_router, prefix="/snap", tags=["snap"])
 
 # Mount uploads directory for images, media, and voice notes
 from fastapi.staticfiles import StaticFiles
