@@ -33,11 +33,33 @@ public class MainActivity extends BridgeActivity {
                 androidx.core.app.ActivityCompat.requestPermissions(this, needPerms.toArray(new String[0]), 101);
             }
 
-            // Ensure Speakerphone is available for WebRTC calls
+            // Ensure Speakerphone is available for WebRTC calls and register AudioFocus listener
             android.media.AudioManager audioManager = (android.media.AudioManager) getSystemService(android.content.Context.AUDIO_SERVICE);
             if (audioManager != null) {
                 audioManager.setMode(android.media.AudioManager.MODE_NORMAL);
                 audioManager.setSpeakerphoneOn(true);
+
+                // Listen to Android AudioFocus changes (pause music when phone call arrives)
+                audioManager.requestAudioFocus(
+                    new android.media.AudioManager.OnAudioFocusChangeListener() {
+                        @Override
+                        public void onAudioFocusChange(int focusChange) {
+                            if (focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS ||
+                                focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                                runOnUiThread(() -> {
+                                    if (getBridge() != null && getBridge().getWebView() != null) {
+                                        getBridge().getWebView().evaluateJavascript(
+                                            "(function(){ const a = document.querySelector('audio'); if(a && !a.paused) a.pause(); })()",
+                                            null
+                                        );
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    android.media.AudioManager.STREAM_MUSIC,
+                    android.media.AudioManager.AUDIOFOCUS_GAIN
+                );
             }
 
             if (getBridge() != null && getBridge().getWebView() != null) {

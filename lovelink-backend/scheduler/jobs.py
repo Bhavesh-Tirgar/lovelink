@@ -15,65 +15,59 @@ from utils.firebase import send_push
 logger = logging.getLogger(__name__)
 
 async def check_milestones():
-    print("Checking milestones...")
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Couple))
-        couples = result.scalars().all()
-        now = datetime.now()
-        
-        milestones = [7, 30, 50, 100, 200, 365, 500, 730, 1000]
-        
-        for couple in couples:
-            if not couple.created_at: continue
-            
-            # Simple days calc (ignores timezones, can be refined)
-            delta = now - couple.created_at.replace(tzinfo=None)
-            days = delta.days
-            
-            if days in milestones:
-                # Check if notification already exists for this milestone
-                existing = await db.execute(
-                    select(Notification)
-                    .where(
-                        Notification.couple_id == str(couple.id),
-                        Notification.type == "milestone",
-                        # We use title as a hack to find existing milestone notifications for this days
-                        # or we can use JSON data. Let's use data to be clean.
-                    )
-                )
-                existing_notes = existing.scalars().all()
-                already_notified = any(n.data and n.data.get("days") == days for n in existing_notes)
-                
-                if not already_notified:
-                    # Create notification for BOTH users
-                    for user_id in [couple.user1_id, couple.user2_id]:
-                        notif = Notification(
-                            user_id=str(user_id),
-                            couple_id=str(couple.id),
-                            type="milestone",
-                            title=f"Happy {days} days! 🎉",
-                            body=f"You and your partner have been together for {days} beautiful days.",
-                            data={"days": days}
+    """Batched milestone processor: prevents RAM spikes and DB pool exhaustion at 9 AM"""
+    logger.info("Checking couple milestones in batches...")
+    milestones = [7, 30, 50, 100, 200, 365, 500, 730, 1000]
+    now = datetime.now()
+    offset = 0
+    batch_size = 50
+
+    while True:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(Couple).limit(batch_size).offset(offset))
+            couples = result.scalars().all()
+            if not couples:
+                break
+
+            for couple in couples:
+                if not couple.created_at:
+                    continue
+                delta = now - couple.created_at.replace(tzinfo=None)
+                days = delta.days
+                if days in milestones:
+                    existing = await db.execute(
+                        select(Notification).where(
+                            Notification.couple_id == str(couple.id),
+                            Notification.type == "milestone",
                         )
-                        db.add(notif)
-                        
-                        # Add FCM Push Notification
-                        try:
-                            user_db = await db.execute(select(User).where(User.id == str(user_id)))
-                            u = user_db.scalar_one_or_none()
-                            if u and u.fcm_token:
-                                await send_push(
-                                    fcm_token=u.fcm_token,
-                                    title=f"Happy {days} days! 🎉",
-                                    body=f"You and your partner have been together for {days} beautiful days.",
-                                    data={"type": "milestone", "days": str(days)}
-                                )
-                        except Exception as e:
-                            logger.error(f"FCM Milestone Push failed: {e}")
-                        
-                    print(f"Milestone notification generated for couple {couple.id} ({days} days)")
-                    
-        await db.commit()
+                    )
+                    existing_notes = existing.scalars().all()
+                    already_notified = any(n.data and n.data.get("days") == days for n in existing_notes)
+                    if not already_notified:
+                        for user_id in [couple.user1_id, couple.user2_id]:
+                            notif = Notification(
+                                user_id=str(user_id),
+                                couple_id=str(couple.id),
+                                type="milestone",
+                                title=f"Happy {days} days! 🎉",
+                                body=f"You and your partner have been together for {days} beautiful days.",
+                                data={"days": days}
+                            )
+                            db.add(notif)
+                            try:
+                                user_db = await db.execute(select(User).where(User.id == str(user_id)))
+                                u = user_db.scalar_one_or_none()
+                                if u and u.fcm_token:
+                                    await send_push(
+                                        fcm_token=u.fcm_token,
+                                        title=f"Happy {days} days! 🎉",
+                                        body=f"You and your partner have been together for {days} beautiful days.",
+                                        data={"type": "milestone", "days": str(days)}
+                                    )
+                            except Exception as e:
+                                logger.error(f"FCM Milestone Push failed: {e}")
+            await db.commit()
+            offset += batch_size
 
 
 async def ping_keep_alive():

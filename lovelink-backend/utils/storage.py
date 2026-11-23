@@ -54,8 +54,14 @@ async def save_file(upload_file: UploadFile, subfolder: str = "chat") -> Tuple[s
     object_key = f"{subfolder}/{file_id}"
     content_type = upload_file.content_type or "application/octet-stream"
 
-    # Read binary contents
+    # Security & Stability Guard: Max 25MB per upload to prevent server OOM
+    MAX_UPLOAD_SIZE = 25 * 1024 * 1024
     file_bytes = await upload_file.read()
+    if len(file_bytes) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="File size exceeds maximum allowed limit (25MB)."
+        )
 
     # 1. Try Cloudflare R2 if configured
     if s3_client and R2_PUBLIC_URL:

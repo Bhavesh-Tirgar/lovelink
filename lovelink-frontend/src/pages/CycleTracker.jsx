@@ -38,7 +38,8 @@ export default function CycleTracker() {
   const fetchCycleData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/cycle');
+      const localDate = new Date().toISOString().split('T')[0];
+      const res = await api.get(`/cycle?client_date=${localDate}`);
       if (res.data && res.data.has_cycle) {
         setCycleData(res.data);
         setLastPeriodDate(res.data.last_period_date);

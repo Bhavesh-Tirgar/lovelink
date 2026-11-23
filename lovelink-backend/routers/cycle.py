@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, desc
 from database import get_db
@@ -26,8 +26,8 @@ class CycleLogRequest(BaseModel):
     notes: Optional[str] = None
     encrypted_payload: Optional[str] = None
 
-def calculate_cycle_data(last_date: date, cycle_len: int, period_len: int):
-    today = date.today()
+def calculate_cycle_data(last_date: date, cycle_len: int, period_len: int, client_today: Optional[date] = None):
+    today = client_today or date.today()
     days_diff = (today - last_date).days
 
     if days_diff < 0:
@@ -80,6 +80,7 @@ def calculate_cycle_data(last_date: date, cycle_len: int, period_len: int):
 
 @router.get("")
 async def get_cycle(
+    client_date: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -101,14 +102,22 @@ async def get_cycle(
     if not setting:
         return {"has_cycle": False}
 
+    # Timezone-aware date resolution: honors client date if provided, fallback to server date
+    today = date.today()
+    if client_date:
+        try:
+            today = date.fromisoformat(client_date)
+        except Exception:
+            pass
+
     cycle_info = calculate_cycle_data(
         setting.last_period_date,
         setting.cycle_length,
-        setting.period_length
+        setting.period_length,
+        client_today=today
     )
 
     # Fetch today's log if any
-    today = date.today()
     res_log = await db.execute(
         select(CycleLog).where(
             and_(
