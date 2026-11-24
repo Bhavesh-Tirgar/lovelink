@@ -25,3 +25,7 @@ lovelink-frontend/*_log.txt
 
 # Cloud & tooling
 .cloudflare/
+
+*.db
+*.sqlite
+*.sqlite3

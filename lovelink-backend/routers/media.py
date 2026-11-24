@@ -234,7 +234,7 @@ async def remove_album(
     db: AsyncSession = Depends(get_db),
 ):
     couple = await _get_couple(db, str(current_user.id))
-    from models.media import Album
+    from models.album import Album
     res_a = await db.execute(select(Album).where(Album.id == album_id, Album.couple_id == str(couple.id)))
     if not res_a.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Album not found")
