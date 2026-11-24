@@ -37,7 +37,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
                 "videoId": "BddP6PYo2gs",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 268
             },
             {
@@ -47,7 +47,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
                 "videoId": "IJq0yyWug1k",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 262
             },
             {
@@ -57,7 +57,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
                 "videoId": "gvyUuxdRdR4",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 230
             },
             {
@@ -67,7 +67,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
                 "videoId": "ElZfdU54Cp8",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 261
             },
             {
@@ -77,7 +77,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
                 "videoId": "iAIBF2ngbWY",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 250
             },
             {
@@ -87,7 +87,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
                 "videoId": "eLmMomv753E",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 236
             }
         ]
@@ -104,7 +104,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
                 "videoId": "jHNNMj5bNQw",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 215
             },
             {
@@ -114,7 +114,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
                 "videoId": "fSS_R91Nimw",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 230
             },
             {
@@ -124,7 +124,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
                 "videoId": "sK7riqg2mr4",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 240
             },
             {
@@ -134,7 +134,7 @@ DEFAULT_CHANNELS = [
                 "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
                 "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
                 "videoId": "cYOB941gyXI",
-                "type": "youtube",
+                "type": "audio",
                 "duration": 210
             },
             {

@@ -279,35 +279,21 @@ export default function VideoCall() {
 
                     if (event.track.kind === 'video' && remoteVideoRef.current) {
                         remoteVideoRef.current.srcObject = remoteStream;
+                        // Mute video element to prevent duplicate audio playback and phase cancellation
+                        remoteVideoRef.current.muted = true;
                         remoteVideoRef.current.play().catch(() => {});
                     }
 
-                    // Route Audio through both HTML5 Audio & Web Audio API destination for 100% audibility on mobile speaker
+                    // Route Audio through dedicated HTML5 Audio element for 100% audibility on mobile speaker
                     if (event.track.kind === 'audio' || remoteStream.getAudioTracks().length > 0) {
+                        remoteStream.getAudioTracks().forEach(t => { t.enabled = true; });
                         if (remoteAudioRef.current) {
                             remoteAudioRef.current.srcObject = remoteStream;
                             remoteAudioRef.current.volume = 1.0;
-                            remoteAudioRef.current.play().catch(() => {});
-                        }
-
-                        try {
-                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                            if (AudioCtx) {
-                                if (!audioCtxRef.current) {
-                                    audioCtxRef.current = new AudioCtx();
-                                }
-                                const ctx = audioCtxRef.current;
-                                if (ctx.state === 'suspended') {
-                                    ctx.resume().catch(() => {});
-                                }
-                                const source = ctx.createMediaStreamSource(remoteStream);
-                                const gainNode = ctx.createGain();
-                                gainNode.gain.setValueAtTime(1.5, ctx.currentTime); // 150% volume boost for clear speaker audio
-                                source.connect(gainNode);
-                                gainNode.connect(ctx.destination);
-                            }
-                        } catch (err) {
-                            console.warn("[WebRTC] AudioContext routing fallback:", err);
+                            remoteAudioRef.current.muted = false;
+                            remoteAudioRef.current.play().catch(e => {
+                                console.warn("[WebRTC] remoteAudio play error:", e);
+                            });
                         }
                     }
 

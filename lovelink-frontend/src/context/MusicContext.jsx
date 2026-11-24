@@ -489,18 +489,10 @@ export const MusicProvider = ({ children }) => {
     const playTrack = (track) => {
         const audio = audioRef.current;
         setCurrentTrack(track);
-        const isYt = track.type === 'youtube' || Boolean(track.videoId);
+        const hasDirectAudio = Boolean(track.url);
+        const isYt = !hasDirectAudio && (track.type === 'youtube' || Boolean(track.videoId));
 
-        if (isYt) {
-            audio.pause();
-            audio.src = '';
-            ensureAudioCarrier(true);
-            setCurrentTime(0);
-            setDuration(track.duration || 210);
-            setIsPlaying(true);
-            controlYouTube('play');
-            sendEvent('change_track', { track, is_playing: true, position: 0 });
-        } else if (track.url) {
+        if (hasDirectAudio) {
             ensureAudioCarrier(false);
             audio.loop = false;
             audio.volume = volume;
@@ -509,6 +501,15 @@ export const MusicProvider = ({ children }) => {
                 setIsPlaying(true);
                 sendEvent('change_track', { track, is_playing: true, position: 0 });
             }).catch(err => console.warn("Autoplay blocked:", err));
+        } else if (isYt) {
+            audio.pause();
+            audio.src = '';
+            ensureAudioCarrier(true);
+            setCurrentTime(0);
+            setDuration(track.duration || 210);
+            setIsPlaying(true);
+            controlYouTube('play');
+            sendEvent('change_track', { track, is_playing: true, position: 0 });
         }
     };
 
@@ -521,7 +522,8 @@ export const MusicProvider = ({ children }) => {
             return;
         }
 
-        const isYt = currentTrack.type === 'youtube' || Boolean(currentTrack.videoId);
+        const hasDirectAudio = Boolean(currentTrack.url);
+        const isYt = !hasDirectAudio && (currentTrack.type === 'youtube' || Boolean(currentTrack.videoId));
 
         if (isPlaying) {
             if (!isYt) audio.pause();
@@ -546,7 +548,8 @@ export const MusicProvider = ({ children }) => {
     };
 
     const seek = (time) => {
-        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+        const hasDirectAudio = Boolean(currentTrack?.url);
+        const isYt = !hasDirectAudio && (currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId));
         if (isYt) {
             controlYouTube('seek', time);
         } else {
