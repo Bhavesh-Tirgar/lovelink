@@ -48,17 +48,25 @@ public class MainActivity extends BridgeActivity {
                 audioManager.setMode(android.media.AudioManager.MODE_NORMAL);
                 audioManager.setSpeakerphoneOn(true);
 
-                // Listen to Android AudioFocus changes (pause music when phone call arrives)
+                // Listen to Android AudioFocus changes (pause music when phone call arrives, restore on focus gain)
                 audioManager.requestAudioFocus(
                     new android.media.AudioManager.OnAudioFocusChangeListener() {
                         @Override
                         public void onAudioFocusChange(int focusChange) {
-                            if (focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS ||
-                                focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                            if (focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS) {
                                 runOnUiThread(() -> {
                                     if (getBridge() != null && getBridge().getWebView() != null) {
                                         getBridge().getWebView().evaluateJavascript(
-                                            "(function(){ const a = document.querySelector('audio'); if(a && !a.paused) a.pause(); })()",
+                                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_lost'));",
+                                            null
+                                        );
+                                    }
+                                });
+                            } else if (focusChange == android.media.AudioManager.AUDIOFOCUS_GAIN) {
+                                runOnUiThread(() -> {
+                                    if (getBridge() != null && getBridge().getWebView() != null) {
+                                        getBridge().getWebView().evaluateJavascript(
+                                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_gain'));",
                                             null
                                         );
                                     }

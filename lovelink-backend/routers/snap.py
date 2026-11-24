@@ -112,6 +112,7 @@ async def send_snap(
     if partner_id:
         notif = Notification(
             user_id=partner_id,
+            couple_id=couple_id,
             type="snap",
             title=f"New Snap from {current_user.name or 'Partner'}! 📸",
             body="Tap to view disappearing snap before it expires",

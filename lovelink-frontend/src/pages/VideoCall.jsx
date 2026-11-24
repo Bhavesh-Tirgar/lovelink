@@ -611,6 +611,7 @@ export default function VideoCall() {
                         ref={remoteVideoRef}
                         autoPlay
                         playsInline
+                        muted
                         className={`w-full h-full object-cover transition-opacity duration-700 ${partnerConnected ? 'opacity-100' : 'opacity-0'}`}
                     />
 

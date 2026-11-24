@@ -95,7 +95,20 @@ export const MusicProvider = ({ children }) => {
             } catch { }
         };
         window.addEventListener('beforeunload', handleSave);
-        return () => window.removeEventListener('beforeunload', handleSave);
+
+        // Native Android AudioFocus events (graceful pause when phone calls arrive)
+        const handleFocusLost = () => {
+            const audio = audioRef.current;
+            if (audio && !audio.paused) audio.pause();
+            controlYouTube('pause');
+            setIsPlaying(false);
+        };
+        window.addEventListener('lovelink:audiofocus_lost', handleFocusLost);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleSave);
+            window.removeEventListener('lovelink:audiofocus_lost', handleFocusLost);
+        };
     }, [currentTrack, currentTime, duration, volume]);
 
     const SILENT_CARRIER_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
@@ -721,17 +734,17 @@ export const MusicProvider = ({ children }) => {
             addCustomTrack,
         }}>
             {children}
-            {/* Permanent Root YouTube Audio Carrier: Never unmounts across route transitions & never reloads on tick */}
+            {/* Permanent Root YouTube Audio Carrier: In-viewport tiny carrier prevents Chromium offscreen frame throttling across section transitions & background */}
             {isYouTube && currentTrack.videoId && (
                 <div
-                    className="fixed -left-[9999px] top-0 w-[320px] h-[240px] pointer-events-none z-[-1] overflow-hidden"
-                    style={{ position: 'fixed', left: '-9999px', top: 0, width: '320px', height: '240px' }}
+                    className="fixed bottom-0 right-0 w-[2px] h-[2px] opacity-[0.01] pointer-events-none z-[1] overflow-hidden"
+                    style={{ position: 'fixed', bottom: '0px', right: '0px', width: '2px', height: '2px', opacity: 0.01, pointerEvents: 'none', zIndex: 1 }}
                 >
                     <iframe
                         id="yt-music-iframe"
                         title="YouTube Music Player"
-                        width="320"
-                        height="240"
+                        width="2"
+                        height="2"
                         src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&enablejsapi=1&controls=0&playsinline=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                         allow="autoplay; encrypted-media"
                         onLoad={() => {
