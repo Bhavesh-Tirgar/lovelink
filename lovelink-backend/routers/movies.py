@@ -17,6 +17,7 @@ from models.couple import Couple
 from models.movie import Movie, SourceType
 from routers.auth import get_current_user
 from schemas.movie import MovieCreate, MovieResponse, WatchSessionResponse
+from crud.couple import get_active_couple_by_user
 from crud.movie import (
     create_movie, get_movies, get_movie, mark_watched,
     delete_movie, get_or_create_session, update_session,
@@ -52,10 +53,7 @@ watch_states: dict = {}
 
 
 async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
-    result = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == user_id, Couple.user2_id == user_id))
-    )
-    couple = result.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     return couple

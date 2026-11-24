@@ -12,6 +12,7 @@ from database import get_db
 from models.user import User
 from models.couple import Couple
 from models.spark import CoupleSpark, SparkDailyAnswer
+from crud.couple import get_linked_couple_by_user
 from models.notification import Notification
 from routers.auth import get_current_user
 from ws_manager.manager import manager
@@ -44,13 +45,7 @@ class CapsuleCreateRequest(BaseModel):
 
 
 async def _get_user_couple(db: AsyncSession, user_id: str) -> Couple:
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == user_id, Couple.user2_id == user_id),
-            Couple.user2_id.is_not(None)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_linked_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You must be linked with a partner first")
     return couple

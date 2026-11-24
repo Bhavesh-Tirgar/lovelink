@@ -11,6 +11,7 @@ from models.user import User
 from models.couple import Couple
 from models.call_log import CallType, CallStatus
 from schemas.call import CallInitiate, CallResponse
+from crud.couple import get_active_couple_by_user
 from crud.call import create_call, end_call, get_call_history, get_call, answer_call_db
 from utils.firebase import send_push
 from routers.auth import get_current_user
@@ -20,10 +21,7 @@ router = APIRouter()
 
 
 async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
-    result = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == user_id, Couple.user2_id == user_id))
-    )
-    couple = result.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     return couple

@@ -7,6 +7,7 @@ from sqlalchemy import select, or_
 from database import get_db
 from models.user import User
 from models.couple import Couple
+from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from schemas.countdown import CountdownCreate, CountdownResponse
 from crud.countdown import get_countdowns, create_countdown, delete_countdown
@@ -15,12 +16,7 @@ router = APIRouter()
 
 
 async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
-    result = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == user_id, Couple.user2_id == user_id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     return couple

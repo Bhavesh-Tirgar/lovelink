@@ -195,17 +195,18 @@ async def games_websocket(
     await manager.connect(websocket, room)
 
     c_u1 = str(couple.user1_id)
-    c_u2 = str(couple.user2_id)
+    c_u2 = str(couple.user2_id) if couple.user2_id else None
+    c_u2_label = c_u2 or "partner"
 
     # Initialize couple session if not present (permanently keyed to couple partners)
     if couple_id not in game_sessions:
         game_sessions[couple_id] = {
-            "rps": {"moves": {}, "scores": {}},
+            "rps": {"moves": {}, "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {})}},
             "ttt": {
                 "board": [""] * 9,
                 "turn": "❤️",
                 "scores": {"hearts": 0, "kisses": 0, "draws": 0},
-                "symbol": {c_u1: "❤️", c_u2: "💋"}
+                "symbol": {c_u1: "❤️", **({c_u2: "💋"} if c_u2 else {})}
             },
             "tod": {
                 "turn": c_u1,
@@ -215,25 +216,25 @@ async def games_websocket(
             "chess": {
                 "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                 "white": c_u1,
-                "black": c_u2,
+                "black": c_u2_label,
                 "turn": "w",
                 "stakes": "Loser gives a 15-minute massage 💆",
-                "scores": {c_u1: 0, c_u2: 0}
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})}
             },
             "ludo": {
                 "player_pink": c_u1,
-                "player_blue": c_u2,
+                "player_blue": c_u2_label,
                 "turn": "pink",
                 "dice": None,
                 "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
-                "scores": {c_u1: 0, c_u2: 0},
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})},
                 "winner": None
             },
             "uno": {
                 "player_1": c_u1,
-                "player_2": c_u2,
+                "player_2": c_u2_label,
                 "turn": c_u1,
-                "scores": {c_u1: 0, c_u2: 0},
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})},
                 "deck": None,
                 "discard": None,
                 "top_card": None,
@@ -244,19 +245,32 @@ async def games_websocket(
             }
         }
     else:
-        # Guarantee stable role assignment even if existing session was partial
+        # Guarantee stable role assignment and sync partner id if newly linked
         sess = game_sessions[couple_id]
         if "ttt" in sess:
-            sess["ttt"]["symbol"] = {c_u1: "❤️", c_u2: "💋"}
+            sess["ttt"].setdefault("symbol", {})
+            sess["ttt"]["symbol"][c_u1] = "❤️"
+            sess["ttt"]["symbol"].pop("None", None)
+            if c_u2:
+                sess["ttt"]["symbol"][c_u2] = "💋"
         if "chess" in sess:
             sess["chess"]["white"] = c_u1
-            sess["chess"]["black"] = c_u2
+            if c_u2:
+                sess["chess"]["black"] = c_u2
+                if "None" in sess["chess"].get("scores", {}):
+                    sess["chess"]["scores"][c_u2] = sess["chess"]["scores"].pop("None")
         if "ludo" in sess:
             sess["ludo"]["player_pink"] = c_u1
-            sess["ludo"]["player_blue"] = c_u2
+            if c_u2:
+                sess["ludo"]["player_blue"] = c_u2
+                if "None" in sess["ludo"].get("scores", {}):
+                    sess["ludo"]["scores"][c_u2] = sess["ludo"]["scores"].pop("None")
         if "uno" in sess:
             sess["uno"]["player_1"] = c_u1
-            sess["uno"]["player_2"] = c_u2
+            if c_u2:
+                sess["uno"]["player_2"] = c_u2
+                if "None" in sess["uno"].get("scores", {}):
+                    sess["uno"]["scores"][c_u2] = sess["uno"]["scores"].pop("None")
 
     session = game_sessions[couple_id]
     if "tod" not in session:
@@ -269,27 +283,27 @@ async def games_websocket(
         session["chess"] = {
             "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             "white": c_u1,
-            "black": c_u2,
+            "black": c_u2_label,
             "turn": "w",
             "stakes": "Loser gives a 15-minute massage 💆",
-            "scores": {c_u1: 0, c_u2: 0}
+            "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})}
         }
     if "ludo" not in session:
         session["ludo"] = {
             "player_pink": c_u1,
-            "player_blue": c_u2,
+            "player_blue": c_u2_label,
             "turn": "pink",
             "dice": None,
             "tokens": {"pink": [-1, -1, -1, -1], "blue": [-1, -1, -1, -1]},
-            "scores": {c_u1: 0, c_u2: 0},
+            "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})},
             "winner": None
         }
     if "uno" not in session:
         session["uno"] = {
             "player_1": c_u1,
-            "player_2": c_u2,
+            "player_2": c_u2_label,
             "turn": c_u1,
-            "scores": {c_u1: 0, c_u2: 0},
+            "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})},
             "deck": None,
             "discard": None,
             "top_card": None,

@@ -5,6 +5,7 @@ from database import get_db
 from models.user import User
 from models.couple import Couple
 from models.mood import Mood
+from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from pydantic import BaseModel
 from typing import Optional, List
@@ -28,12 +29,7 @@ async def checkin_mood(
     db: AsyncSession = Depends(get_db)
 ):
     # Find couple
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
 
     if not couple:
         raise HTTPException(
@@ -75,12 +71,7 @@ async def get_today_mood(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
 
     if not couple:
         return {"my_mood": None, "partner_mood": None}
@@ -133,12 +124,7 @@ async def get_mood_history(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
 
     if not couple:
         return {"my_moods": [], "partner_moods": []}

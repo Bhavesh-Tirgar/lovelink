@@ -5,6 +5,7 @@ from database import get_db
 from models.user import User
 from models.couple import Couple
 from models.cycle import CycleSetting, CycleLog
+from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from pydantic import BaseModel
 from typing import Optional, List
@@ -84,12 +85,7 @@ async def get_cycle(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         return {"has_cycle": False}
 
@@ -152,12 +148,7 @@ async def setup_cycle(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="You must be linked with a partner first")
 
@@ -195,12 +186,7 @@ async def log_symptoms(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="Linked partner required")
 

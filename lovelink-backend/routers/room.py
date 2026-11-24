@@ -11,6 +11,7 @@ from database import get_db
 from models.user import User
 from models.couple import Couple
 from models.room import CoupleRoom
+from crud.couple import get_linked_couple_by_user
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 
@@ -69,13 +70,7 @@ async def _get_or_create_room(db: AsyncSession, couple_id: str) -> CoupleRoom:
     return room
 
 async def _get_user_couple(db: AsyncSession, user_id: str) -> Couple:
-    res = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == user_id, Couple.user2_id == user_id),
-            Couple.user2_id.is_not(None)
-        )
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_linked_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You must be linked with a partner first")
     return couple
@@ -212,6 +207,8 @@ async def add_sticky_note(
     notes.insert(0, new_note)
     # keep last 20
     room.sticky_notes = notes[:20]
+    flag_modified(room, "sticky_notes")
+    db.add(room)
 
     await db.commit()
     await db.refresh(room)
@@ -297,8 +294,11 @@ async def add_wall_photo(
     }
     photos.insert(0, new_photo)
     room.wall_photos = photos[:8] # max 8 frames
+    flag_modified(room, "wall_photos")
+    db.add(room)
 
     await db.commit()
+    await db.refresh(room)
 
     await manager.broadcast(str(couple.id), {
         "type": "room_update",
@@ -308,6 +308,33 @@ async def add_wall_photo(
     })
 
     return new_photo
+
+@router.delete("/wall-photo/{photo_id}")
+async def delete_wall_photo(
+    photo_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    couple = await _get_user_couple(db, current_user.id)
+    room = await _get_or_create_room(db, couple.id)
+
+    prior_photos = room.wall_photos or []
+    photos = [p for p in prior_photos if p.get("id") != photo_id]
+    if len(photos) == len(prior_photos):
+        raise HTTPException(status_code=404, detail="Wall photo not found")
+
+    room.wall_photos = photos
+    flag_modified(room, "wall_photos")
+    db.add(room)
+    await db.commit()
+
+    await manager.broadcast(str(couple.id), {
+        "type": "room_update",
+        "action": "delete_wall_photo",
+        "photo_id": photo_id
+    })
+
+    return {"deleted": True}
 
 @router.post("/theme")
 async def change_theme(

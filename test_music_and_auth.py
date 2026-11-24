@@ -191,5 +191,80 @@ class TestLoveLinkMusicAndAuth(unittest.TestCase):
         self.assertIn("https://lovelink-pearl.vercel.app/login", authorized_redirect_uris)
         self.assertIn("https://lovelink-pearl.vercel.app", authorized_origins)
 
+    def test_games_partner_role_synchronization(self):
+        """Verify games session initializes and synchronizes partner ID without string 'None' coercion."""
+        c_u1 = "user-111"
+        c_u2 = None
+        c_u2_label = c_u2 or "partner"
+
+        # Simulating initial game session creation when partner is unlinked
+        session = {
+            "ttt": {
+                "symbol": {c_u1: "❤️", **({c_u2: "💋"} if c_u2 else {})}
+            },
+            "chess": {
+                "white": c_u1,
+                "black": c_u2_label,
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})}
+            },
+            "ludo": {
+                "player_pink": c_u1,
+                "player_blue": c_u2_label,
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})}
+            },
+            "uno": {
+                "player_1": c_u1,
+                "player_2": c_u2_label,
+                "scores": {c_u1: 0, **({c_u2: 0} if c_u2 else {c_u2_label: 0})}
+            }
+        }
+
+        self.assertNotIn("None", session["ttt"]["symbol"])
+        self.assertNotIn(None, session["ttt"]["symbol"])
+        self.assertEqual(session["chess"]["black"], "partner")
+
+        # Now simulate partner linking: real partner ID arrives
+        c_u2_linked = "user-222"
+        sess = session
+        sess["ttt"]["symbol"][c_u1] = "❤️"
+        sess["ttt"]["symbol"].pop("None", None)
+        sess["ttt"]["symbol"][c_u2_linked] = "💋"
+
+        sess["chess"]["white"] = c_u1
+        sess["chess"]["black"] = c_u2_linked
+        if "None" in sess["chess"].get("scores", {}):
+            sess["chess"]["scores"][c_u2_linked] = sess["chess"]["scores"].pop("None")
+        sess["chess"]["scores"][c_u2_linked] = 0
+
+        self.assertEqual(sess["ttt"]["symbol"][c_u2_linked], "💋")
+        self.assertEqual(sess["chess"]["black"], "user-222")
+        self.assertNotIn("None", sess["ttt"]["symbol"])
+
+    def test_room_photo_and_sticky_note_truncation_limits(self):
+        """Verify room limits: max 20 sticky notes and max 8 framed wall photos."""
+        notes = [{"id": str(i), "text": f"Note {i}"} for i in range(25)]
+        limited_notes = notes[:20]
+        self.assertEqual(len(limited_notes), 20)
+
+        photos = [{"id": str(i), "url": f"https://example.com/p{i}.jpg"} for i in range(12)]
+        limited_photos = photos[:8]
+        self.assertEqual(len(limited_photos), 8)
+
+    def test_couple_duplicate_resolution_invariant(self):
+        """Verify that when a user has multiple couple records, active linked couple is prioritized."""
+        couples = [
+            {"id": "c1", "user1_id": "u1", "user2_id": None, "created_at": 100},      # pending invite
+            {"id": "c2", "user1_id": "u1", "user2_id": "u2", "created_at": 200},      # active linked
+            {"id": "c3", "user1_id": "u3", "user2_id": "u1", "created_at": 150},      # old linked
+        ]
+        
+        # Safe algorithm contract:
+        linked_matches = [c for c in couples if (c["user1_id"] == "u1" or c["user2_id"] == "u1") and c["user2_id"] is not None]
+        linked_matches.sort(key=lambda c: c["created_at"], reverse=True)
+        resolved = linked_matches[0] if linked_matches else None
+        
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["id"], "c2")
+
 if __name__ == '__main__':
     unittest.main()

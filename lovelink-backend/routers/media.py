@@ -14,6 +14,7 @@ from models.couple import Couple
 from models.media import FileType
 from routers.auth import get_current_user
 from schemas.media import MediaResponse, AlbumCreate, AlbumResponse
+from crud.couple import get_active_couple_by_user
 from crud.media import (
     upload_media, get_media, get_on_this_day, delete_media,
     create_album, get_albums, update_album_cover, delete_album, assign_to_album,
@@ -41,10 +42,7 @@ VIDEO_EXTS = {"mp4", "mov", "avi", "webm"}
 
 
 async def _get_couple(db: AsyncSession, user_id: str) -> Couple:
-    result = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == user_id, Couple.user2_id == user_id))
-    )
-    couple = result.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     return couple

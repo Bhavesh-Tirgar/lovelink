@@ -54,9 +54,21 @@ async def generate_invite(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Check if an existing couple record already exists for this user as user1
-    result = await db.execute(select(Couple).where(Couple.user1_id == current_user.id))
+    # 1. If user is already linked in an active couple, return their existing couple's invite code
+    result = await db.execute(
+        select(Couple).where(
+            or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id),
+            Couple.user2_id.is_not(None),
+        ).order_by(Couple.created_at.desc())
+    )
     couple = result.scalars().first()
+
+    # 2. If not linked, check if user already has an active pending invite as user1
+    if not couple:
+        result = await db.execute(
+            select(Couple).where(Couple.user1_id == current_user.id).order_by(Couple.created_at.desc())
+        )
+        couple = result.scalars().first()
 
     if not couple:
         # Create a new couple with a cryptographically secure fresh invite code
@@ -100,6 +112,15 @@ async def join_couple(
 
     couple.user2_id = current_user.id
     db.add(couple)
+
+    # Clean up any abandoned pending invite created by current_user
+    abandoned = await db.execute(
+        select(Couple).where(Couple.user1_id == current_user.id, Couple.user2_id.is_(None))
+    )
+    for c in abandoned.scalars().all():
+        if c.id != couple.id:
+            await db.delete(c)
+
     await db.commit()
     await db.refresh(couple)
 

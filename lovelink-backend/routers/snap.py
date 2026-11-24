@@ -10,6 +10,7 @@ from database import get_db
 from models.user import User
 from models.couple import Couple
 from models.notification import Notification
+from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 
@@ -34,6 +35,10 @@ class ReactSnapRequest(BaseModel):
     reaction: str = "❤️"
 
 
+async def _get_couple(db: AsyncSession, user_id: str) -> Optional[Couple]:
+    return await get_active_couple_by_user(db, user_id)
+
+
 @router.post("/send")
 async def send_snap(
     payload: SendSnapRequest,
@@ -44,12 +49,7 @@ async def send_snap(
         raise HTTPException(status_code=400, detail="Snap media is required")
 
     # Fetch user's couple
-    result = await db.execute(
-        select(Couple).where(
-            (Couple.user1_id == current_user.id) | (Couple.user2_id == current_user.id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await _get_couple(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked in a couple yet")
 
@@ -148,12 +148,7 @@ async def get_snap_feed(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Couple).where(
-            (Couple.user1_id == current_user.id) | (Couple.user2_id == current_user.id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await _get_couple(db, current_user.id)
     if not couple:
         return {"snaps": [], "streak": 0, "unread_count": 0}
 
@@ -180,12 +175,7 @@ async def open_snap(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Couple).where(
-            (Couple.user1_id == current_user.id) | (Couple.user2_id == current_user.id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await _get_couple(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="Couple not found")
 
@@ -213,12 +203,7 @@ async def react_snap(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Couple).where(
-            (Couple.user1_id == current_user.id) | (Couple.user2_id == current_user.id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await _get_couple(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="Couple not found")
 
@@ -238,12 +223,7 @@ async def get_streak(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Couple).where(
-            (Couple.user1_id == current_user.id) | (Couple.user2_id == current_user.id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await _get_couple(db, current_user.id)
     if not couple:
         return {"streak": 0, "active": False}
 

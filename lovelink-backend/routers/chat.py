@@ -15,6 +15,7 @@ from models.couple import Couple
 from models.message import Message, MessageType
 from schemas.message import MessageCreate, MessageResponse
 from routers.auth import get_current_user, ALGORITHM, SECRET_KEY
+from crud.couple import get_active_couple_by_user
 from crud.message import get_messages, create_message, mark_messages_read
 from utils.firebase import send_push
 from ws_manager.manager import manager
@@ -38,12 +39,7 @@ s3_client = boto3.client(
 )
 
 async def get_couple_by_user(db: AsyncSession, user_id: str):
-    result = await db.execute(
-        select(Couple).where(
-            or_(Couple.user1_id == user_id, Couple.user2_id == user_id)
-        )
-    )
-    couple = result.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, user_id)
     if not couple:
         raise HTTPException(status_code=400, detail="You are not linked to a partner yet")
     return couple

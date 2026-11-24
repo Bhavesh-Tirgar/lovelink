@@ -6,6 +6,7 @@ from sqlalchemy import select, or_, and_, desc
 from database import get_db
 from models.user import User
 from models.couple import Couple
+from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 from pydantic import BaseModel
@@ -397,10 +398,7 @@ async def get_couple_playlist(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetches custom saved songs for this couple."""
-    res = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id))
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         return []
     return custom_playlists.get(couple.id, [])
@@ -412,10 +410,7 @@ async def add_to_couple_playlist(
     db: AsyncSession = Depends(get_db)
 ):
     """Adds a song (YouTube or audio URL) to the shared couple playlist."""
-    res = await db.execute(
-        select(Couple).where(or_(Couple.user1_id == current_user.id, Couple.user2_id == current_user.id))
-    )
-    couple = res.scalar_one_or_none()
+    couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="Not linked to a partner")
 
