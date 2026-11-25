@@ -8,6 +8,10 @@
 		"classpath": "com.capacitorjs.plugins.browser.BrowserPlugin"
 	},
 	{
+		"pkg": "@capacitor/push-notifications",
+		"classpath": "com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin"
+	},
+	{
 		"pkg": "@capawesome/capacitor-google-sign-in",
 		"classpath": "io.capawesome.capacitorjs.plugins.googlesignin.GoogleSignInPlugin"
 	}

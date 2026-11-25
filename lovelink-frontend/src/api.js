@@ -1,5 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app } from "./utils/firebase";
 
@@ -152,9 +154,39 @@ api.interceptors.response.use(
 
 export default api;
 
-// Firebase Web Push Initialization
+// Firebase Web & Native Push Initialization
+let nativePushInitialized = false;
+
 export const initFirebasePush = async () => {
   try {
+    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+      if (nativePushInitialized) return;
+      nativePushInitialized = true;
+
+      let perm = await PushNotifications.checkPermissions();
+      if (perm.receive === 'prompt') {
+        perm = await PushNotifications.requestPermissions();
+      }
+      if (perm.receive !== 'granted') return;
+
+      await PushNotifications.addListener('registration', async (token) => {
+        if (token?.value && window.localStorage.getItem('token')) {
+          await api.post('/auth/fcm-token', { fcm_token: token.value }).catch(() => {});
+        }
+      });
+
+      await PushNotifications.addListener('registrationError', (err) => {
+        console.warn('Native push registration deferred:', err);
+      });
+
+      await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('Native push received in foreground:', notification);
+      });
+
+      await PushNotifications.register();
+      return;
+    }
+
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
     const messaging = getMessaging(app);
