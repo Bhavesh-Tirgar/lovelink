@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app } from "./utils/firebase";
 
@@ -52,7 +53,10 @@ const processQueue = (error, token = null) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    toast.dismiss('cold-start-wake');
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest?._retry) {
@@ -128,11 +132,18 @@ api.interceptors.response.use(
     ) {
       originalRequest._coldRetryCount = (originalRequest._coldRetryCount || 0) + 1;
       if (originalRequest._coldRetryCount <= 3) {
+        if (originalRequest._coldRetryCount === 1) {
+          toast.loading('Server waking up, please wait...', {
+            id: 'cold-start-wake',
+            duration: 5000,
+          });
+        }
         const delay = originalRequest._coldRetryCount * 3000;
         console.log(`[API] Server waking up from cold start... Retrying in ${delay}ms`);
         await new Promise((res) => setTimeout(res, delay));
         return api(originalRequest);
       }
+      toast.dismiss('cold-start-wake');
     }
 
     return Promise.reject(error);

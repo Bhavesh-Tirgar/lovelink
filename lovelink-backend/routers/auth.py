@@ -610,8 +610,8 @@ async def send_login_otp_internal(raw_identifier: str, db: AsyncSession):
         "requires_otp": True,
     }
 
-    # If outbound SMTP is blocked on cloud container (or for testing), deliver dev_otp so the user is never blocked
-    if not email_delivered or "tirgarbhavesh" in target_email.lower() or "test" in target_email.lower() or os.getenv("ALLOW_DEV_OTP", "true").lower() == "true":
+    # If outbound SMTP is blocked on cloud container (or explicitly enabled in dev), deliver dev_otp
+    if not email_delivered or os.getenv("ALLOW_DEV_OTP", "false").lower() == "true":
         resp["dev_otp"] = raw_otp
         resp["message"] = f"Verification code: {raw_otp}"
 
