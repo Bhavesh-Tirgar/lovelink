@@ -64,7 +64,7 @@ function HTML5Player({ movie, sendMessage, onIncoming }) {
     const [muted, setMuted] = useState(false);
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '';
-    const apiBase = process.env.REACT_APP_API_URL || 'https://lovelink-sfzx.onrender.com';
+    const apiBase = api.defaults.baseURL || process.env.REACT_APP_API_URL || 'https://lovelink-sfzx.onrender.com';
     const streamUrl = movie.file_url?.startsWith('http') 
         ? movie.file_url 
         : `${apiBase}/movies/${movie.id}/stream?token=${encodeURIComponent(token)}`;
