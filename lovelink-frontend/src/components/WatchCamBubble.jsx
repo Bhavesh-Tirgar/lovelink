@@ -23,14 +23,16 @@ export default function WatchCamBubble({ coupleId, myUser, partnerUser, sendWsMe
     const [isMuted, setIsMuted] = useState(false);
     const [isCamOff, setIsCamOff] = useState(false);
     const [position, setPosition] = useState({ x: 20, y: 80 }); // Top-right offset
-    const [isDragging, setIsDragging] = useState(false);
-    const dragStartRef = useRef({ x: 0, y: 0 });
+    const isDraggingRef = useRef(false);
+    const dragStartRef = useRef({ x: 0, y: 0, startRight: 20, startTop: 80 });
 
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const localStreamRef = useRef(null);
     const pcRef = useRef(null);
     const pendingCandidatesRef = useRef([]);
+    const pendingOfferRef = useRef(null);
+    const [incomingCamInvite, setIncomingCamInvite] = useState(false);
 
     // 1. Cleanup media on unmount
     useEffect(() => {
@@ -50,17 +52,23 @@ export default function WatchCamBubble({ coupleId, myUser, partnerUser, sendWsMe
         const data = onIncomingSync;
 
         if (data.type === 'watch_cam_join') {
-            // Partner turned on their camera!
             if (!active && !connecting) {
-                // Partner wants to video watch!
+                setIncomingCamInvite(true);
             }
-        } else if (data.type === 'watch_cam_offer' && active) {
-            handleReceiveOffer(data.offer);
+        } else if (data.type === 'watch_cam_offer') {
+            if (active) {
+                handleReceiveOffer(data.offer);
+            } else {
+                pendingOfferRef.current = data.offer;
+                setIncomingCamInvite(true);
+            }
         } else if (data.type === 'watch_cam_answer' && active) {
             handleReceiveAnswer(data.answer);
-        } else if (data.type === 'watch_cam_candidate' && active) {
+        } else if (data.type === 'watch_cam_candidate') {
             handleReceiveCandidate(data.candidate);
         } else if (data.type === 'watch_cam_leave') {
+            pendingOfferRef.current = null;
+            setIncomingCamInvite(false);
             if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = null;
             }
@@ -104,15 +112,22 @@ export default function WatchCamBubble({ coupleId, myUser, partnerUser, sendWsMe
                 }
             };
 
-            // Create and send offer
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+            // Answer partner's buffered offer if they started Watch Cam first; otherwise create fresh offer
+            if (pendingOfferRef.current) {
+                const offer = pendingOfferRef.current;
+                pendingOfferRef.current = null;
+                await handleReceiveOffer(offer);
+            } else {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
 
-            sendWsMessage({
-                type: 'watch_cam_offer',
-                offer: offer
-            });
+                sendWsMessage({
+                    type: 'watch_cam_offer',
+                    offer: offer
+                });
+            }
 
+            setIncomingCamInvite(false);
             setActive(true);
             setConnecting(false);
         } catch (e) {
@@ -206,49 +221,58 @@ export default function WatchCamBubble({ coupleId, myUser, partnerUser, sendWsMe
         }
     };
 
-    // Drag handlers
-    const handleMouseDown = (e) => {
-        setIsDragging(true);
+    // Unified Pointer/Touch Drag handlers (ref-backed so fast first move is never dropped before re-render)
+    const handlePointerDown = (e) => {
+        if (e.target.closest('button')) return;
+        isDraggingRef.current = true;
         dragStartRef.current = {
-            x: e.clientX - position.x,
-            y: e.clientY - position.y
+            x: e.clientX,
+            y: e.clientY,
+            startRight: position.x,
+            startTop: position.y,
         };
     };
 
     useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isDragging) return;
+        const handlePointerMove = (e) => {
+            if (!isDraggingRef.current) return;
+            const dx = dragStartRef.current.x - e.clientX;
+            const dy = e.clientY - dragStartRef.current.y;
             setPosition({
-                x: Math.max(10, Math.min(window.innerWidth - 180, e.clientX - dragStartRef.current.x)),
-                y: Math.max(10, Math.min(window.innerHeight - 240, e.clientY - dragStartRef.current.y))
+                x: Math.max(10, Math.min(window.innerWidth - 180, dragStartRef.current.startRight + dx)),
+                y: Math.max(10, Math.min(window.innerHeight - 240, dragStartRef.current.startTop + dy))
             });
         };
 
-        const handleMouseUp = () => {
-            setIsDragging(false);
+        const handlePointerUp = () => {
+            isDraggingRef.current = false;
         };
 
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
 
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerUp);
         };
-    }, [isDragging]);
+    }, []);
 
     if (!active) {
         return (
             <button
                 onClick={startCam}
                 disabled={connecting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-600/30 hover:bg-pink-600/50 border border-pink-500/40 text-pink-200 text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-pink-600/20"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg ${
+                    incomingCamInvite
+                        ? 'bg-emerald-500/30 hover:bg-emerald-500/50 border-emerald-400/60 text-emerald-100 animate-pulse shadow-emerald-500/20'
+                        : 'bg-pink-600/30 hover:bg-pink-600/50 border-pink-500/40 text-pink-200 shadow-pink-600/20'
+                }`}
                 title="Start Face-to-Face Video Bubble over cinema"
             >
                 <Video size={14} className={connecting ? "animate-spin" : "text-pink-400"} />
-                <span>{connecting ? "Starting Cam..." : "Live Cam Bubble"}</span>
+                <span>{connecting ? "Starting Cam..." : incomingCamInvite ? "Join Partner Cam" : "Live Cam Bubble"}</span>
             </button>
         );
     }
@@ -256,13 +280,13 @@ export default function WatchCamBubble({ coupleId, myUser, partnerUser, sendWsMe
     return (
         <aside
             aria-label="Floating Video Call Bubble"
-            className="fixed z-50 select-none animate-fade-in"
+            className="fixed z-50 select-none animate-fade-in touch-none"
             style={{ top: `${position.y}px`, right: `${position.x}px` }}
         >
             <div className="relative w-44 rounded-3xl bg-black/85 backdrop-blur-xl border border-pink-500/40 p-2 shadow-2xl shadow-pink-950/60 overflow-hidden">
                 {/* Drag handle header */}
                 <div 
-                    onMouseDown={handleMouseDown}
+                    onPointerDown={handlePointerDown}
                     className="flex items-center justify-between px-2 py-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-white transition"
                 >
                     <div className="flex items-center gap-1 text-[10px] font-bold text-pink-300">

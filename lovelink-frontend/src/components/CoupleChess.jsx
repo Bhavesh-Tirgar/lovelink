@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Chess } from 'chess.js';
 import confetti from 'canvas-confetti';
 import { Crown, RotateCcw, Flag, Sparkles, Heart, Volume2, VolumeX, ShieldAlert } from 'lucide-react';
+import { getSharedAudioContext } from '../utils/soundFx';
 
-// Web Audio sound synthesizer for realistic, dependency-free chess acoustics
+// Web Audio sound synthesizer using shared singleton context
 const playChessSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+        const ctx = getSharedAudioContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
 
         if (type === 'move') {
@@ -278,9 +278,9 @@ export default function CoupleChess({
         }
     }, [isMyTurn, isCheckmate, isDraw, gameMode, turn, myColor, selectedSquare, possibleMoves, sendWs, soundEnabled]);
 
-    // LoveBot automated move for partner (only in bot mode)
+    // LoveBot automated move for partner (works even if server chessState isn't initialized yet)
     useEffect(() => {
-        if (whitePlayerId && !isMyTurn && !isCheckmate && !isDraw && gameMode === 'bot') {
+        if (!isMyTurn && !isCheckmate && !isDraw && gameMode === 'bot') {
             const botTimer = setTimeout(() => {
                 try {
                     const legalMoves = gameRef.current.moves({ verbose: true });

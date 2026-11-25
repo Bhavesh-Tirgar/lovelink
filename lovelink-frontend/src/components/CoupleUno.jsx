@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Layers, RotateCcw, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { getSharedAudioContext } from '../utils/soundFx';
 
 const COLORS = ['red', 'blue', 'green', 'yellow'];
 const VALUES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+2', 'skip'];
@@ -34,13 +35,12 @@ function createDeck() {
     return deck;
 }
 
-// Web Audio sound synthesizer
+// Web Audio sound synthesizer using shared singleton context
 const playUnoSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+        const ctx = getSharedAudioContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
 
         if (type === 'play') {
@@ -143,12 +143,17 @@ export default function CoupleUno({
     const [deck, setDeck] = useState([]);
     const [activeColor, setActiveColor] = useState('red');
     const [turn, setTurn] = useState(null);
+    const [localWinner, setLocalWinner] = useState(null);
     const [colorPickerOpen, setColorPickerOpen] = useState(false);
     const [pendingWildCard, setPendingWildCard] = useState(null);
+    const deckRef = useRef(deck);
+    const partnerCountRef = useRef(partnerCardCount);
+    deckRef.current = deck;
+    partnerCountRef.current = partnerCardCount;
 
     const isMyTurn = (gameMode === 'couch') ? true : Boolean(turn ? String(turn) === String(userId) : true);
     const topCard = discardPile[discardPile.length - 1] || null;
-    const winner = unoState?.winner;
+    const winner = unoState?.winner || localWinner;
 
     useEffect(() => {
         if (myHand && myHand.length > 0) {
@@ -174,6 +179,7 @@ export default function CoupleUno({
             localStorage.setItem(`lovelink_uno_hand_${coupleId}_${userId}`, JSON.stringify(p1Hand));
         } catch {}
         setPartnerCardCount(p2Hand.length);
+        setLocalWinner(null);
         setDiscardPile([startCard]);
         setDeck(fullDeck);
         setActiveColor(startCard.color);
@@ -192,9 +198,8 @@ export default function CoupleUno({
         });
     }, [userId, coupleId, sendWs]);
 
-    // Mount & sync initialization: restores active game state or inits once
+    // Mount & sync initialization: restores active game state or waits in online mode until server state arrives
     useEffect(() => {
-        // If server already has an active Uno session with top_card, restore it
         if (unoState?.top_card && !winner) {
             if (unoState.discard) setDiscardPile(unoState.discard);
             else setDiscardPile([unoState.top_card]);
@@ -209,11 +214,10 @@ export default function CoupleUno({
             return;
         }
 
-        // Initialize if server session or local session has no active top_card
-        if (!topCard && !winner && (!unoState?.top_card || myHand.length === 0)) {
+        if (!topCard && !winner && !unoState?.top_card && (gameMode !== 'online' || unoState !== undefined)) {
             initGame();
         }
-    }, [unoState?.top_card, unoState?.player_1]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [unoState?.top_card, unoState?.player_1, gameMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle incoming WebSocket synced state
     useEffect(() => {
@@ -249,17 +253,17 @@ export default function CoupleUno({
                 const resolvedTurn = next_turn === 'partner' ? userId : next_turn;
                 setTurn(resolvedTurn);
 
-                // Handle draw penalties (+2 or +4)
+                // Handle draw penalties (+2 or +4) cleanly outside nested updaters
                 if (draw_penalty > 0) {
                     playUnoSound('draw', soundEnabled);
-                    setDeck(d => {
-                        const drawn = d.slice(0, draw_penalty);
-                        setMyHand(h => [...h, ...drawn]);
-                        return d.slice(draw_penalty);
-                    });
+                    const curDeck = deckRef.current;
+                    const drawn = curDeck.slice(0, draw_penalty);
+                    setDeck(curDeck.slice(draw_penalty));
+                    if (drawn.length > 0) setMyHand(h => [...h, ...drawn]);
                 }
 
                 if (gameWinner) {
+                    setLocalWinner(gameWinner);
                     playUnoSound('win', soundEnabled);
                 }
             }
@@ -284,7 +288,6 @@ export default function CoupleUno({
     useEffect(() => {
         if (!isMyTurn && !winner && topCard && gameMode === 'bot') {
             const timer = setTimeout(() => {
-                // Check if bot can play a card
                 const hasMatch = Math.random() < 0.78;
                 if (hasMatch) {
                     const pickWild = Math.random() < 0.15;
@@ -296,29 +299,30 @@ export default function CoupleUno({
                         value: chosenValue
                     };
 
-                    playUnoSound(pickWild ? 'wild' : 'play', soundEnabled);
+                    const nextCount = Math.max(0, partnerCountRef.current - 1);
+                    if (nextCount === 0) {
+                        playUnoSound('win', soundEnabled);
+                        setLocalWinner('bot');
+                    } else if (nextCount === 1) {
+                        playUnoSound('uno', soundEnabled);
+                    } else {
+                        playUnoSound(pickWild ? 'wild' : 'play', soundEnabled);
+                    }
+
                     setDiscardPile(prev => [...prev, botCard]);
                     setActiveColor(chosenColor);
-                    setPartnerCardCount(c => {
-                        const nextCount = Math.max(0, c - 1);
-                        if (nextCount === 0) {
-                            playUnoSound('win', soundEnabled);
-                        } else if (nextCount === 1) {
-                            playUnoSound('uno', soundEnabled);
-                        }
-                        return nextCount;
-                    });
+                    setPartnerCardCount(nextCount);
 
-                    // Next turn resolution: skips return turn to bot, normal gives turn to player
+                    if (nextCount === 0) return;
+
+                    // Next turn resolution: skips/+2/+4 keep turn with bot, normal passes to player
                     if (chosenValue === '+2' || chosenValue === '+4') {
                         playUnoSound('draw', soundEnabled);
-                        setDeck(d => {
-                            const penalty = chosenValue === '+2' ? 2 : 4;
-                            const drawn = d.slice(0, penalty);
-                            setMyHand(h => [...h, ...drawn]);
-                            return d.slice(penalty);
-                        });
-                        // Skip player turn in 1v1
+                        const penalty = chosenValue === '+2' ? 2 : 4;
+                        const curDeck = deckRef.current;
+                        const drawn = curDeck.slice(0, penalty);
+                        setDeck(curDeck.slice(penalty));
+                        if (drawn.length > 0) setMyHand(h => [...h, ...drawn]);
                         setTurn('bot');
                     } else if (chosenValue === 'skip') {
                         setTurn('bot');
@@ -326,7 +330,6 @@ export default function CoupleUno({
                         setTurn(userId);
                     }
                 } else {
-                    // Bot draws a card
                     playUnoSound('draw', soundEnabled);
                     setPartnerCardCount(c => c + 1);
                     setTurn(userId);
@@ -375,6 +378,7 @@ export default function CoupleUno({
 
         const isGameWon = remainingHand.length === 0;
         if (isGameWon) {
+            setLocalWinner(userId);
             playUnoSound('win', soundEnabled);
             confetti({
                 particleCount: 160,
@@ -399,6 +403,10 @@ export default function CoupleUno({
         } else {
             // Normal pass to partner
             nextTurnVal = 'partner';
+        }
+
+        if (!isGameWon) {
+            setTurn(nextTurnVal);
         }
 
         sendWs({
@@ -474,6 +482,7 @@ export default function CoupleUno({
                 <div className="flex items-center gap-1.5">
                     <button
                         onClick={() => setSoundEnabled(s => !s)}
+                        title={soundEnabled ? 'Mute Sound' : 'Unmute Sound'}
                         className={`p-2 rounded-xl border transition-all ${soundEnabled ? 'bg-white/10 text-pink-300 border-pink-500/30' : 'bg-white/5 text-gray-500 border-white/10'}`}
                     >
                         {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}

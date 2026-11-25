@@ -89,9 +89,9 @@ async def send_message(
     
     if receiver and receiver.fcm_token:
         # Determine notification body (privacy masked to prevent FCM/APNs cleartext leakage)
-        if payload.photo_url:
+        if message.message_type == MessageType.image or payload.message_type == MessageType.image:
             body = "Sent a photo 📸"
-        elif payload.voice_url:
+        elif message.message_type == MessageType.voice or payload.message_type == MessageType.voice:
             body = "Sent a voice message 🎙️"
         else:
             body = "Sent a message 💬"
@@ -113,7 +113,7 @@ async def mark_read(
     couple = await get_couple_by_user(db, current_user.id)
     updated_count = await mark_messages_read(db, couple.id, current_user.id)
     if updated_count > 0:
-        await manager.broadcast(couple.id, {
+        await manager.broadcast(str(couple.id), {
             "type": "read_receipt",
             "reader_id": str(current_user.id)
         })
@@ -155,7 +155,7 @@ async def upload_file(
     
     msg_dict = MessageResponse.model_validate(saved_message).model_dump(mode="json")
         
-    await manager.broadcast(couple.id, {
+    await manager.broadcast(str(couple.id), {
         "type": "message",
         "message": msg_dict
     })
@@ -374,9 +374,10 @@ async def websocket_chat(
 
             # ── REAL-TIME SNAP MAP LOCATION SYNC ───────────────────────────
             elif msg_type == "location_update":
-                await manager.broadcast(couple_id, {
+                await manager.broadcast(str(couple_id), {
                     "type": "location_update",
                     "user_id": user_id,
+                    "encrypted_location": data.get("encrypted_location"),
                     "latitude": data.get("latitude"),
                     "longitude": data.get("longitude"),
                     "battery_level": data.get("battery_level"),

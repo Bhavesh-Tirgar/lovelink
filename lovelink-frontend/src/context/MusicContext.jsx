@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
@@ -9,6 +9,48 @@ export const useMusic = () => useContext(MusicContext);
 
 const SPOTIFY_STATE_KEY = 'lovelink_spotify_playback_state';
 const SPOTIFY_LIKES_KEY = 'lovelink_spotify_liked_tracks';
+const SILENT_CARRIER_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+export const hasDirectAudioStream = (track) =>
+    Boolean(track?.url && !/youtube\.com|youtu\.be/i.test(track.url));
+
+export const isTrackYouTube = (track) =>
+    Boolean(track && !hasDirectAudioStream(track) && (track.type === 'youtube' || track.videoId));
+
+export const DEFAULT_FALLBACK_CHANNELS = [
+    {
+        id: 'bollywood-romance',
+        name: '💖 Bollywood Romance & Arijit Hits',
+        title: '💖 Bollywood Romance',
+        tracks: [
+            { id: 'bw-1', title: 'Kesariya', artist: 'Arijit Singh & Pritam', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/NvXwOB4/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', duration: 283, type: 'audio' },
+            { id: 'bw-2', title: 'Tum Hi Ho (Acoustic)', artist: 'Arijit Singh', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/blQ8b/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', duration: 241, type: 'audio' },
+            { id: 'bw-3', title: 'Raataan Lambiyan (Lo-Fi)', artist: 'Jubin Nautiyal & Asees Kaur', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/ZEJjy/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', duration: 267, type: 'audio' },
+            { id: 'bw-4', title: 'Apna Bana Le', artist: 'Arijit Singh & Sachin-Jigar', cover: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/B5EGGzm/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', duration: 204, type: 'audio' },
+        ]
+    },
+    {
+        id: 'hindi-lofi',
+        name: '🌙 Late Night Hindi Lo-Fi',
+        title: '🌙 Hindi Lo-Fi',
+        tracks: [
+            { id: 'hl-1', title: 'Kesariya x Saibo (Lo-Fi)', artist: 'Hindi Lo-Fi Collective', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/ZO0yNA6/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', duration: 437, type: 'audio' },
+            { id: 'hl-2', title: 'Kabira (Midnight Chill)', artist: 'Bollywood Chill Room', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://api.audius.co/v1/tracks/Eq7JRXM/stream?app_name=lovelink', fallback_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', duration: 251, type: 'audio' },
+        ]
+    }
+];
+
+const notifyNativeMediaService = (playing, track) => {
+    try {
+        if (typeof window !== 'undefined' && window.LoveLinkNativeAudio?.setPlaybackState) {
+            window.LoveLinkNativeAudio.setPlaybackState(
+                Boolean(playing),
+                String(track?.title || 'LoveLink Radio'),
+                String(track?.artist || 'Couple Sanctuary')
+            );
+        }
+    } catch { }
+};
 
 export const MusicProvider = ({ children }) => {
     const location = useLocation();
@@ -35,11 +77,52 @@ export const MusicProvider = ({ children }) => {
     const [token, setToken] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('token') : null));
     const [coupleId, setCoupleId] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem('couple_id') : null));
 
-    const audioRef = useRef(new Audio());
+    const audioRef = useRef(null);
     const wsRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
     const isLocalAction = useRef(true);
     const savedPositionRef = useRef(0);
+    const lastSavedSecRef = useRef(-1);
+    const fallbackTriedTrackRef = useRef(null);
+    const wasPlayingBeforeFocusLossRef = useRef(false);
+
+    // Live state refs to eliminate stale closures in WS/DOM/MediaSession callbacks
+    const currentTrackRef = useRef(currentTrack);
+    const isPlayingRef = useRef(isPlaying);
+    const currentTimeRef = useRef(currentTime);
+    const durationRef = useRef(duration);
+    const volumeRef = useRef(volume);
+    const isShuffleRef = useRef(isShuffle);
+    const repeatModeRef = useRef(repeatMode);
+    const channelsRef = useRef(channels);
+    const customPlaylistRef = useRef(customPlaylist);
+
+    currentTrackRef.current = currentTrack;
+    isPlayingRef.current = isPlaying;
+    currentTimeRef.current = currentTime;
+    durationRef.current = duration;
+    volumeRef.current = volume;
+    isShuffleRef.current = isShuffle;
+    repeatModeRef.current = repeatMode;
+    channelsRef.current = channels;
+    customPlaylistRef.current = customPlaylist;
+
+    const getAudioEl = useCallback(() => audioRef.current, []);
+
+    const persistPlaybackState = useCallback(() => {
+        const track = currentTrackRef.current;
+        if (!track) return;
+        const sec = Math.floor(currentTimeRef.current || 0);
+        try {
+            localStorage.setItem(SPOTIFY_STATE_KEY, JSON.stringify({
+                track,
+                currentTime: sec,
+                duration: durationRef.current || track.duration || 0,
+                volume: volumeRef.current,
+                savedAt: Date.now()
+            }));
+        } catch { }
+    }, []);
 
     // Restore saved Spotify playback state on startup (Resume exact track & timestamp)
     useEffect(() => {
@@ -66,55 +149,23 @@ export const MusicProvider = ({ children }) => {
         }
     }, []);
 
-    // Persist playback state to localStorage periodically
+    // Persist playback state throttled cleanly (every 2s or when pausing/switching track)
     useEffect(() => {
         if (!currentTrack) return;
-        try {
-            localStorage.setItem(SPOTIFY_STATE_KEY, JSON.stringify({
-                track: currentTrack,
-                currentTime: Math.floor(currentTime || 0),
-                duration: duration || currentTrack.duration || 0,
-                volume,
-                savedAt: Date.now()
-            }));
-        } catch { }
-    }, [currentTrack, currentTime, duration, volume]);
+        const sec = Math.floor(currentTime || 0);
+        if (!isPlaying || Math.abs(sec - lastSavedSecRef.current) >= 2) {
+            lastSavedSecRef.current = sec;
+            persistPlaybackState();
+        }
+    }, [currentTrack, currentTime, isPlaying, volume, persistPlaybackState]);
 
-    // Save on beforeunload / app background
+    // Sync Native Android Foreground Service with current playing status
     useEffect(() => {
-        const handleSave = () => {
-            if (!currentTrack) return;
-            try {
-                localStorage.setItem(SPOTIFY_STATE_KEY, JSON.stringify({
-                    track: currentTrack,
-                    currentTime: Math.floor(currentTime || 0),
-                    duration: duration || currentTrack.duration || 0,
-                    volume,
-                    savedAt: Date.now()
-                }));
-            } catch { }
-        };
-        window.addEventListener('beforeunload', handleSave);
-
-        // Native Android AudioFocus events (graceful pause when phone calls arrive)
-        const handleFocusLost = () => {
-            const audio = audioRef.current;
-            if (audio && !audio.paused) audio.pause();
-            controlYouTube('pause');
-            setIsPlaying(false);
-        };
-        window.addEventListener('lovelink:audiofocus_lost', handleFocusLost);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleSave);
-            window.removeEventListener('lovelink:audiofocus_lost', handleFocusLost);
-        };
-    }, [currentTrack, currentTime, duration, volume]);
-
-    const SILENT_CARRIER_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        notifyNativeMediaService(isPlaying && Boolean(currentTrack), currentTrack);
+    }, [isPlaying, currentTrack]);
 
     // Cross-frame YouTube Player control bridge
-    const controlYouTube = (action, param = null) => {
+    const controlYouTube = useCallback((action, param = null) => {
         const iframe = document.getElementById('yt-music-iframe');
         if (iframe && iframe.contentWindow) {
             let command = null;
@@ -126,44 +177,11 @@ export const MusicProvider = ({ children }) => {
                 iframe.contentWindow.postMessage(JSON.stringify(command), '*');
             }
         }
-    };
+    }, []);
 
-    // YouTube iframe postMessage listener for real continuous playback & accurate duration
-    useEffect(() => {
-        const handleYtMessage = (event) => {
-            try {
-                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (!data) return;
-
-                if (data.event === 'infoDelivery' && data.info) {
-                    if (data.info.currentTime !== undefined) {
-                        setCurrentTime(data.info.currentTime);
-                    }
-                    if (data.info.duration !== undefined && data.info.duration > 0) {
-                        setDuration(data.info.duration);
-                    }
-                    if (data.info.playerState !== undefined) {
-                        if (data.info.playerState === 0) {
-                            // Video finished naturally -> play next track!
-                            playNext();
-                        } else if (data.info.playerState === 1) {
-                            setIsPlaying(true);
-                        } else if (data.info.playerState === 2) {
-                            setIsPlaying(false);
-                        }
-                    }
-                }
-            } catch { }
-        };
-
-        window.addEventListener('message', handleYtMessage);
-        return () => window.removeEventListener('message', handleYtMessage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentTrack]);
-
-    // Background Audio Carrier to ensure mobile OS & Android WebView keep audio process alive in background
-    const ensureAudioCarrier = (active) => {
-        const audio = audioRef.current;
+    // Background Audio Carrier for YouTube iframe tracks only (direct <audio> tracks act as their own media session!)
+    const ensureAudioCarrier = useCallback((active) => {
+        const audio = getAudioEl();
         if (!audio) return;
         if (active) {
             try {
@@ -178,10 +196,49 @@ export const MusicProvider = ({ children }) => {
             try {
                 if (audio.src === SILENT_CARRIER_URI) {
                     audio.pause();
+                    audio.removeAttribute('src');
+                    audio.load?.();
                 }
             } catch { }
         }
-    };
+    }, [getAudioEl]);
+
+    // Save on beforeunload & handle Android AudioFocus changes cleanly
+    useEffect(() => {
+        const handleSave = () => persistPlaybackState();
+        window.addEventListener('beforeunload', handleSave);
+
+        const handleFocusLost = () => {
+            if (!isPlayingRef.current) return;
+            wasPlayingBeforeFocusLossRef.current = true;
+            const audio = getAudioEl();
+            if (audio && !audio.paused) audio.pause();
+            controlYouTube('pause');
+            setIsPlaying(false);
+        };
+        const handleFocusGain = () => {
+            if (!wasPlayingBeforeFocusLossRef.current || !currentTrackRef.current) return;
+            wasPlayingBeforeFocusLossRef.current = false;
+            const track = currentTrackRef.current;
+            const audio = getAudioEl();
+            if (isTrackYouTube(track)) {
+                controlYouTube('play');
+                ensureAudioCarrier(true);
+                setIsPlaying(true);
+            } else if (audio && audio.src) {
+                audio.play().then(() => setIsPlaying(true)).catch(() => { });
+            }
+        };
+
+        window.addEventListener('lovelink:audiofocus_lost', handleFocusLost);
+        window.addEventListener('lovelink:audiofocus_gain', handleFocusGain);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleSave);
+            window.removeEventListener('lovelink:audiofocus_lost', handleFocusLost);
+            window.removeEventListener('lovelink:audiofocus_gain', handleFocusGain);
+        };
+    }, [persistPlaybackState, getAudioEl, controlYouTube, ensureAudioCarrier]);
 
     // System MediaSession API: Lockscreen, Notification controls & OS media status
     useEffect(() => {
@@ -204,7 +261,7 @@ export const MusicProvider = ({ children }) => {
 
                 if ('setPositionState' in navigator.mediaSession) {
                     const dur = Math.max(duration || currentTrack.duration || 1, 1);
-                    const pos = Math.min(currentTime || 0, dur);
+                    const pos = Math.min(Math.max(currentTime || 0, 0), dur);
                     navigator.mediaSession.setPositionState({
                         duration: dur,
                         playbackRate: 1.0,
@@ -246,7 +303,7 @@ export const MusicProvider = ({ children }) => {
             .then(res => {
                 if (Array.isArray(res.data) && res.data.length > 0) {
                     setChannels(res.data);
-                    if (res.data[0].tracks?.length > 0 && !currentTrack) {
+                    if (res.data[0].tracks?.length > 0 && !currentTrackRef.current) {
                         setCurrentTrack(res.data[0].tracks[0]);
                     }
                 } else {
@@ -255,68 +312,111 @@ export const MusicProvider = ({ children }) => {
             })
             .catch(err => {
                 console.warn("Using curated couple lofi channels:", err);
-                const defaultChannels = [
-                    {
-                        id: 'bollywood-romance',
-                        name: '💖 Bollywood Romance & Arijit Hits',
-                        title: '💖 Bollywood Romance',
-                        tracks: [
-                            { id: 'bw-1', title: 'Kesariya', artist: 'Arijit Singh & Pritam', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3', duration: 268, type: 'audio' },
-                            { id: 'bw-2', title: 'Tum Hi Ho', artist: 'Arijit Singh', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3', duration: 262, type: 'audio' },
-                            { id: 'bw-3', title: 'Raataan Lambiyan', artist: 'Jubin Nautiyal & Asees Kaur', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3', duration: 230, type: 'audio' },
-                            { id: 'bw-4', title: 'Apna Bana Le', artist: 'Arijit Singh', cover: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3', duration: 261, type: 'audio' }
-                        ]
-                    },
-                    {
-                        id: 'hindi-lofi',
-                        name: '🌙 Late Night Hindi Lo-Fi',
-                        title: '🌙 Hindi Lo-Fi',
-                        tracks: [
-                            { id: 'hl-1', title: 'Kabira (Late Night Lo-Fi)', artist: 'Hindi Lo-Fi Collective', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3', duration: 215, type: 'audio' },
-                            { id: 'hl-2', title: 'Iktara (Midnight Lo-Fi Reverb)', artist: 'Bollywood Chill Room', cover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3', duration: 230, type: 'audio' }
-                        ]
-                    }
-                ];
-                setChannels(defaultChannels);
-                if (!currentTrack) setCurrentTrack(defaultChannels[0].tracks[0]);
+                setChannels(DEFAULT_FALLBACK_CHANNELS);
+                if (!currentTrackRef.current) setCurrentTrack(DEFAULT_FALLBACK_CHANNELS[0].tracks[0]);
             });
 
         api.get('/music/playlist')
-            .then(res => setCustomPlaylist(res.data))
+            .then(res => {
+                if (Array.isArray(res.data)) setCustomPlaylist(res.data);
+            })
             .catch(() => { });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
-    // 2. Audio element listeners
+    // Live callback refs updated below
+    const playNextRef = useRef(() => {});
+    const playPrevRef = useRef(() => {});
+    const togglePlayRef = useRef(() => {});
+    const seekRef = useRef(() => {});
+    const handleRemoteEventRef = useRef(() => {});
+
+    // 2. HTML5 <audio> element listeners (using refs to avoid stale closures)
     useEffect(() => {
-        const audio = audioRef.current;
-        const updateTime = () => setCurrentTime(audio.currentTime);
-        const updateDuration = () => setDuration(audio.duration || 0);
-        const onEnded = () => playNext();
+        const audio = getAudioEl();
+        if (!audio) return;
+
+        const updateTime = () => {
+            if (audio.src === SILENT_CARRIER_URI) return;
+            setCurrentTime(audio.currentTime || 0);
+        };
+        const updateDuration = () => {
+            if (audio.src === SILENT_CARRIER_URI) return;
+            if (audio.duration && Number.isFinite(audio.duration)) {
+                setDuration(audio.duration);
+            }
+        };
+        const onEnded = () => {
+            if (audio.src === SILENT_CARRIER_URI) return;
+            playNextRef.current();
+        };
+        const onError = () => {
+            const activeSrc = audio.getAttribute('src');
+            if (!activeSrc || activeSrc === SILENT_CARRIER_URI) return;
+            const track = currentTrackRef.current;
+            if (track?.fallback_url && fallbackTriedTrackRef.current !== track.id) {
+                fallbackTriedTrackRef.current = track.id;
+                audio.src = track.fallback_url;
+                audio.volume = volumeRef.current;
+                audio.play().catch(() => setIsPlaying(false));
+                return;
+            }
+            console.warn('[Music] Audio stream error for:', track?.title, activeSrc);
+            setIsPlaying(false);
+        };
 
         audio.addEventListener('timeupdate', updateTime);
         audio.addEventListener('loadedmetadata', updateDuration);
         audio.addEventListener('ended', onEnded);
+        audio.addEventListener('error', onError);
 
         return () => {
             audio.removeEventListener('timeupdate', updateTime);
             audio.removeEventListener('loadedmetadata', updateDuration);
             audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('error', onError);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentTrack]);
+    }, [getAudioEl]);
 
-    // 2b. YouTube smooth progress ticker (never cuts off song prematurely - YouTube playerState ended event controls track completion)
+    // 2a. YouTube iframe postMessage listener
     useEffect(() => {
-        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
-        if (!isYt || !isPlaying) return;
+        const handleYtMessage = (event) => {
+            if (event.origin && !/youtube(-nocookie)?\.com$/i.test(event.origin)) return;
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (!data) return;
+
+                if (data.event === 'infoDelivery' && data.info) {
+                    if (data.info.currentTime !== undefined) {
+                        setCurrentTime(data.info.currentTime);
+                    }
+                    if (data.info.duration !== undefined && data.info.duration > 0) {
+                        setDuration(data.info.duration);
+                    }
+                    if (data.info.playerState !== undefined) {
+                        if (data.info.playerState === 0) {
+                            playNextRef.current();
+                        } else if (data.info.playerState === 1) {
+                            setIsPlaying(true);
+                        } else if (data.info.playerState === 2) {
+                            setIsPlaying(false);
+                        }
+                    }
+                }
+            } catch { }
+        };
+
+        window.addEventListener('message', handleYtMessage);
+        return () => window.removeEventListener('message', handleYtMessage);
+    }, []);
+
+    // 2b. YouTube smooth progress ticker (only runs for YouTube-only tracks without direct audio URL)
+    useEffect(() => {
+        if (!isTrackYouTube(currentTrack) || !isPlaying) return;
 
         const interval = setInterval(() => {
             setCurrentTime(prev => {
                 const dur = duration || currentTrack?.duration || 0;
-                if (dur > 0 && prev >= dur) {
-                    return dur;
-                }
+                if (dur > 0 && prev >= dur) return dur;
                 return prev + 1;
             });
         }, 1000);
@@ -324,18 +424,26 @@ export const MusicProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [currentTrack, isPlaying, duration]);
 
-    // 3. WebSockets for partner synchronization
+    // 3. WebSockets for partner synchronization (single-use ticket with token fallback)
     useEffect(() => {
         if (!coupleId || !token) return;
 
         let isUnmounted = false;
         let reconnectDelay = 2000;
 
-        const connectWs = () => {
+        const connectWs = async () => {
             if (isUnmounted) return;
             const wsBase = getWsBaseUrl();
-            const wsUrl = `${wsBase}/music/ws/${coupleId}?token=${token}`;
+            let authQuery = `token=${encodeURIComponent(token)}`;
+            try {
+                const res = await api.post('/auth/ws-ticket');
+                if (res.data?.ticket) {
+                    authQuery = `ticket=${encodeURIComponent(res.data.ticket)}`;
+                }
+            } catch { }
 
+            if (isUnmounted) return;
+            const wsUrl = `${wsBase}/music/ws/${coupleId}?${authQuery}`;
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 
@@ -349,7 +457,7 @@ export const MusicProvider = ({ children }) => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    handleRemoteEvent(data);
+                    handleRemoteEventRef.current(data);
                 } catch (e) {
                     console.error("Music WS parse error:", e);
                 }
@@ -358,7 +466,6 @@ export const MusicProvider = ({ children }) => {
             ws.onclose = (e) => {
                 if (isUnmounted) return;
                 setIsSynced(false);
-                // Reconnect if not intentional close
                 if (e.code !== 1000) {
                     reconnectTimeoutRef.current = setTimeout(() => {
                         reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
@@ -374,31 +481,50 @@ export const MusicProvider = ({ children }) => {
 
         connectWs();
 
+        const handleOnlineOrVisible = () => {
+            if (!isUnmounted && document.visibilityState !== 'hidden') {
+                const state = wsRef.current?.readyState;
+                if (state !== WebSocket.OPEN && state !== WebSocket.CONNECTING) {
+                    connectWs();
+                }
+            }
+        };
+        window.addEventListener('online', handleOnlineOrVisible);
+        document.addEventListener('visibilitychange', handleOnlineOrVisible);
+
         return () => {
             isUnmounted = true;
+            window.removeEventListener('online', handleOnlineOrVisible);
+            document.removeEventListener('visibilitychange', handleOnlineOrVisible);
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 wsRef.current.close(1000, "Component unmounted");
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [coupleId, token]);
 
-    // Handle messages coming from partner
+    // Handle messages coming from partner (reads live refs, never stale state)
     const handleRemoteEvent = (data) => {
-        const audio = audioRef.current;
+        const audio = getAudioEl();
+        if (!audio) return;
         isLocalAction.current = false;
 
         if (data.type === 'sync_state' || data.type === 'change_track') {
             if (data.track) {
+                fallbackTriedTrackRef.current = null;
                 setCurrentTrack(data.track);
-                const isYt = data.track.type === 'youtube' || Boolean(data.track.videoId);
-                if (!isYt && data.track.url) {
+                const directAudio = hasDirectAudioStream(data.track);
+                const isYt = isTrackYouTube(data.track);
+                if (directAudio) {
+                    ensureAudioCarrier(false);
+                    audio.loop = false;
+                    audio.volume = volumeRef.current;
                     audio.src = data.track.url;
-                    if (data.position) {
+                    if (data.position !== undefined) {
                         audio.currentTime = data.position;
                         setCurrentTime(data.position);
                     }
+                    setDuration(data.track.duration || 0);
                     if (data.is_playing) {
                         audio.play().catch(() => { });
                         setIsPlaying(true);
@@ -406,9 +532,9 @@ export const MusicProvider = ({ children }) => {
                         audio.pause();
                         setIsPlaying(false);
                     }
-                } else {
+                } else if (isYt) {
                     audio.pause();
-                    audio.src = '';
+                    audio.removeAttribute('src');
                     setCurrentTime(data.position || 0);
                     setDuration(data.track.duration || 210);
                     setIsPlaying(Boolean(data.is_playing));
@@ -424,37 +550,39 @@ export const MusicProvider = ({ children }) => {
             }
             if (data.dj_name) setDjName(data.dj_name);
         } else if (data.type === 'play') {
-            const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
-            if (!isYt && audio.src) {
-                if (data.position && Math.abs(audio.currentTime - data.position) > 1.5) {
+            const activeTrack = currentTrackRef.current;
+            const isYt = isTrackYouTube(activeTrack);
+            if (!isYt && audio.getAttribute('src')) {
+                if (data.position !== undefined && Math.abs(audio.currentTime - data.position) > 1.5) {
                     audio.currentTime = data.position;
+                    setCurrentTime(data.position);
                 }
                 audio.play().catch(() => { });
             } else if (isYt) {
                 ensureAudioCarrier(true);
                 controlYouTube('play');
-                if (data.position) controlYouTube('seek', data.position);
+                if (data.position !== undefined) controlYouTube('seek', data.position);
             }
             if (data.position !== undefined) setCurrentTime(data.position);
             setIsPlaying(true);
             if (data.dj_name) setDjName(data.dj_name);
         } else if (data.type === 'pause') {
-            const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+            const isYt = isTrackYouTube(currentTrackRef.current);
             if (!isYt) audio.pause();
             else {
                 controlYouTube('pause');
                 ensureAudioCarrier(false);
             }
             setIsPlaying(false);
-            if (data.position) {
-                if (!isYt) audio.currentTime = data.position;
+            if (data.position !== undefined) {
+                if (!isYt && audio.getAttribute('src')) audio.currentTime = data.position;
                 setCurrentTime(data.position);
             }
         } else if (data.type === 'seek') {
-            const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+            const isYt = isTrackYouTube(currentTrackRef.current);
             if (data.position !== undefined) {
-                if (!isYt) audio.currentTime = data.position;
-                else controlYouTube('seek', data.position);
+                if (!isYt && audio.getAttribute('src')) audio.currentTime = data.position;
+                else if (isYt) controlYouTube('seek', data.position);
                 setCurrentTime(data.position);
             }
         }
@@ -463,6 +591,7 @@ export const MusicProvider = ({ children }) => {
             isLocalAction.current = true;
         }, 300);
     };
+    handleRemoteEventRef.current = handleRemoteEvent;
 
     const getCurrentUserName = () => {
         try {
@@ -475,11 +604,13 @@ export const MusicProvider = ({ children }) => {
     // Broadcast event to partner
     const sendEvent = (type, payload = {}) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        const isYt = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+        const activeTrack = payload.track || currentTrackRef.current;
+        const isYt = isTrackYouTube(activeTrack);
+        const audio = getAudioEl();
         wsRef.current.send(JSON.stringify({
             type,
-            track: currentTrack,
-            position: isYt ? currentTime : audioRef.current.currentTime,
+            track: activeTrack,
+            position: payload.position !== undefined ? payload.position : (isYt ? currentTimeRef.current : (audio?.currentTime || 0)),
             dj_name: getCurrentUserName(),
             ...payload
         }));
@@ -487,23 +618,34 @@ export const MusicProvider = ({ children }) => {
 
     // User Controls
     const playTrack = (track) => {
-        const audio = audioRef.current;
+        const audio = getAudioEl();
+        if (!track || !audio) return;
+        fallbackTriedTrackRef.current = null;
+        wasPlayingBeforeFocusLossRef.current = false;
         setCurrentTrack(track);
-        const hasDirectAudio = Boolean(track.url);
-        const isYt = !hasDirectAudio && (track.type === 'youtube' || Boolean(track.videoId));
+        currentTrackRef.current = track;
 
-        if (hasDirectAudio) {
+        const directAudio = hasDirectAudioStream(track);
+        const isYt = isTrackYouTube(track);
+
+        if (directAudio) {
             ensureAudioCarrier(false);
             audio.loop = false;
-            audio.volume = volume;
+            audio.volume = volumeRef.current;
             audio.src = track.url;
+            audio.currentTime = 0;
+            setCurrentTime(0);
+            setDuration(track.duration || 0);
             audio.play().then(() => {
                 setIsPlaying(true);
                 sendEvent('change_track', { track, is_playing: true, position: 0 });
-            }).catch(err => console.warn("Autoplay blocked:", err));
+            }).catch(err => {
+                console.warn("Audio play failed:", err);
+                setIsPlaying(false);
+            });
         } else if (isYt) {
             audio.pause();
-            audio.src = '';
+            audio.removeAttribute('src');
             ensureAudioCarrier(true);
             setCurrentTime(0);
             setDuration(track.duration || 210);
@@ -514,54 +656,74 @@ export const MusicProvider = ({ children }) => {
     };
 
     const togglePlay = () => {
-        const audio = audioRef.current;
-        if (!currentTrack) {
-            if (channels.length > 0 && channels[0].tracks.length > 0) {
-                playTrack(channels[0].tracks[0]);
+        const audio = getAudioEl();
+        const track = currentTrackRef.current;
+        if (!track) {
+            const chans = channelsRef.current;
+            if (chans.length > 0 && chans[0].tracks?.length > 0) {
+                playTrack(chans[0].tracks[0]);
             }
             return;
         }
 
-        const hasDirectAudio = Boolean(currentTrack.url);
-        const isYt = !hasDirectAudio && (currentTrack.type === 'youtube' || Boolean(currentTrack.videoId));
+        const directAudio = hasDirectAudioStream(track);
+        const isYt = isTrackYouTube(track);
 
-        if (isPlaying) {
-            if (!isYt) audio.pause();
+        if (isPlayingRef.current) {
+            if (!isYt && audio) audio.pause();
             else {
                 controlYouTube('pause');
                 ensureAudioCarrier(false);
             }
+            wasPlayingBeforeFocusLossRef.current = false;
             setIsPlaying(false);
-            sendEvent('pause', { position: isYt ? currentTime : audio.currentTime });
+            sendEvent('pause', { position: isYt ? currentTimeRef.current : (audio?.currentTime || 0) });
         } else {
-            if (!isYt && audio.src) {
+            if (directAudio && audio) {
+                ensureAudioCarrier(false);
                 audio.loop = false;
-                audio.volume = volume;
-                audio.play().catch(console.warn);
+                audio.volume = volumeRef.current;
+                if (!audio.getAttribute('src') || audio.src === SILENT_CARRIER_URI) {
+                    audio.src = track.url;
+                    if (savedPositionRef.current > 0) {
+                        audio.currentTime = savedPositionRef.current;
+                    }
+                }
+                audio.play().then(() => {
+                    setIsPlaying(true);
+                    sendEvent('play', { position: audio.currentTime || 0 });
+                }).catch(err => {
+                    console.warn("Audio resume failed:", err);
+                    setIsPlaying(false);
+                });
             } else if (isYt) {
                 controlYouTube('play');
                 ensureAudioCarrier(true);
+                setIsPlaying(true);
+                sendEvent('play', { position: currentTimeRef.current });
             }
-            setIsPlaying(true);
-            sendEvent('play', { position: isYt ? currentTime : audio.currentTime });
         }
     };
+    togglePlayRef.current = togglePlay;
 
     const seek = (time) => {
-        const hasDirectAudio = Boolean(currentTrack?.url);
-        const isYt = !hasDirectAudio && (currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId));
+        const audio = getAudioEl();
+        const track = currentTrackRef.current;
+        const isYt = isTrackYouTube(track);
         if (isYt) {
             controlYouTube('seek', time);
-        } else {
-            audioRef.current.currentTime = time;
+        } else if (audio && audio.getAttribute('src')) {
+            audio.currentTime = time;
         }
         setCurrentTime(time);
         sendEvent('seek', { position: time });
     };
+    seekRef.current = seek;
 
     const changeVolume = (newVol) => {
         setVolume(newVol);
-        audioRef.current.volume = newVol;
+        const audio = getAudioEl();
+        if (audio) audio.volume = newVol;
     };
 
     const toggleShuffle = () => setIsShuffle(prev => !prev);
@@ -571,7 +733,7 @@ export const MusicProvider = ({ children }) => {
     };
 
     const toggleLikeTrack = (trackToToggle) => {
-        const target = trackToToggle || currentTrack;
+        const target = trackToToggle || currentTrackRef.current;
         if (!target) return;
         const targetId = target.id || target.videoId;
         setLikedTracks(prev => {
@@ -593,87 +755,87 @@ export const MusicProvider = ({ children }) => {
         return likedTracks.some(t => (t.id || t.videoId) === targetId);
     };
 
-    const playNext = () => {
-        if (!currentTrack) return;
+    const resolveActivePool = (track) => {
+        const custom = customPlaylistRef.current;
+        const chans = channelsRef.current;
+        if (custom && custom.length > 0 && custom.some(t => t.id === track?.id)) {
+            return custom;
+        }
+        for (const channel of chans) {
+            if (channel.tracks?.some(t => t.id === track?.id || (t.videoId && !t.url && t.videoId === track?.videoId))) {
+                return channel.tracks;
+            }
+        }
+        if (chans.length > 0 && chans[0].tracks?.length > 0) {
+            return chans[0].tracks;
+        }
+        return custom || [];
+    };
 
-        if (repeatMode === 'one') {
-            seek(0);
-            if (isPlaying) controlYouTube('play');
+    const playNext = () => {
+        const track = currentTrackRef.current;
+        if (!track) return;
+
+        if (repeatModeRef.current === 'one') {
+            seekRef.current(0);
+            if (isTrackYouTube(track)) {
+                controlYouTube('play');
+            } else {
+                getAudioEl()?.play().catch(() => { });
+            }
+            setIsPlaying(true);
             return;
         }
 
-        let pool = [];
-        if (customPlaylist && customPlaylist.length > 0) {
-            pool = customPlaylist;
-        } else {
-            for (const channel of channels) {
-                if (channel.tracks?.some(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId))) {
-                    pool = channel.tracks;
-                    break;
-                }
-            }
-            if (pool.length === 0 && channels.length > 0 && channels[0].tracks) {
-                pool = channels[0].tracks;
-            }
-        }
-
+        const pool = resolveActivePool(track);
         if (pool.length === 0) return;
 
-        if (isShuffle && pool.length > 1) {
-            const randomIdx = Math.floor(Math.random() * pool.length);
+        if (isShuffleRef.current && pool.length > 1) {
+            const idx = pool.findIndex(t => t.id === track.id);
+            let randomIdx = Math.floor(Math.random() * pool.length);
+            if (randomIdx === idx) randomIdx = (randomIdx + 1) % pool.length;
             playTrack(pool[randomIdx]);
             return;
         }
 
-        const idx = pool.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+        const idx = pool.findIndex(t => t.id === track.id || (t.videoId && !t.url && t.videoId === track.videoId));
         if (idx !== -1) {
             const nextTrack = pool[(idx + 1) % pool.length];
             playTrack(nextTrack);
-        } else if (pool.length > 0) {
+        } else {
             playTrack(pool[0]);
         }
     };
+    playNextRef.current = playNext;
 
     const playPrev = () => {
-        if (!currentTrack) return;
-        let pool = [];
-        if (customPlaylist && customPlaylist.length > 0) {
-            pool = customPlaylist;
-        } else {
-            for (const channel of channels) {
-                if (channel.tracks?.some(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId))) {
-                    pool = channel.tracks;
-                    break;
-                }
-            }
-            if (pool.length === 0 && channels.length > 0 && channels[0].tracks) {
-                pool = channels[0].tracks;
-            }
-        }
-
+        const track = currentTrackRef.current;
+        if (!track) return;
+        const pool = resolveActivePool(track);
         if (pool.length === 0) return;
 
-        const idx = pool.findIndex(t => t.id === currentTrack.id || (t.videoId && t.videoId === currentTrack.videoId));
+        const idx = pool.findIndex(t => t.id === track.id || (t.videoId && !t.url && t.videoId === track.videoId));
         if (idx !== -1) {
             const prevTrack = pool[(idx - 1 + pool.length) % pool.length];
             playTrack(prevTrack);
-        } else if (pool.length > 0) {
+        } else {
             playTrack(pool[0]);
         }
     };
+    playPrevRef.current = playPrev;
 
-    // Register MediaSession lockscreen / notification action handlers
+    // Register MediaSession lockscreen / notification action handlers ONCE cleanly via refs
     useEffect(() => {
         if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
         const actionHandlers = [
-            ['play', () => togglePlay()],
-            ['pause', () => togglePlay()],
-            ['previoustrack', () => playPrev()],
-            ['nexttrack', () => playNext()],
+            ['play', () => togglePlayRef.current()],
+            ['pause', () => togglePlayRef.current()],
+            ['previoustrack', () => playPrevRef.current()],
+            ['nexttrack', () => playNextRef.current()],
             ['seekto', (details) => {
                 if (details.seekTime !== undefined && details.seekTime !== null) {
-                    seek(details.seekTime);
+                    seekRef.current(details.seekTime);
                 }
             }],
         ];
@@ -693,7 +855,7 @@ export const MusicProvider = ({ children }) => {
                 } catch { }
             }
         };
-    });
+    }, []);
 
     const addCustomTrack = async (trackData) => {
         try {
@@ -706,7 +868,7 @@ export const MusicProvider = ({ children }) => {
         }
     };
 
-    const isYouTube = currentTrack?.type === 'youtube' || Boolean(currentTrack?.videoId);
+    const showYouTubeCarrier = isTrackYouTube(currentTrack);
 
     return (
         <MusicContext.Provider value={{
@@ -737,8 +899,15 @@ export const MusicProvider = ({ children }) => {
             addCustomTrack,
         }}>
             {children}
-            {/* Permanent Root YouTube Audio Carrier: In-viewport tiny carrier prevents Chromium offscreen frame throttling across section transitions & background */}
-            {isYouTube && currentTrack.videoId && (
+            {/* Live DOM <audio> element keeps background WebMediaPlayer & MediaSession active across Android WebView */}
+            <audio
+                ref={audioRef}
+                playsInline
+                preload="auto"
+                style={{ display: 'none' }}
+            />
+            {/* YouTube Audio Carrier (only mounted for YouTube-only tracks that lack direct audio streams) */}
+            {showYouTubeCarrier && currentTrack?.videoId && (
                 <div
                     className="fixed bottom-0 right-0 w-[2px] h-[2px] opacity-[0.01] pointer-events-none z-[1] overflow-hidden"
                     style={{ position: 'fixed', bottom: '0px', right: '0px', width: '2px', height: '2px', opacity: 0.01, pointerEvents: 'none', zIndex: 1 }}
@@ -758,7 +927,7 @@ export const MusicProvider = ({ children }) => {
                                 if (resumePos > 0) {
                                     iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [resumePos, true] }), '*');
                                 }
-                                if (isPlaying) {
+                                if (isPlayingRef.current) {
                                     iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                 }
                             }

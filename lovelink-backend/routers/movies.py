@@ -340,10 +340,10 @@ async def watch_ws(
     db: AsyncSession = Depends(get_db),
 ):
     from routers.auth import get_current_user_from_token
-    from utils.tickets import verify_and_consume_ticket
+    from utils.tickets import verify_and_consume_ws_ticket
     user = None
     if ticket:
-        user_id = verify_and_consume_ticket(ticket)
+        user_id = verify_and_consume_ws_ticket(ticket)
         if user_id:
             res = await db.execute(select(User).where(User.id == user_id))
             user = res.scalar_one_or_none()

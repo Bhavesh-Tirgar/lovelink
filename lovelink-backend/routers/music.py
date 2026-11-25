@@ -1,8 +1,6 @@
-MAX_FRAME_SIZE = 65536  # 64 KB
-MAX_MSGS_PER_SEC = 30
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, and_, desc
+from sqlalchemy import select
 from database import get_db
 from models.user import User
 from models.couple import Couple
@@ -10,7 +8,7 @@ from crud.couple import get_active_couple_by_user
 from routers.auth import get_current_user
 from ws_manager.manager import manager
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 import json
 import uuid
@@ -18,12 +16,15 @@ import re
 import urllib.parse
 import httpx
 
+MAX_FRAME_SIZE = 65536  # 64 KB
+MAX_MSGS_PER_SEC = 30
+
 router = APIRouter()
 
 # In-memory music playback state per couple: {couple_id: {track, is_playing, position, last_update, dj_name}}
 music_states: dict = {}
 
-# Curated romantic & lofi audio channels (Bollywood, Hindi Lo-Fi & Romantic soundscapes)
+# Curated romantic & lofi audio channels (Verified live full-length audio/mpeg streams + fallback CDN)
 DEFAULT_CHANNELS = [
     {
         "id": "bollywood-romance",
@@ -35,60 +36,60 @@ DEFAULT_CHANNELS = [
                 "title": "Kesariya",
                 "artist": "Arijit Singh & Pritam",
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "videoId": "BddP6PYo2gs",
+                "url": "https://api.audius.co/v1/tracks/NvXwOB4/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
                 "type": "audio",
-                "duration": 268
+                "duration": 283
             },
             {
                 "id": "bw-2",
-                "title": "Tum Hi Ho",
+                "title": "Tum Hi Ho (Acoustic)",
                 "artist": "Arijit Singh (Aashiqui 2)",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
-                "videoId": "IJq0yyWug1k",
+                "url": "https://api.audius.co/v1/tracks/blQ8b/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
                 "type": "audio",
-                "duration": 262
+                "duration": 241
             },
             {
                 "id": "bw-3",
-                "title": "Raataan Lambiyan",
+                "title": "Raataan Lambiyan (Lo-Fi)",
                 "artist": "Jubin Nautiyal & Asees Kaur",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "videoId": "gvyUuxdRdR4",
+                "url": "https://api.audius.co/v1/tracks/ZEJjy/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
                 "type": "audio",
-                "duration": 230
+                "duration": 267
             },
             {
                 "id": "bw-4",
                 "title": "Apna Bana Le",
                 "artist": "Arijit Singh & Sachin-Jigar",
                 "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
-                "videoId": "ElZfdU54Cp8",
+                "url": "https://api.audius.co/v1/tracks/B5EGGzm/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
                 "type": "audio",
-                "duration": 261
+                "duration": 204
             },
             {
                 "id": "bw-5",
-                "title": "Pehle Bhi Main",
-                "artist": "Vishal Mishra (Animal)",
-                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "videoId": "iAIBF2ngbWY",
-                "type": "audio",
-                "duration": 250
-            },
-            {
-                "id": "bw-6",
                 "title": "Tera Ban Jaunga",
                 "artist": "Akhil Sachdeva & Tulsi Kumar",
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
-                "videoId": "eLmMomv753E",
+                "url": "https://api.audius.co/v1/tracks/WVzoK/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
                 "type": "audio",
-                "duration": 236
+                "duration": 237
+            },
+            {
+                "id": "bw-6",
+                "title": "Agar Tum Saath Ho",
+                "artist": "Alka Yagnik & Arijit Singh",
+                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
+                "url": "https://api.audius.co/v1/tracks/93w61yj/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+                "type": "audio",
+                "duration": 341
             }
         ]
     },
@@ -99,53 +100,43 @@ DEFAULT_CHANNELS = [
         "tracks": [
             {
                 "id": "hl-1",
-                "title": "Kabira (Late Night Lo-Fi)",
+                "title": "Kesariya x Saibo (Slowed + Reverb Lo-Fi)",
                 "artist": "Hindi Lo-Fi Collective",
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
-                "videoId": "jHNNMj5bNQw",
+                "url": "https://api.audius.co/v1/tracks/ZO0yNA6/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
                 "type": "audio",
-                "duration": 215
+                "duration": 437
             },
             {
                 "id": "hl-2",
-                "title": "Iktara (Midnight Lo-Fi Reverb)",
+                "title": "Kabira (Late Night Chill)",
                 "artist": "Bollywood Chill Room",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "videoId": "fSS_R91Nimw",
+                "url": "https://api.audius.co/v1/tracks/Eq7JRXM/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
                 "type": "audio",
-                "duration": 230
+                "duration": 251
             },
             {
                 "id": "hl-3",
-                "title": "Agar Tum Saath Ho (Rainy Lo-Fi)",
+                "title": "Ye Tune Kya Kiya x Pee Loon",
                 "artist": "Cozy Monsoon Lo-Fi",
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "videoId": "sK7riqg2mr4",
+                "url": "https://api.audius.co/v1/tracks/6aPmv0Q/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
                 "type": "audio",
-                "duration": 240
+                "duration": 79
             },
             {
                 "id": "hl-4",
-                "title": "Hawayein (Lo-Fi Acoustic)",
+                "title": "Midnight Chill Hip Hop Beat",
                 "artist": "Desi Lo-Fi Hub",
                 "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
-                "videoId": "cYOB941gyXI",
+                "url": "https://api.audius.co/v1/tracks/2RlV2/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
                 "type": "audio",
-                "duration": 210
-            },
-            {
-                "id": "hl-5",
-                "title": "O Sanam (Nostalgic Chillout)",
-                "artist": "Lucky Ali Chill Tribute",
-                "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "videoId": "1eO74UmRBs",
-                "type": "youtube",
-                "duration": 205
+                "duration": 196
             }
         ]
     },
@@ -156,53 +147,33 @@ DEFAULT_CHANNELS = [
         "tracks": [
             {
                 "id": "bn-1",
-                "title": "Tujhe Dekha To (DDLJ)",
-                "artist": "Kumar Sanu & Lata Mangeshkar",
+                "title": "Dekha Tujhe Toh (90s Romantic Collection)",
+                "artist": "Kumar Sanu & 90s Classics",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
-                "videoId": "cNV5hLKh9Sg",
-                "type": "youtube",
-                "duration": 280
+                "url": "https://api.audius.co/v1/tracks/9R02BPk/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3",
+                "type": "audio",
+                "duration": 452
             },
             {
                 "id": "bn-2",
-                "title": "Kal Ho Naa Ho",
-                "artist": "Sonu Nigam & Shankar-Ehsaan-Loy",
+                "title": "Dil Diyan Gallan",
+                "artist": "Atif Aslam & Vishal-Shekhar",
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
-                "videoId": "g0eO74UmRBs",
-                "type": "youtube",
-                "duration": 290
+                "url": "https://api.audius.co/v1/tracks/x23Q8R2/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3",
+                "type": "audio",
+                "duration": 261
             },
             {
                 "id": "bn-3",
-                "title": "Suraj Hua Maddham",
-                "artist": "Sonu Nigam & Alka Yagnik",
+                "title": "Agar Tum Saath Ho (Classic Mix)",
+                "artist": "Alka Yagnik & Arijit Singh",
                 "cover": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/02/07/audio_d0c6ff1bab.mp3?filename=emotional-piano-10837.mp3",
-                "videoId": "L0zKs8i7Nc8",
-                "type": "youtube",
-                "duration": 310
-            },
-            {
-                "id": "bn-4",
-                "title": "Zara Zara (RHTDM)",
-                "artist": "Bombay Jayashri",
-                "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
-                "videoId": "0b9zS8c-B-E",
-                "type": "youtube",
-                "duration": 275
-            },
-            {
-                "id": "bn-5",
-                "title": "Pee Loon",
-                "artist": "Mohit Chauhan (OUATIM)",
-                "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
-                "videoId": "Y_SdtLms1e0",
-                "type": "youtube",
-                "duration": 285
+                "url": "https://api.audius.co/v1/tracks/PbvrKAR/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3",
+                "type": "audio",
+                "duration": 341
             }
         ]
     },
@@ -213,30 +184,33 @@ DEFAULT_CHANNELS = [
         "tracks": [
             {
                 "id": "acoustic-1",
-                "title": "Dil Diyan Gallan (Acoustic)",
-                "artist": "Acoustic Breeze",
+                "title": "Tum Hi Ho (Fingerstyle Acoustic)",
+                "artist": "Yulio & Acoustic Breeze",
                 "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c976cc9479.mp3?filename=acoustic-guitars-ambient-126154.mp3",
+                "url": "https://api.audius.co/v1/tracks/blQ8b/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3",
                 "type": "audio",
-                "duration": 220
+                "duration": 241
             },
             {
                 "id": "acoustic-2",
-                "title": "Raabta (Unplugged)",
+                "title": "More Than Enough (Romantic Chill)",
                 "artist": "Melody Strings",
                 "cover": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_731557d344.mp3?filename=tender-feeling-10707.mp3",
+                "url": "https://api.audius.co/v1/tracks/y8NWZ/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3",
                 "type": "audio",
-                "duration": 215
+                "duration": 152
             },
             {
                 "id": "acoustic-3",
-                "title": "Hasi (Acoustic Soul)",
-                "artist": "Ami Mishra Chill",
+                "title": "Starlight Guitar Ballad",
+                "artist": "LoveLink Studio",
                 "cover": "https://images.unsplash.com/photo-1520523839898-507127027581?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=soft-piano-ambient-110037.mp3",
+                "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
                 "type": "audio",
-                "duration": 235
+                "duration": 372
             }
         ]
     },
@@ -247,49 +221,95 @@ DEFAULT_CHANNELS = [
         "tracks": [
             {
                 "id": "lofi-1",
-                "title": "Midnight In Tokyo",
-                "artist": "Lofi Cozy Cafe",
+                "title": "Sleet (Rainy Night Lo-Fi)",
+                "artist": "Byte & Lofi Cozy Cafe",
                 "cover": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3",
+                "url": "https://api.audius.co/v1/tracks/B0aQj/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3",
                 "type": "audio",
-                "duration": 147
+                "duration": 103
             },
             {
                 "id": "lofi-2",
-                "title": "Stargazing With You",
-                "artist": "Purrple Cat",
+                "title": "Snow (Midnight Chill)",
+                "artist": "Byte",
                 "cover": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=empty-mind-118973.mp3",
+                "url": "https://api.audius.co/v1/tracks/k4mWX/stream?app_name=lovelink",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
                 "type": "audio",
-                "duration": 172
+                "duration": 120
             },
             {
                 "id": "lofi-3",
                 "title": "Warm Blankets & Rain",
                 "artist": "Chill Beats",
                 "cover": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=300&auto=format&fit=crop&q=80",
-                "url": "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f77626.mp3?filename=rain-and-nostalgia-chill-lofi-song-8058.mp3",
+                "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+                "fallback_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
                 "type": "audio",
-                "duration": 150
+                "duration": 302
             }
         ]
     }
 ]
 
-# In-memory couple playlists store
+# In-memory cache synchronized with Couple.spotify_url JSON column for durability across restarts
 custom_playlists: dict = {}
 
 class TrackCreate(BaseModel):
     title: str
     artist: str
     url: Optional[str] = None
+    fallback_url: Optional[str] = None
     videoId: Optional[str] = None
     cover: Optional[str] = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80"
     duration: Optional[int] = 180
-    type: Optional[str] = "youtube"
+    type: Optional[str] = "audio"
 
-async def search_youtube_full_tracks(query: str, limit: int = 15):
-    """Searches YouTube to provide complete, full-duration songs without 30-second limitations."""
+async def search_audius_tracks(query: str, limit: int = 12):
+    """Searches Audius for direct full-length MP3 audio streams (works seamlessly in Android background)."""
+    tracks = []
+    default_cover = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80"
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(
+                "https://api.audius.co/v1/tracks/search",
+                params={"query": query, "app_name": "lovelink", "limit": limit}
+            )
+            if resp.status_code == 200:
+                data = resp.json().get("data", [])
+                for idx, item in enumerate(data):
+                    if not item.get("is_streamable", True):
+                        continue
+                    if not (item.get("access") or {}).get("stream", True):
+                        continue
+                    if item.get("is_stream_gated"):
+                        continue
+                    tid = item.get("id")
+                    if not tid:
+                        continue
+                    dur_sec = int(item.get("duration") or 180)
+                    art = (item.get("artwork") or {}).get("480x480") or (item.get("artwork") or {}).get("150x150") or default_cover
+                    m, s = dur_sec // 60, dur_sec % 60
+                    tracks.append({
+                        "id": f"audius-{tid}",
+                        "title": item.get("title") or "Untitled Track",
+                        "artist": (item.get("user") or {}).get("name") or "Artist",
+                        "cover": art,
+                        "url": f"https://api.audius.co/v1/tracks/{tid}/stream?app_name=lovelink",
+                        "fallback_url": f"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-{(idx % 16) + 1}.mp3",
+                        "duration": dur_sec,
+                        "duration_text": f"{m}:{s:02d}",
+                        "type": "audio"
+                    })
+                    if len(tracks) >= limit:
+                        break
+    except Exception as e:
+        print("Audius search error:", e)
+    return tracks
+
+async def search_youtube_full_tracks(query: str, limit: int = 10):
+    """Fallback search via YouTube if no direct audio stream results exist."""
     tracks = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -337,7 +357,7 @@ async def search_youtube_full_tracks(query: str, limit: int = 15):
                                 "duration": dur_sec,
                                 "duration_text": duration_text,
                                 "type": "youtube",
-                                "url": f"https://www.youtube.com/watch?v={video_id}"
+                                "url": ""
                             })
                             if len(tracks) >= limit:
                                 return tracks
@@ -347,13 +367,12 @@ async def search_youtube_full_tracks(query: str, limit: int = 15):
 
 
 async def fetch_music_search(query: str, limit: int = 15):
-    """Searches music catalog: prefers full YouTube songs, falls back to catalog preview."""
-    # 1. First attempt full YouTube songs
-    yt_tracks = await search_youtube_full_tracks(query, limit=limit)
-    if yt_tracks and len(yt_tracks) > 0:
-        return yt_tracks
+    """Searches music catalog: prefers full direct audio streams (background safe), falls back to iTunes / YouTube."""
+    audius_tracks = await search_audius_tracks(query, limit=limit)
+    if audius_tracks:
+        return audius_tracks
 
-    # 2. Fallback to iTunes catalog
+    # 2. Fallback to iTunes direct M4A catalog
     results = []
     try:
         url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=song&limit={limit}"
@@ -364,7 +383,7 @@ async def fetch_music_search(query: str, limit: int = 15):
                 for item in data.get("results", []):
                     preview_url = item.get("previewUrl")
                     if preview_url:
-                        duration_sec = int(item.get("trackTimeMillis", 180000) / 1000)
+                        duration_sec = int(item.get("trackTimeMillis", 30000) / 1000)
                         m = duration_sec // 60
                         s = duration_sec % 60
                         results.append({
@@ -380,7 +399,11 @@ async def fetch_music_search(query: str, limit: int = 15):
     except Exception as e:
         print("Music search error:", e)
 
-    return results
+    if results:
+        return results
+
+    # 3. Final fallback to YouTube embeddable results
+    return await search_youtube_full_tracks(query, limit=limit)
 
 @router.get("/search")
 async def search_music(q: str = Query(..., min_length=1)):
@@ -392,6 +415,20 @@ async def get_channels():
     """Returns curated channels and their tracks."""
     return DEFAULT_CHANNELS
 
+def _load_persisted_playlist(couple: Couple) -> list:
+    cid = str(couple.id)
+    if cid in custom_playlists:
+        return custom_playlists[cid]
+    if couple.spotify_url:
+        try:
+            parsed = json.loads(couple.spotify_url)
+            if isinstance(parsed, list):
+                custom_playlists[cid] = parsed
+                return parsed
+        except Exception:
+            pass
+    return []
+
 @router.get("/playlist")
 async def get_couple_playlist(
     current_user: User = Depends(get_current_user),
@@ -401,7 +438,7 @@ async def get_couple_playlist(
     couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         return []
-    return custom_playlists.get(couple.id, [])
+    return _load_persisted_playlist(couple)
 
 @router.post("/playlist")
 async def add_to_couple_playlist(
@@ -409,34 +446,55 @@ async def add_to_couple_playlist(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Adds a song (YouTube or audio URL) to the shared couple playlist."""
+    """Adds a song (direct audio or YouTube) to the shared couple playlist."""
     couple = await get_active_couple_by_user(db, current_user.id)
     if not couple:
         raise HTTPException(status_code=400, detail="Not linked to a partner")
+
+    has_direct_audio = bool(track.url and "youtube.com" not in track.url and "youtu.be" not in track.url)
+    resolved_type = "audio" if has_direct_audio else (track.type or ("youtube" if track.videoId else "audio"))
 
     track_item = {
         "id": track.videoId or f"custom-{uuid.uuid4().hex[:8]}",
         "title": track.title,
         "artist": track.artist,
-        "url": track.url,
-        "videoId": track.videoId,
+        "url": track.url if has_direct_audio else None,
+        "fallback_url": track.fallback_url,
+        "videoId": None if has_direct_audio else track.videoId,
         "cover": track.cover,
         "duration": track.duration,
-        "type": track.type or ("youtube" if track.videoId else "audio"),
+        "type": resolved_type,
         "added_by": current_user.name
     }
-    
-    if couple.id not in custom_playlists:
-        custom_playlists[couple.id] = []
-    custom_playlists[couple.id].insert(0, track_item)
+
+    cid = str(couple.id)
+    playlist = list(_load_persisted_playlist(couple))
+    playlist.insert(0, track_item)
+    playlist = playlist[:100]
+    custom_playlists[cid] = playlist
+
+    couple.spotify_url = json.dumps(playlist)
+    db.add(couple)
+    await db.commit()
 
     return {"message": "Track added to playlist", "track": track_item}
 
 @router.websocket("/ws/{couple_id}")
-async def music_sync_websocket(websocket: WebSocket, couple_id: str, token: str = Query(...)):
-    """WebSocket for real-time synchronized music playback."""
+async def music_sync_websocket(
+    websocket: WebSocket,
+    couple_id: str,
+    ticket: Optional[str] = Query(default=None),
+    token: Optional[str] = Query(default=None),
+):
+    """WebSocket for real-time synchronized music playback (single-use ticket or JWT token)."""
     from routers.auth import decode_token
-    user_id = decode_token(token)
+    from utils.tickets import verify_and_consume_ws_ticket
+
+    user_id = None
+    if ticket:
+        user_id = verify_and_consume_ws_ticket(ticket)
+    if not user_id and token:
+        user_id = decode_token(token)
     if not user_id:
         await websocket.close(code=4001, reason="Authentication failed")
         return

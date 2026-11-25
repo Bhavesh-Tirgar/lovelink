@@ -5,6 +5,7 @@ import useWebSocket from '../hooks/useWebSocket';
 import api from '../api';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import { Phone, PhoneOff, Video, Maximize2 } from 'lucide-react';
+import { getSharedAudioContext } from '../utils/soundFx';
 
 const CallContext = createContext();
 export const useCall = () => useContext(CallContext);
@@ -43,7 +44,7 @@ export const CallProvider = ({ children }) => {
     const stopRinging = useCallback(() => {
         if (oscRef.current) {
             try { oscRef.current.stop(); } catch (e) { }
-            oscRef.current.disconnect();
+            try { oscRef.current.disconnect?.(); } catch (e) { }
             oscRef.current = null;
         }
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -71,11 +72,9 @@ export const CallProvider = ({ children }) => {
 
     const startRinging = useCallback(() => {
         try {
-            if (!audioCtxRef.current) {
-                audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            const ctx = audioCtxRef.current;
-            if (ctx.state === 'suspended') ctx.resume();
+            const ctx = getSharedAudioContext();
+            if (!ctx) return;
+            audioCtxRef.current = ctx;
 
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();

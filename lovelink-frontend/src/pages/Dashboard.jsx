@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api';
+import toast from 'react-hot-toast';
 import NotificationBell from '../components/NotificationBell';
 import confetti from 'canvas-confetti';
 import {
@@ -54,6 +55,7 @@ export default function Dashboard() {
       });
     } catch (err) {
       console.error("Failed to initiate call from dashboard:", err);
+      toast.error(err.response?.data?.detail || "Could not start call. Check partner connection.");
     } finally {
       setStartingCall(false);
     }
@@ -554,7 +556,7 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-white truncate">{data?.my_user?.name || 'User'}</h3>
                   <p className="text-xs text-gray-400 truncate">{data?.my_user?.email || data?.my_user?.phone || ''}</p>
-                  <p className="text-[10px] text-rose-300 font-mono mt-0.5">Invite Code: {data?.my_user?.invite_code}</p>
+                  <p className="text-[10px] text-rose-300 font-mono mt-0.5">Invite Code: {data?.my_user?.invite_code || data?.invite_code || '------'}</p>
                 </div>
               </div>
 

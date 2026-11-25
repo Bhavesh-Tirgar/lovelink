@@ -1,7 +1,15 @@
 package com.lovelink.app;
 
+import android.content.Context;
+import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.CookieManager;
+import android.webkit.GeolocationPermissions;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -10,25 +18,134 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private android.os.PowerManager.WakeLock wakeLock;
+    private AudioManager audioManager;
+    private AudioFocusRequest focusRequest;
+    private boolean isMediaPlaying = false;
+
+    private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener =
+        focusChange -> {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS
+                    || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                runOnUiThread(() -> {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_lost'));",
+                            null
+                        );
+                    }
+                });
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                runOnUiThread(() -> {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().evaluateJavascript(
+                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_gain'));",
+                            null
+                        );
+                    }
+                });
+            }
+        };
+
+    public class NativeAudioBridge {
+        @JavascriptInterface
+        public void setPlaybackState(boolean playing, String title, String artist) {
+            isMediaPlaying = playing;
+            runOnUiThread(() -> {
+                try {
+                    if (playing) {
+                        requestPlaybackFocus();
+                        Intent svc = new Intent(MainActivity.this, LoveLinkMediaService.class);
+                        svc.setAction(LoveLinkMediaService.ACTION_START);
+                        svc.putExtra(LoveLinkMediaService.EXTRA_TITLE, title != null ? title : "LoveLink Radio");
+                        svc.putExtra(LoveLinkMediaService.EXTRA_ARTIST, artist != null ? artist : "Couple Sanctuary");
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(svc);
+                        } else {
+                            startService(svc);
+                        }
+                    } else {
+                        Intent svc = new Intent(MainActivity.this, LoveLinkMediaService.class);
+                        svc.setAction(LoveLinkMediaService.ACTION_STOP);
+                        startService(svc);
+                    }
+                } catch (Exception e) {
+                    android.util.Log.w("LoveLinkMainActivity", "MediaService transition error", e);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void setCallAudioMode(boolean inCall, boolean speakerOn) {
+            runOnUiThread(() -> {
+                try {
+                    if (audioManager == null) return;
+                    if (inCall) {
+                        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                        boolean hasExternalHeadset = audioManager.isWiredHeadsetOn() || audioManager.isBluetoothA2dpOn();
+                        audioManager.setSpeakerphoneOn(speakerOn && !hasExternalHeadset);
+                    } else {
+                        audioManager.setSpeakerphoneOn(false);
+                        audioManager.setMode(AudioManager.MODE_NORMAL);
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+    }
+
+    private void requestPlaybackFocus() {
+        if (audioManager == null) return;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (focusRequest == null) {
+                    AudioAttributes attrs = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build();
+                    focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                        .setAudioAttributes(attrs)
+                        .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                        .build();
+                }
+                audioManager.requestAudioFocus(focusRequest);
+            } else {
+                audioManager.requestAudioFocus(
+                    audioFocusChangeListener,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN
+                );
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private boolean isTrustedOrigin(String origin) {
+        if (origin == null) return false;
+        return origin.startsWith("capacitor://")
+            || origin.startsWith("https://localhost")
+            || origin.startsWith("http://localhost")
+            || origin.startsWith("https://lovelink-pearl.vercel.app")
+            || origin.startsWith("https://lovelink.vercel.app")
+            || origin.endsWith(".vercel.app");
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         try {
-            // Initialize Partial WakeLock to prevent CPU sleep during background audio playback
-            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(android.content.Context.POWER_SERVICE);
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
             if (pm != null) {
                 wakeLock = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "LoveLink:AudioPlaybackLock");
                 wakeLock.setReferenceCounted(false);
             }
 
-            // Request OS-level permissions for Camera, Microphone, Audio, and Notifications (Android 13+)
+            // Request OS-level runtime permissions for Camera, Microphone, Audio, Location, and Notifications
             java.util.List<String> permList = new java.util.ArrayList<>();
             permList.add(android.Manifest.permission.RECORD_AUDIO);
             permList.add(android.Manifest.permission.CAMERA);
             permList.add(android.Manifest.permission.MODIFY_AUDIO_SETTINGS);
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
+            permList.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+            permList.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+            if (Build.VERSION.SDK_INT >= 33) {
                 permList.add("android.permission.POST_NOTIFICATIONS");
             }
 
@@ -42,73 +159,44 @@ public class MainActivity extends BridgeActivity {
                 androidx.core.app.ActivityCompat.requestPermissions(this, needPerms.toArray(new String[0]), 101);
             }
 
-            // Ensure Speakerphone is available for WebRTC calls and register AudioFocus listener
-            android.media.AudioManager audioManager = (android.media.AudioManager) getSystemService(android.content.Context.AUDIO_SERVICE);
-            if (audioManager != null) {
-                audioManager.setMode(android.media.AudioManager.MODE_NORMAL);
-                audioManager.setSpeakerphoneOn(true);
-
-                // Listen to Android AudioFocus changes (pause music when phone call arrives, restore on focus gain)
-                audioManager.requestAudioFocus(
-                    new android.media.AudioManager.OnAudioFocusChangeListener() {
-                        @Override
-                        public void onAudioFocusChange(int focusChange) {
-                            if (focusChange == android.media.AudioManager.AUDIOFOCUS_LOSS) {
-                                runOnUiThread(() -> {
-                                    if (getBridge() != null && getBridge().getWebView() != null) {
-                                        getBridge().getWebView().evaluateJavascript(
-                                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_lost'));",
-                                            null
-                                        );
-                                    }
-                                });
-                            } else if (focusChange == android.media.AudioManager.AUDIOFOCUS_GAIN) {
-                                runOnUiThread(() -> {
-                                    if (getBridge() != null && getBridge().getWebView() != null) {
-                                        getBridge().getWebView().evaluateJavascript(
-                                            "window.dispatchEvent(new CustomEvent('lovelink:audiofocus_gain'));",
-                                            null
-                                        );
-                                    }
-                                });
-                            }
-                        }
-                    },
-                    android.media.AudioManager.STREAM_MUSIC,
-                    android.media.AudioManager.AUDIOFOCUS_GAIN
-                );
-            }
+            audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
                 CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
-                
+
+                webView.addJavascriptInterface(new NativeAudioBridge(), "LoveLinkNativeAudio");
+
                 WebSettings settings = webView.getSettings();
                 settings.setJavaScriptCanOpenWindowsAutomatically(true);
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
+                settings.setGeolocationEnabled(true);
                 settings.setMediaPlaybackRequiresUserGesture(false);
                 settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-                
+
                 // Chrome Mobile user agent string to eliminate Google 'disallowed_useragent' errors
                 settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36");
 
-                // Explicitly grant camera & microphone permissions to WebRTC calls only for trusted origins
+                // Explicitly grant WebRTC cam/mic & Geolocation permissions for trusted origins
                 webView.setWebChromeClient(new WebChromeClient() {
                     @Override
                     public void onPermissionRequest(final PermissionRequest request) {
                         runOnUiThread(() -> {
-                            if (request.getOrigin() != null) {
-                                String origin = request.getOrigin().toString();
-                                if (origin.startsWith("capacitor://") ||
-                                    origin.startsWith("https://lovelink-pearl.vercel.app") ||
-                                    origin.startsWith("https://lovelink.vercel.app") ||
-                                    origin.startsWith("http://localhost")) {
-                                    request.grant(request.getResources());
-                                    return;
-                                }
+                            String origin = request.getOrigin() != null ? request.getOrigin().toString() : null;
+                            if (isTrustedOrigin(origin)) {
+                                request.grant(request.getResources());
+                            } else {
+                                request.deny();
                             }
-                            request.deny();
+                        });
+                    }
+
+                    @Override
+                    public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                        runOnUiThread(() -> {
+                            boolean allow = isTrustedOrigin(origin);
+                            callback.invoke(origin, allow, false);
                         });
                     }
                 });
@@ -136,10 +224,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        // Hold Partial WakeLock so CPU does not sleep when screen is locked during audio streaming
+        // Hold Partial WakeLock when screen turns off / app switches so WebView timers & audio continue
         try {
-            if (wakeLock != null && !wakeLock.isHeld()) {
-                wakeLock.acquire(30 * 60 * 1000L); // 30 minutes max
+            if (isMediaPlaying && wakeLock != null && !wakeLock.isHeld()) {
+                wakeLock.acquire(30 * 60 * 1000L);
             }
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView wv = getBridge().getWebView();
@@ -151,7 +239,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
-        // Respect OS lifecycle onStop while WakeLock keeps audio thread processing
     }
 
     @Override
@@ -161,6 +248,9 @@ public class MainActivity extends BridgeActivity {
             if (wakeLock != null && wakeLock.isHeld()) {
                 wakeLock.release();
             }
+            Intent svc = new Intent(this, LoveLinkMediaService.class);
+            svc.setAction(LoveLinkMediaService.ACTION_STOP);
+            startService(svc);
         } catch (Exception ignored) {}
     }
 }

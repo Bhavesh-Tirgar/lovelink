@@ -958,8 +958,10 @@ async def me(
 
 
 @router.get("/test-email")
-async def test_email():
-    """Send a test email using the configured SMTP credentials."""
+async def test_email(current_user: User = Depends(get_current_user)):
+    """Send a test email using configured SMTP credentials (authenticated & dev-only)."""
+    if os.getenv("ALLOW_DEV_OTP", "false").lower() != "true":
+        raise HTTPException(status_code=403, detail="Test email endpoint is disabled in production")
     to = os.getenv("MAIL_USERNAME")
     if not to:
         raise HTTPException(
@@ -973,7 +975,7 @@ async def test_email():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
-    return {"message": f"Test email sent to {to}", "otp_preview": raw_otp}
+    return {"message": f"Test email triggered for configured mailbox"}
 
 
 class FCMTokenRequest(BaseModel):

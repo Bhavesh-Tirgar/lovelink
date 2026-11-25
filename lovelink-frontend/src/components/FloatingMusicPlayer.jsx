@@ -94,8 +94,10 @@ export default function FloatingMusicPlayer() {
                 artist: track.artist,
                 videoId: track.videoId,
                 url: track.url || '',
+                fallback_url: track.fallback_url || '',
                 cover: track.cover,
-                type: track.type || 'youtube'
+                duration: track.duration || 180,
+                type: track.type || (track.url && !/youtube\.com|youtu\.be/i.test(track.url) ? 'audio' : 'youtube')
             });
             setAddedId(track.id || track.videoId);
             setTimeout(() => setAddedId(null), 2000);
@@ -272,7 +274,7 @@ export default function FloatingMusicPlayer() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-gray-300 font-mono">
                                         <Disc size={12} className={isPlaying ? "animate-spin text-[#1DB954]" : "text-gray-400"} />
-                                        <span>{currentTrack.type === 'youtube' ? 'YouTube Master Audio' : 'Studio Stereo'}</span>
+                                        <span>{(!currentTrack.url || /youtube\.com|youtu\.be/i.test(currentTrack.url)) && (currentTrack.type === 'youtube' || currentTrack.videoId) ? 'YouTube Master Audio' : 'Studio Stereo'}</span>
                                     </div>
                                 </motion.div>
                             </div>
@@ -423,7 +425,7 @@ export default function FloatingMusicPlayer() {
                                                 </p>
                                                 <div className="grid grid-cols-1 gap-1">
                                                     {channel.tracks?.map(track => {
-                                                        const isSelected = (currentTrack.id === track.id) || (track.videoId && track.videoId === currentTrack.videoId);
+                                                        const isSelected = (currentTrack.id === track.id) || (track.videoId && !track.url && track.videoId === currentTrack.videoId);
                                                         return (
                                                             <div
                                                                 key={track.id}
@@ -480,7 +482,7 @@ export default function FloatingMusicPlayer() {
 
                                         {searchResults.length === 0 && !isSearching && (
                                             <p className="text-center text-xs text-gray-400 py-6">
-                                                Type any song name above to search Spotify & YouTube in real time!
+                                                Type any song name above to search & stream full audio!
                                             </p>
                                         )}
 
@@ -514,7 +516,10 @@ export default function FloatingMusicPlayer() {
                                                             )}
                                                         </button>
                                                         <button
-                                                            onClick={() => handleSelectSearchTrack(song)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSelectSearchTrack(song);
+                                                            }}
                                                             className="p-1 bg-[#1DB954] text-black rounded-lg hover:scale-105 transition"
                                                         >
                                                             <Play size={12} className="fill-black" />

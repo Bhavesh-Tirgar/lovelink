@@ -15,4 +15,5 @@ class DashboardResponse(BaseModel):
     days_together: int
     linked: bool
     couple_id: str | None = None
+    invite_code: str | None = None
 

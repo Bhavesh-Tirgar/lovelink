@@ -121,10 +121,10 @@ async def send_snap(
         db.add(notif)
         await db.commit()
 
-    # Broadcast over chat/games websocket room if partner is active
+    # Broadcast over chat websocket room if partner is active
     try:
         await manager.broadcast(
-            f"chat_{couple_id}",
+            str(couple_id),
             {
                 "type": "new_snap",
                 "snap_id": snap_id,

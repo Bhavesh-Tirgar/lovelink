@@ -1,5 +1,5 @@
 import GoogleSignInButton from '../components/GoogleSignInButton';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -25,6 +25,14 @@ function Signup() {
   const [info, setInfo] = useState('');
   const [, setOtpSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = setTimeout(() => {
+      setResendSeconds((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendSeconds]);
 
   const validatePhone = (val) => {
     if (!val) return "";

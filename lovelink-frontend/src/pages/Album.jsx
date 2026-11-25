@@ -140,6 +140,17 @@ function UploadModal({ albums, onClose, onUploaded }) {
     const [done, setDone] = useState([]);
     const dropRef = useRef(null);
 
+    const previewsRef = useRef([]);
+    previewsRef.current = previews;
+
+    useEffect(() => {
+        return () => {
+            previewsRef.current.forEach(p => {
+                if (p?.url) URL.revokeObjectURL(p.url);
+            });
+        };
+    }, []);
+
     const addFiles = (newFiles) => {
         const arr = Array.from(newFiles);
         setFiles(prev => [...prev, ...arr]);
@@ -331,7 +342,7 @@ function AlbumsTab({ albums, myUserId, onAlbumClick, onAlbumDelete, onAlbumCreat
                             {/* Delete */}
                             {String(album.created_by) === String(myUserId) && (
                                 <button onClick={e => { e.stopPropagation(); onAlbumDelete(album.id); }}
-                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500/30 rounded-lg text-gray-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-500/30 rounded-lg text-gray-400 hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                     <Trash2 size={14} />
                                 </button>
                             )}

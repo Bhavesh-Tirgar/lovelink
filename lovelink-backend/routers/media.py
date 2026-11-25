@@ -251,7 +251,8 @@ async def set_album(
     db: AsyncSession = Depends(get_db),
 ):
     couple = await _get_couple(db, str(current_user.id))
-    from models.media import Media, Album
+    from models.media import Media
+    from models.album import Album
     res_m = await db.execute(select(Media).where(Media.id == media_id, Media.couple_id == str(couple.id)))
     if not res_m.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Media not found")
@@ -275,7 +276,8 @@ async def set_cover(
     db: AsyncSession = Depends(get_db),
 ):
     couple = await _get_couple(db, str(current_user.id))
-    from models.media import Media, Album
+    from models.media import Media
+    from models.album import Album
     res_a = await db.execute(select(Album).where(Album.id == album_id, Album.couple_id == str(couple.id)))
     if not res_a.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Album not found")

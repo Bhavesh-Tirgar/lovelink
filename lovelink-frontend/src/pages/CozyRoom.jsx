@@ -22,16 +22,16 @@ export default function CozyRoom() {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
       return {
-        my_name: u.name || 'Bhavesh',
-        partner_name: u.partner_name || 'Neha',
+        my_name: u.name || 'You',
+        partner_name: u.partner_name || 'Partner',
         couple_action: 'toast',
         sticky_notes: [],
         wall_photos: [],
       };
     } catch {
       return {
-        my_name: 'Bhavesh',
-        partner_name: 'Neha',
+        my_name: 'You',
+        partner_name: 'Partner',
         couple_action: 'toast',
         sticky_notes: [],
         wall_photos: [],
@@ -348,8 +348,8 @@ export default function CozyRoom() {
               <SnapchatBitmojiStage
                 action={currentAction}
                 actionNonce={actionNonce}
-                myName={room?.my_name || 'Bhavesh'}
-                partnerName={room?.partner_name || 'Neha'}
+                myName={room?.my_name || 'You'}
+                partnerName={room?.partner_name || 'Partner'}
                 whisper={room?.love_whisper || "You make my heart smile every single day ❤️"}
                 onEmoteTrigger={(emote) => handleSelectScene(emote)}
                 onWhisperTrigger={(msg) => handleWhisper(msg)}
@@ -364,8 +364,8 @@ export default function CozyRoom() {
                   action={currentAction}
                   myAvatar={{ ...(room?.my_avatar || {}), outfit: selectedOutfit }}
                   partnerAvatar={room?.partner_avatar}
-                  myName={room?.my_name || 'Bhavesh'}
-                  partnerName={room?.partner_name || 'Neha'}
+                  myName={room?.my_name || 'You'}
+                  partnerName={room?.partner_name || 'Partner'}
                   onWardrobeClick={() => setShowWardrobeModal(true)}
                 />
               </div>
@@ -515,7 +515,7 @@ export default function CozyRoom() {
                         <span>{new Date(note.created_at).toLocaleDateString()}</span>
                         <button
                           onClick={() => handleDeleteStickyNote(note.id)}
-                          className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-300 p-0.5 transition-opacity"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-rose-400 hover:text-rose-300 p-0.5 transition-opacity"
                         >
                           <Trash2 size={12} />
                         </button>

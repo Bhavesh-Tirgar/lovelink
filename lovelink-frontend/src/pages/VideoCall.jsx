@@ -188,6 +188,11 @@ export default function VideoCall() {
         }
 
         // Close PeerConnection & AudioContext
+        try {
+            if (typeof window !== 'undefined' && window.LoveLinkNativeAudio?.setCallAudioMode) {
+                window.LoveLinkNativeAudio.setCallAudioMode(false, false);
+            }
+        } catch { }
         if (audioCtxRef.current) {
             try { audioCtxRef.current.close(); } catch (e) {}
             audioCtxRef.current = null;
@@ -226,6 +231,7 @@ export default function VideoCall() {
 
         let pc = null;
         let isCaller = false;
+        let retryInterval = null;
 
         const storedUser = JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('user') || '{}' : '{}');
         const myUserId = storedUser?.id || (typeof window !== 'undefined' ? localStorage.getItem('user_id') : null);
@@ -255,6 +261,12 @@ export default function VideoCall() {
 
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 localStreamRef.current = stream;
+
+                try {
+                    if (typeof window !== 'undefined' && window.LoveLinkNativeAudio?.setCallAudioMode) {
+                        window.LoveLinkNativeAudio.setCallAudioMode(true, !isVoice);
+                    }
+                } catch { }
 
                 if (localVideoRef.current && !isVoice) {
                     localVideoRef.current.srcObject = stream;
@@ -331,21 +343,29 @@ export default function VideoCall() {
                     });
                 }
 
-                // Helper: Create and send SDP Offer (Caller)
+                // Helper: Create and send SDP Offer (Caller) safely without SDP glare
                 const sendOffer = async () => {
-                    if (!pcRef.current) return;
+                    const currentPc = pcRef.current;
+                    if (!currentPc || currentPc.signalingState === 'closed') return;
                     try {
-                        const offer = await pcRef.current.createOffer({
-                            offerToReceiveAudio: true,
-                            offerToReceiveVideo: !isVoice
-                        });
-                        await pcRef.current.setLocalDescription(offer);
+                        let sdpToSend = currentPc.localDescription;
+                        if (currentPc.signalingState === 'stable') {
+                            const offer = await currentPc.createOffer({
+                                offerToReceiveAudio: true,
+                                offerToReceiveVideo: !isVoice
+                            });
+                            await currentPc.setLocalDescription(offer);
+                            sdpToSend = currentPc.localDescription || offer;
+                        } else if (currentPc.signalingState !== 'have-local-offer' || !sdpToSend) {
+                            // Never overwrite remote offer in have-remote-offer state
+                            return;
+                        }
                         console.log("[WebRTC] Sending SDP Offer via WebSocket...");
-                        if (sendWsMessage) {
+                        if (sendWsMessage && sdpToSend) {
                             sendWsMessage({
                                 type: 'webrtc_offer',
                                 call_id: callId,
-                                sdp: offer
+                                sdp: sdpToSend
                             });
                         }
                     } catch (e) {
@@ -358,13 +378,17 @@ export default function VideoCall() {
                     sendOffer();
                 }
 
-                // Periodic offer sync for caller until connected (eliminates race conditions)
-                let retryInterval = null;
+                // Periodic offer sync for caller until connected (eliminates race conditions without SDP glare)
                 if (isCaller) {
                     let attempts = 0;
                     retryInterval = setInterval(() => {
                         if (!pcRef.current || hasEndedRef.current) return;
-                        if (pcRef.current.iceConnectionState === 'connected' || pcRef.current.iceConnectionState === 'completed') {
+                        if (
+                            pcRef.current.connectionState === 'connected' ||
+                            pcRef.current.iceConnectionState === 'connected' ||
+                            pcRef.current.iceConnectionState === 'completed' ||
+                            pcRef.current.signalingState === 'closed'
+                        ) {
                             clearInterval(retryInterval);
                             return;
                         }
@@ -478,6 +502,13 @@ export default function VideoCall() {
         const cleanupListenersPromise = initializeWebRTC();
 
         return () => {
+            hasInitializedRef.current = false;
+            if (retryInterval) clearInterval(retryInterval);
+            try {
+                if (typeof window !== 'undefined' && window.LoveLinkNativeAudio?.setCallAudioMode) {
+                    window.LoveLinkNativeAudio.setCallAudioMode(false, false);
+                }
+            } catch { }
             cleanupListenersPromise.then(cleanup => cleanup && cleanup());
             if (localStreamRef.current) {
                 localStreamRef.current.getTracks().forEach(track => {

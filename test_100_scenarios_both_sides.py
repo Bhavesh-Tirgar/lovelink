@@ -1486,5 +1486,229 @@ class Test14CrossCoupleSecurityScenarios(BaseScenarioTest):
         self.assertIsNone(res_b.json().get("partner_mood"))
 
 
+# ==============================================================================
+# 15. CRITICAL BUG-FIX & REALTIME WEBSOCKET REGRESSION SCENARIOS
+# ==============================================================================
+class Test15BugFixRegressions(BaseScenarioTest):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.p1, self.token_p1, self.headers_p1 = await self.create_test_user("RegP1")
+        self.p2, self.token_p2, self.headers_p2 = await self.create_test_user("RegP2")
+        self.p3, self.token_p3, self.headers_p3 = await self.create_test_user("Outsider")
+        self.couple = await self.link_test_couple(self.p1, self.p2)
+
+    async def test_158_media_add_to_album_fixed_import(self):
+        """PUT /media/{id}/album imports Album cleanly without 500 ImportError."""
+        from models.media import Media, FileType
+        mid = f"med-{uuid.uuid4().hex[:8]}"
+        async with TestSessionLocal() as db:
+            db.add(Media(
+                id=mid,
+                couple_id=self.couple.id,
+                uploaded_by=self.p1.id,
+                file_url="https://example.com/pic.jpg",
+                file_type=FileType.photo,
+            ))
+            await db.commit()
+        alb_res = await self.client.post("/media/albums", json={"name": "Trip"}, headers=self.headers_p1)
+        self.assertIn(alb_res.status_code, (200, 201))
+        aid = alb_res.json()["id"]
+        res = await self.client.put(f"/media/{mid}/album", json={"album_id": aid}, headers=self.headers_p1)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["album_id"], aid)
+
+    async def test_159_album_cover_update_fixed_import(self):
+        """PUT /media/albums/{album_id}/cover works without Album import crash."""
+        from models.media import Media, FileType
+        mid = f"med-{uuid.uuid4().hex[:8]}"
+        async with TestSessionLocal() as db:
+            db.add(Media(
+                id=mid,
+                couple_id=self.couple.id,
+                uploaded_by=self.p1.id,
+                file_url="https://example.com/cover.jpg",
+                file_type=FileType.photo,
+            ))
+            await db.commit()
+        alb_res = await self.client.post("/media/albums", json={"name": "CoverTest"}, headers=self.headers_p1)
+        aid = alb_res.json()["id"]
+        res = await self.client.put(
+            f"/media/albums/{aid}/cover",
+            json={"cover_photo_id": mid},
+            headers=self.headers_p1,
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["cover_photo_id"], mid)
+        self.assertEqual(res.json()["cover_url"], "https://example.com/cover.jpg")
+
+    async def test_160_chat_post_with_partner_fcm_token_succeeds(self):
+        """POST /chat/messages when partner has fcm_token uses message_type without AttributeError."""
+        async with TestSessionLocal() as db:
+            u2 = (await db.execute(select(User).where(User.id == self.p2.id))).scalar_one()
+            u2.fcm_token = "fake-android-fcm-token-123"
+            db.add(u2)
+            await db.commit()
+
+        from unittest.mock import patch, AsyncMock
+        with patch("routers.chat.send_push", new_callable=AsyncMock) as mock_push:
+            res = await self.client.post(
+                "/chat/messages",
+                json={"text": "Care Alert: Drinking water", "message_type": "text"},
+                headers=self.headers_p1,
+            )
+            self.assertIn(res.status_code, (200, 201))
+            mock_push.assert_awaited_once()
+
+    async def test_161_dashboard_returns_invite_code(self):
+        """GET /dashboard includes couple invite_code for Settings & Link panels."""
+        res = await self.client.get("/dashboard", headers=self.headers_p1)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("invite_code"), self.couple.invite_code)
+
+    async def test_162_music_channels_have_no_pixabay_403_and_all_audio(self):
+        """GET /music/channels serves playable direct audio URLs without 403 Pixabay URLs or conflicting videoId."""
+        res = await self.client.get("/music/channels")
+        self.assertEqual(res.status_code, 200)
+        channels = res.json()
+        self.assertGreaterEqual(len(channels), 5)
+        for ch in channels:
+            for tr in ch["tracks"]:
+                self.assertEqual(tr["type"], "audio")
+                self.assertTrue(tr.get("url", "").startswith("https://"))
+                self.assertNotIn("pixabay.com", tr["url"])
+                self.assertNotIn("videoId", tr)
+                self.assertTrue(tr.get("fallback_url", "").startswith("https://"))
+
+    async def test_163_music_playlist_persists_across_cache_clear(self):
+        """POST /music/playlist persists to Couple.spotify_url so GET survives in-memory cache clears."""
+        from routers import music as music_router
+        res_add = await self.client.post("/music/playlist", json={
+            "title": "Saved Lofi",
+            "artist": "Partner DJ",
+            "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            "duration": 210,
+            "type": "audio"
+        }, headers=self.headers_p1)
+        self.assertEqual(res_add.status_code, 200)
+        self.assertEqual(res_add.json()["track"]["type"], "audio")
+
+        music_router.custom_playlists.clear()
+        res_get = await self.client.get("/music/playlist", headers=self.headers_p2)
+        self.assertEqual(res_get.status_code, 200)
+        self.assertTrue(any(t["title"] == "Saved Lofi" for t in res_get.json()))
+
+    async def test_164_music_ws_ticket_sync_between_partners(self):
+        """Both partners connect to /music/ws/{couple_id} via ws-ticket and sync track events; outsider rejected."""
+        from starlette.testclient import TestClient
+        t1 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p1)).json()["ticket"]
+        t2 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p2)).json()["ticket"]
+        t3 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p3)).json()["ticket"]
+
+        sync_client = TestClient(main.app)
+        with sync_client.websocket_connect(f"/music/ws/{self.couple.id}?ticket={t1}") as ws1, \
+             sync_client.websocket_connect(f"/music/ws/{self.couple.id}?ticket={t2}") as ws2:
+            ws1.receive_json()
+            ws2.receive_json()
+            ws1.send_json({
+                "type": "change_track",
+                "track": {"id": "bw-1", "title": "Kesariya", "type": "audio", "url": "https://example.com/1.mp3"},
+                "position": 12.5,
+                "dj_name": "RegP1"
+            })
+            evt = ws2.receive_json()
+            self.assertEqual(evt["type"], "change_track")
+            self.assertEqual(evt["track"]["title"], "Kesariya")
+            self.assertEqual(evt["position"], 12.5)
+
+        with self.assertRaises(Exception):
+            with sync_client.websocket_connect(f"/music/ws/{self.couple.id}?ticket={t3}"):
+                pass
+
+    async def test_165_movies_ws_ticket_auth_works(self):
+        """/movies/ws/{couple_id}?ticket=... authenticates cleanly via verify_and_consume_ws_ticket."""
+        from starlette.testclient import TestClient
+        t1 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p1)).json()["ticket"]
+        t2 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p2)).json()["ticket"]
+        sync_client = TestClient(main.app)
+        with sync_client.websocket_connect(f"/movies/ws/{self.couple.id}?ticket={t1}") as ws1, \
+             sync_client.websocket_connect(f"/movies/ws/{self.couple.id}?ticket={t2}") as ws2:
+            # Drain initial connected/seat frames
+            ws1.receive_json()
+            ws2.receive_json()
+            ws1.send_json({"type": "chat", "text": "Ready for movie!"})
+            msg = None
+            for _ in range(5):
+                cand = ws2.receive_json()
+                if cand.get("type") == "chat":
+                    msg = cand
+                    break
+            self.assertIsNotNone(msg)
+            self.assertEqual(msg["text"], "Ready for movie!")
+
+    async def test_166_snap_send_broadcasts_to_active_chat_ws_room(self):
+        """POST /snap/send notifies partner on /ws/chat/{couple_id} room (not orphaned chat_{id})."""
+        from starlette.testclient import TestClient
+        t2 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p2)).json()["ticket"]
+        sync_client = TestClient(main.app)
+        with sync_client.websocket_connect(f"/ws/chat/{self.couple.id}?ticket={t2}") as ws2:
+            ws2.receive_json()  # connected
+            res = await self.client.post(
+                "/snap/send",
+                json={"media_url": "data:image/jpeg;base64,/9j/4AAQ", "caption": "Hi!"},
+                headers=self.headers_p1,
+            )
+            self.assertEqual(res.status_code, 200)
+            evt = None
+            for _ in range(5):
+                cand = ws2.receive_json()
+                if cand.get("type") == "new_snap":
+                    evt = cand
+                    break
+            self.assertIsNotNone(evt)
+            self.assertEqual(evt["sender_name"], "RegP1")
+            self.assertIn("snap_id", evt)
+
+    async def test_167_location_ws_forwards_encrypted_location(self):
+        """/ws/chat/{couple_id} location_update preserves E2EE encrypted_location field."""
+        from starlette.testclient import TestClient
+        t1 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p1)).json()["ticket"]
+        t2 = (await self.client.post("/auth/ws-ticket", headers=self.headers_p2)).json()["ticket"]
+        sync_client = TestClient(main.app)
+        with sync_client.websocket_connect(f"/ws/chat/{self.couple.id}?ticket={t1}") as ws1, \
+             sync_client.websocket_connect(f"/ws/chat/{self.couple.id}?ticket={t2}") as ws2:
+            ws1.receive_json()
+            ws2.receive_json()
+            ws1.send_json({
+                "type": "location_update",
+                "encrypted_location": "e2ee2:iv123:cipher456",
+                "battery_level": 77,
+                "is_charging": True,
+            })
+            evt = None
+            for _ in range(5):
+                cand = ws2.receive_json()
+                if cand.get("type") == "location_update":
+                    evt = cand
+                    break
+            self.assertIsNotNone(evt)
+            self.assertEqual(evt["encrypted_location"], "e2ee2:iv123:cipher456")
+            self.assertEqual(evt["battery_level"], 77)
+
+    async def test_168_test_email_requires_auth_and_dev_flag(self):
+        """GET /auth/test-email returns 401 unauthenticated and 403 when ALLOW_DEV_OTP != true."""
+        res_anon = await self.client.get("/auth/test-email")
+        self.assertEqual(res_anon.status_code, 401)
+        prev = os.environ.get("ALLOW_DEV_OTP")
+        os.environ["ALLOW_DEV_OTP"] = "false"
+        try:
+            res_auth = await self.client.get("/auth/test-email", headers=self.headers_p1)
+            self.assertEqual(res_auth.status_code, 403)
+        finally:
+            if prev is None:
+                os.environ.pop("ALLOW_DEV_OTP", None)
+            else:
+                os.environ["ALLOW_DEV_OTP"] = prev
+
+
 if __name__ == "__main__":
     unittest.main()

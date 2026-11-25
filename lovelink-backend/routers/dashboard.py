@@ -82,6 +82,7 @@ async def get_dashboard(
         days_together=days_together,
         linked=linked,
         couple_id=str(couple.id) if couple else None,
+        invite_code=couple.invite_code if couple else None,
     )
 
 

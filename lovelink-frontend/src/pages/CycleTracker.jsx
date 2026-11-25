@@ -142,10 +142,10 @@ export default function CycleTracker() {
 
   const sendCareAction = async (careType, message) => {
     try {
-      // Send quick message in chat or trigger comfort alert
-      await api.post('/chat/send', {
-        content: `Care Alert: ${message}`
-      }).catch(() => null);
+      await api.post('/chat/messages', {
+        text: `Care Alert: ${message}`,
+        message_type: 'text',
+      });
 
       confetti({
         particleCount: 50,

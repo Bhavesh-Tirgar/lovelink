@@ -2,17 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { getSharedAudioContext } from '../utils/soundFx';
 
-// Web Audio synthesizer for Authentic Ludo Sound Effects
+// Web Audio synthesizer using shared singleton context
 const playLudoSound = (type, soundEnabled = true) => {
     if (!soundEnabled) return;
     try {
-        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-        }
+        const ctx = getSharedAudioContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
 
         if (type === 'dice') {

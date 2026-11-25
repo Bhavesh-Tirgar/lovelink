@@ -30,8 +30,7 @@ function TimerBox({ value, label }) {
 
 // ── Countdown Card ──────────────────────────────────────────────────────────
 function CountdownCard({ countdown, now, myUserId, onDelete }) {
-    const elapsed = Math.floor((now - new Date(countdown.target_date).getTime()) / 1000);
-    const secsLeft = Math.max(0, countdown.seconds_remaining - elapsed);
+    const secsLeft = Math.max(0, Math.floor((new Date(countdown.target_date).getTime() - now) / 1000));
     const isPast = secsLeft === 0;
     const { days, hours, mins, secs } = getTimeLeft(secsLeft);
     const canDelete = String(countdown.created_by) === String(myUserId);
@@ -52,7 +51,7 @@ function CountdownCard({ countdown, now, myUserId, onDelete }) {
             {canDelete && (
                 <button
                     onClick={() => onDelete(countdown.id)}
-                    className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     title="Delete countdown"
                 >
                     <Trash2 size={16} />

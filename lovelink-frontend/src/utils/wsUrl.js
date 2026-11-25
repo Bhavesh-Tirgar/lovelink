@@ -4,7 +4,7 @@
 export const getWsBaseUrl = () => {
     // 1. Explicit env variable for WS URL
     if (process.env.REACT_APP_WS_URL) {
-        return process.env.REACT_APP_WS_URL.replace(/\/$/, '');
+        return process.env.REACT_APP_WS_URL.replace(/\/+$/, '');
     }
 
     // 2. Derive from API URL
@@ -12,7 +12,7 @@ export const getWsBaseUrl = () => {
         return process.env.REACT_APP_API_URL
             .replace(/^http:\/\//i, 'ws://')
             .replace(/^https:\/\//i, 'wss://')
-            .replace(/\/$/, '');
+            .replace(/\/+$/, '');
     }
 
     // 3. Fallback based on browser environment

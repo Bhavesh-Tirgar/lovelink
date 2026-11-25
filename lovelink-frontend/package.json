@@ -47,6 +47,18 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "resetMocks": false,
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js",
+      "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
+      "^.+\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(axios|lucide-react|framer-motion|chess\\.js|canvas-confetti|react-hot-toast|@capawesome)/)"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",

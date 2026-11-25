@@ -91,7 +91,9 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
         mapInstanceRef.current = map;
 
         return () => {
-            map.remove();
+            if (map && typeof map.remove === 'function') {
+                map.remove();
+            }
             mapInstanceRef.current = null;
         };
     }, []);
@@ -272,7 +274,12 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
         }).catch(() => {});
     }, [coupleId]);
 
-    // 8. Live GPS Tracking (Updates every few seconds)
+    const myBatteryRef = useRef(myBattery);
+    useEffect(() => {
+        myBatteryRef.current = myBattery;
+    }, [myBattery]);
+
+    // 8. Live GPS Tracking (Updates every few seconds; uses battery ref to avoid restarting watchPosition)
     useEffect(() => {
         if (!navigator.geolocation) return;
 
@@ -284,6 +291,8 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
 
             // Client-side E2EE encrypt location coordinates
             const locPayload = JSON.stringify({ lat: latitude, lng: longitude, speed, heading });
+            const currentBatt = myBatteryRef.current;
+
             const doSend = async () => {
                 let encLoc = null;
                 if (coupleId) {
@@ -298,8 +307,8 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                         encrypted_location: encLoc,
                         latitude,
                         longitude,
-                        battery_level: myBattery.level,
-                        is_charging: myBattery.charging,
+                        battery_level: currentBatt.level,
+                        is_charging: currentBatt.charging,
                         speed,
                         heading
                     }));
@@ -309,8 +318,8 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                     encrypted_location: encLoc,
                     latitude,
                     longitude,
-                    battery_level: myBattery.level,
-                    is_charging: myBattery.charging
+                    battery_level: currentBatt.level,
+                    is_charging: currentBatt.charging
                 }).catch(() => {});
             };
             doSend();
@@ -331,7 +340,7 @@ export default function SnapMap({ partner, coupleId, isFullscreen = false }) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
             }
         };
-    }, [myBattery, coupleId]);
+    }, [coupleId]);
 
     // 9. Update Leaflet Map Markers & Connecting Love Line
     useEffect(() => {

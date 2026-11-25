@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { getSharedAudioContext } from '../utils/soundFx';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import {
   Sparkles, Heart, Coffee,
@@ -318,12 +319,11 @@ export default function Real3DAvatarStage({
     duration: 3200,
   });
 
-  // Sound Effects
+  // Sound Effects (using shared singleton AudioContext)
   const playSfx = useCallback((type) => {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = getSharedAudioContext();
+      if (!ctx) return;
 
       if (type === 'clink') {
         const osc = ctx.createOscillator();

@@ -23,7 +23,6 @@ from routers.movies import router as movies_router
 from routers.calls import router as calls_router
 from routers.notifications import router as notifs_router
 from routers.music import router as music_router
-from routers.reels import router as reels_router
 from routers.snap import router as snap_router
 from scheduler.jobs import check_milestones, prune_stale_sessions, prune_stale_sensitive_data
 from starlette.middleware.gzip import GZipMiddleware

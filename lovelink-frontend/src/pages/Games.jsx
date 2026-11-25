@@ -10,13 +10,13 @@ import { getWsBaseUrl } from '../utils/wsUrl';
 import CoupleChess from '../components/CoupleChess';
 import CoupleLudo from '../components/CoupleLudo';
 import CoupleUno from '../components/CoupleUno';
+import { getSharedAudioContext } from '../utils/soundFx';
 
-// Web Audio API Synthesizers for zero-dependency satisfying sound effects
+// Web Audio API Synthesizers using shared singleton AudioContext
 const playSound = (type) => {
     try {
-        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+        const ctx = getSharedAudioContext();
+        if (!ctx) return;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);

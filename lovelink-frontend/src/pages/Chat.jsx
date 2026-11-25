@@ -114,15 +114,18 @@ function Chat() {
             }
 
             setMessages(prev => {
-                // If we sent this message ourselves, replace the optimistic temp entry
+                // If we sent this message ourselves, replace the optimistic temp entry without flashing ciphertext
                 const tempIdx = prev.findIndex(
                     m => m._tempId && m.sender_id === incoming.sender_id
                 );
                 if (tempIdx !== -1) {
                     const tempMsg = prev[tempIdx];
-                    replaceTempMessageInCache(coupleId, tempMsg.id, incoming);
+                    const preserved = isE2EEMessage(incoming.text)
+                        ? { ...incoming, text: tempMsg.text, _isE2EE: true }
+                        : incoming;
+                    replaceTempMessageInCache(coupleId, tempMsg.id, preserved);
                     const next = [...prev];
-                    next[tempIdx] = incoming; // swap temp with real DB message
+                    next[tempIdx] = preserved; // swap temp with real DB message preserving readable text
                     return next;
                 }
 
@@ -137,7 +140,7 @@ function Chat() {
             });
 
             // Mark read implicitly if we get a message when open
-            api.put('/chat/messages/mark-read').catch(console.error);
+            Promise.resolve(api.put('/chat/messages/mark-read')).catch(console.error);
 
             // Auto-burn ephemeral message when received and viewed
             if (incoming.is_ephemeral && !incoming.is_burned && incoming.sender_id !== myUserId) {
@@ -276,7 +279,20 @@ function Chat() {
         try {
             const res = await api.get(`/chat/messages?before_id=${oldestMsgId}`);
             if (res.data.length > 0) {
-                setMessages(prev => [...res.data, ...prev]);
+                const decryptedPage = await Promise.all(
+                    res.data.map(async (m) => {
+                        if (m.text && isE2EEMessage(m.text)) {
+                            const decrypted = await decryptText(m.text, coupleId);
+                            return { ...m, text: decrypted, _isE2EE: true };
+                        }
+                        return m;
+                    })
+                );
+                setMessages(prev => {
+                    const existingIds = new Set(prev.map(p => p.id));
+                    const fresh = decryptedPage.filter(m => !existingIds.has(m.id));
+                    return [...fresh, ...prev];
+                });
                 setHasMore(res.data.length === 50);
 
                 // Restore scroll position so it doesn't jump
@@ -377,9 +393,19 @@ function Chat() {
         e.target.value = null;
     };
 
-    const startRecording = async () => {
+    const isPressHeldRef = useRef(false);
+
+    const startRecording = async (e) => {
+        if (e?.preventDefault) e.preventDefault();
+        if (isPressHeldRef.current || isRecording) return;
+        isPressHeldRef.current = true;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!isPressHeldRef.current) {
+                // User already released button before getUserMedia resolved
+                stream.getTracks().forEach(track => track.stop());
+                return;
+            }
 
             // Cross-platform audio format negotiation (iOS Safari vs Chromium)
             let mimeType = '';
@@ -432,11 +458,15 @@ function Chat() {
             mediaRecorder.start();
             setIsRecording(true);
         } catch (err) {
+            isPressHeldRef.current = false;
             console.error("Microphone access denied or error", err);
+            setUploadError('Microphone permission required to record voice messages.');
+            setTimeout(() => setUploadError(''), 4000);
         }
     };
 
     const stopRecording = () => {
+        isPressHeldRef.current = false;
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop();
             mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
@@ -465,6 +495,8 @@ function Chat() {
             });
         } catch (err) {
             console.error("Failed to initiate call:", err);
+            setUploadError(err.response?.data?.detail || 'Could not start call. Check partner connection.');
+            setTimeout(() => setUploadError(''), 4000);
         } finally {
             setCalling(false);
         }
@@ -718,7 +750,7 @@ function Chat() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id)}
-                                                            className="ml-1 opacity-0 group-hover:opacity-100 text-white/60 hover:text-white transition-opacity"
+                                                            className="ml-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-white/60 hover:text-white transition-opacity"
                                                             title="React"
                                                         >
                                                             <Smile size={11} />
@@ -809,10 +841,11 @@ function Chat() {
 
                     {!inputValue.trim() && (
                         <button
-                            onMouseDown={startRecording}
-                            onMouseUp={stopRecording}
-                            onTouchStart={startRecording}
-                            onTouchEnd={stopRecording}
+                            type="button"
+                            onPointerDown={startRecording}
+                            onPointerUp={stopRecording}
+                            onPointerCancel={stopRecording}
+                            onPointerLeave={stopRecording}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all border
                 ${isRecording
                                     ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.4)]'

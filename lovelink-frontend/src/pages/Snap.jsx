@@ -7,13 +7,13 @@ import {
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import api from '../api';
+import { getSharedAudioContext } from '../utils/soundFx';
 
 // Web Audio sound synthesizer for authentic shutter sound & snap chimes
 const playSnapSound = (type) => {
     try {
-        const AudioContextClass = window.AudioContext || window['webkitAudioContext'];
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+        const ctx = getSharedAudioContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
 
         if (type === 'shutter') {
@@ -85,6 +85,13 @@ export default function Snap() {
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
     const fileInputRef = useRef(null);
+    const viewTimerRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (viewTimerRef.current) clearInterval(viewTimerRef.current);
+        };
+    }, []);
 
     const user = (() => {
         try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
@@ -109,8 +116,8 @@ export default function Snap() {
     }, [fetchFeed]);
 
     // ── 2. Camera Lifecycle ─────────────────────────────────────────────────────
-    const startCamera = useCallback(async () => {
-        if (capturedImage || viewMode !== 'camera') return;
+    const startCamera = useCallback(async (forceRestart = false) => {
+        if ((!forceRestart && capturedImage) || viewMode !== 'camera') return;
         try {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(t => t.stop());
@@ -175,11 +182,16 @@ export default function Snap() {
         canvas.height = targetH;
 
         const ctx = canvas.getContext('2d');
+        ctx.save();
+        if (selectedFilter?.style?.filter) {
+            ctx.filter = selectedFilter.style.filter;
+        }
         if (facingMode === 'user') {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
         }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
         setCapturedImage(dataUrl);
@@ -229,7 +241,7 @@ export default function Snap() {
         playSnapSound('pop');
         setCapturedImage(null);
         setCaption('');
-        startCamera();
+        startCamera(true);
     };
 
     // ── 4. Send Snap to Partner ─────────────────────────────────────────────────
@@ -260,7 +272,7 @@ export default function Snap() {
             setCapturedImage(null);
             setCaption('');
             fetchFeed();
-            startCamera();
+            startCamera(true);
         } catch (err) {
             toast.error(err.response?.data?.detail || "Could not send snap");
         } finally {
@@ -283,12 +295,14 @@ export default function Snap() {
         const startTime = Date.now();
         const totalMs = durationSec * 1000;
 
-        const interval = setInterval(() => {
+        if (viewTimerRef.current) clearInterval(viewTimerRef.current);
+        viewTimerRef.current = setInterval(() => {
             const elapsed = Date.now() - startTime;
             const remaining = Math.max(0, 100 - (elapsed / totalMs) * 100);
             setViewProgress(remaining);
             if (remaining <= 0) {
-                clearInterval(interval);
+                clearInterval(viewTimerRef.current);
+                viewTimerRef.current = null;
                 setActiveSnapViewing(null);
                 fetchFeed();
             }
@@ -296,6 +310,10 @@ export default function Snap() {
     };
 
     const closeViewer = () => {
+        if (viewTimerRef.current) {
+            clearInterval(viewTimerRef.current);
+            viewTimerRef.current = null;
+        }
         setActiveSnapViewing(null);
         fetchFeed();
     };
@@ -413,7 +431,6 @@ export default function Snap() {
                             ref={fileInputRef}
                             type="file"
                             accept="image/*"
-                            capture="user"
                             onChange={handleFileUpload}
                             className="hidden"
                         />
@@ -652,6 +669,7 @@ export default function Snap() {
                                 src={activeSnapViewing.media_url}
                                 alt="Snap View"
                                 className="w-full h-full object-cover"
+                                style={FILTERS.find(f => f.id === activeSnapViewing.filter)?.style || {}}
                             />
 
                             {/* Caption Banner */}

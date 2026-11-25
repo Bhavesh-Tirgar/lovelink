@@ -11,7 +11,7 @@ export default function NotificationBell() {
     const fetchNotifs = async () => {
         try {
             const res = await api.get('/notifications');
-            setNotifications(res.data);
+            setNotifications(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch notifications");
         } finally {
@@ -64,7 +64,7 @@ export default function NotificationBell() {
         }
     };
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const unreadCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0;
 
     return (
         <div className="relative" ref={dropdownRef}>
