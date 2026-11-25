@@ -149,7 +149,7 @@ describe('Crypto, Security & Utility Real Execution Tests', () => {
 
   // ── 16-20: WebSocket URL Resolution ──
   test('016: getWsBaseUrl defaults to production Render WSS URL', () => {
-    expect(getWsBaseUrl()).toBe('wss://lovelink-sfzx.onrender.com');
+    expect(getWsBaseUrl()).toBe('wss://lovelink-xzg7.onrender.com');
   });
 
   test('017: getWsBaseUrl honors explicit REACT_APP_WS_URL without trailing slash', () => {
@@ -166,7 +166,7 @@ describe('Crypto, Security & Utility Real Execution Tests', () => {
 
   test('019: getWsBaseUrl never uses ws://localhost inside Capacitor APK runtime', () => {
     window.Capacitor = { isNativePlatform: () => true };
-    expect(getWsBaseUrl()).toBe('wss://lovelink-sfzx.onrender.com');
+    expect(getWsBaseUrl()).toBe('wss://lovelink-xzg7.onrender.com');
     delete window.Capacitor;
   });
 

@@ -17,7 +17,7 @@ const getDefaultBaseUrl = () => {
       return 'http://localhost:8000';
     }
   }
-  return 'https://lovelink-sfzx.onrender.com';
+  return 'https://lovelink-xzg7.onrender.com';
 };
 
 const api = axios.create({

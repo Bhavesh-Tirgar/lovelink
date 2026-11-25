@@ -29,5 +29,5 @@ export const getWsBaseUrl = () => {
         }
     }
 
-    return 'wss://lovelink-sfzx.onrender.com';
+    return 'wss://lovelink-xzg7.onrender.com';
 };

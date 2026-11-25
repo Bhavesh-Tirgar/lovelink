@@ -827,7 +827,7 @@ describe('Extended LoveLink Partner & APK Real Scenario Suite (051-102)', () => 
     process.env.REACT_APP_WS_URL = 'wss://lovelink-ws.onrender.com///';
     expect(getWsBaseUrl()).toBe('wss://lovelink-ws.onrender.com');
     delete process.env.REACT_APP_WS_URL;
-    expect(getWsBaseUrl()).toBe('wss://lovelink-sfzx.onrender.com');
+    expect(getWsBaseUrl()).toBe('wss://lovelink-xzg7.onrender.com');
   });
 
   test('101: DEFAULT_FALLBACK_CHANNELS exposes fallback SoundHelix MP3 for every single Audius track', () => {
