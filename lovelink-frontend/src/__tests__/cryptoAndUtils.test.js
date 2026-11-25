@@ -15,6 +15,7 @@ import {
 import { getCallE2EEEmojis } from '../utils/callSecurity';
 import { getWsBaseUrl } from '../utils/wsUrl';
 import { getSharedAudioContext, resetSharedAudioContextForTest } from '../utils/soundFx';
+import { getApiErrorMessage } from '../utils/apiError';
 
 describe('Crypto, Security & Utility Real Execution Tests', () => {
   beforeEach(() => {
@@ -204,5 +205,30 @@ describe('Crypto, Security & Utility Real Execution Tests', () => {
     const second = getSharedAudioContext();
     expect(count).toBe(2);
     expect(second).not.toBe(first);
+  });
+
+  // ── 22-24: API Error Message Mapping ──
+  test('022: getApiErrorMessage surfaces Render 503 Service Suspended clearly', () => {
+    const err = {
+      response: {
+        status: 503,
+        data: '<html><title>Service Suspended</title><body>This service has been suspended.</body></html>',
+      },
+    };
+    expect(getApiErrorMessage(err)).toMatch(/suspended|offline/i);
+  });
+
+  test('023: getApiErrorMessage formats FastAPI detail string and validation array', () => {
+    expect(getApiErrorMessage({ response: { status: 400, data: { detail: 'Invalid OTP' } } })).toBe('Invalid OTP');
+    expect(
+      getApiErrorMessage({
+        response: { status: 422, data: { detail: [{ msg: 'field required' }, { msg: 'bad email' }] } },
+      })
+    ).toBe('field required, bad email');
+  });
+
+  test('024: getApiErrorMessage translates 502/504 cold start and Network Error', () => {
+    expect(getApiErrorMessage({ response: { status: 504, data: '' } })).toMatch(/waking up|timed out/i);
+    expect(getApiErrorMessage({ message: 'Network Error' })).toMatch(/internet connection/i);
   });
 });

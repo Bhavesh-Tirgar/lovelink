@@ -203,7 +203,21 @@ export const MusicProvider = ({ children }) => {
         }
     }, [getAudioEl]);
 
-    // Save on beforeunload & handle Android AudioFocus changes cleanly
+    const dispatchMediaCommand = useCallback((action) => {
+        if (action === 'play') {
+            if (!isPlayingRef.current) togglePlayRef.current();
+        } else if (action === 'pause') {
+            if (isPlayingRef.current) togglePlayRef.current();
+        } else if (action === 'toggle') {
+            togglePlayRef.current();
+        } else if (action === 'next') {
+            playNextRef.current();
+        } else if (action === 'prev') {
+            playPrevRef.current();
+        }
+    }, []);
+
+    // Save on beforeunload & handle Android AudioFocus & lockscreen MediaSession actions
     useEffect(() => {
         const handleSave = () => persistPlaybackState();
         window.addEventListener('beforeunload', handleSave);
@@ -229,16 +243,21 @@ export const MusicProvider = ({ children }) => {
                 audio.play().then(() => setIsPlaying(true)).catch(() => { });
             }
         };
+        const handleNativeMediaAction = (e) => {
+            dispatchMediaCommand(e?.detail?.action);
+        };
 
         window.addEventListener('lovelink:audiofocus_lost', handleFocusLost);
         window.addEventListener('lovelink:audiofocus_gain', handleFocusGain);
+        window.addEventListener('lovelink:media_action', handleNativeMediaAction);
 
         return () => {
             window.removeEventListener('beforeunload', handleSave);
             window.removeEventListener('lovelink:audiofocus_lost', handleFocusLost);
             window.removeEventListener('lovelink:audiofocus_gain', handleFocusGain);
+            window.removeEventListener('lovelink:media_action', handleNativeMediaAction);
         };
-    }, [persistPlaybackState, getAudioEl, controlYouTube, ensureAudioCarrier]);
+    }, [persistPlaybackState, getAudioEl, controlYouTube, ensureAudioCarrier, dispatchMediaCommand]);
 
     // System MediaSession API: Lockscreen, Notification controls & OS media status
     useEffect(() => {
@@ -829,10 +848,10 @@ export const MusicProvider = ({ children }) => {
         if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
         const actionHandlers = [
-            ['play', () => togglePlayRef.current()],
-            ['pause', () => togglePlayRef.current()],
-            ['previoustrack', () => playPrevRef.current()],
-            ['nexttrack', () => playNextRef.current()],
+            ['play', () => dispatchMediaCommand('play')],
+            ['pause', () => dispatchMediaCommand('pause')],
+            ['previoustrack', () => dispatchMediaCommand('prev')],
+            ['nexttrack', () => dispatchMediaCommand('next')],
             ['seekto', (details) => {
                 if (details.seekTime !== undefined && details.seekTime !== null) {
                     seekRef.current(details.seekTime);
@@ -855,7 +874,7 @@ export const MusicProvider = ({ children }) => {
                 } catch { }
             }
         };
-    }, []);
+    }, [dispatchMediaCommand]);
 
     const addCustomTrack = async (trackData) => {
         try {

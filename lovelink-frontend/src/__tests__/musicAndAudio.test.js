@@ -418,4 +418,44 @@ describe('MusicContext, FloatingMusicPlayer & Android Background Audio Tests', (
     );
     expect(container.querySelector('button[title="Play"]')).toBeNull();
   });
+
+  test('034: lovelink:media_action handles play/pause idempotently and skips tracks cleanly', async () => {
+    window.localStorage.setItem('token', 'tok-1');
+    window.localStorage.setItem('couple_id', 'coup-1');
+    api.get.mockImplementation((url) => {
+      if (url === '/music/channels') return Promise.resolve({ data: DEFAULT_FALLBACK_CHANNELS });
+      return Promise.resolve({ data: [] });
+    });
+    api.post.mockResolvedValue({ data: { ticket: 't1' } });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <MusicProvider>
+          <FloatingMusicPlayer />
+        </MusicProvider>
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Kesariya');
+    // Tap play in UI to start track 1 ('Kesariya')
+    const playBtn = screen.getByTitle('Play');
+    fireEvent.click(playBtn);
+    await waitFor(() => expect(screen.getByTitle('Pause')).toBeInTheDocument());
+
+    // Duplicate 'play' lockscreen event must NOT toggle back to paused
+    window.dispatchEvent(new CustomEvent('lovelink:media_action', { detail: { action: 'play' } }));
+    expect(screen.getByTitle('Pause')).toBeInTheDocument();
+
+    // 'pause' event pauses playback cleanly
+    window.dispatchEvent(new CustomEvent('lovelink:media_action', { detail: { action: 'pause' } }));
+    await waitFor(() => expect(screen.getByTitle('Play')).toBeInTheDocument());
+
+    // Duplicate 'pause' event must NOT accidentally resume
+    window.dispatchEvent(new CustomEvent('lovelink:media_action', { detail: { action: 'pause' } }));
+    expect(screen.getByTitle('Play')).toBeInTheDocument();
+
+    // 'next' skips to second track
+    window.dispatchEvent(new CustomEvent('lovelink:media_action', { detail: { action: 'next' } }));
+    await screen.findByText('Tum Hi Ho (Acoustic)');
+  });
 });

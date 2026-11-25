@@ -48,7 +48,19 @@ function App() {
             if (token) {
               window.localStorage.setItem('token', token);
               if (refreshToken) window.localStorage.setItem('refresh_token', refreshToken);
-              if (userRaw) window.localStorage.setItem('user', decodeURIComponent(userRaw));
+              if (userRaw) {
+                let parsedUserStr = userRaw;
+                try {
+                  JSON.parse(userRaw);
+                } catch {
+                  try {
+                    parsedUserStr = decodeURIComponent(userRaw);
+                  } catch {
+                    parsedUserStr = userRaw;
+                  }
+                }
+                window.localStorage.setItem('user', parsedUserStr);
+              }
               if (coupleId) window.localStorage.setItem('couple_id', coupleId);
               window.location.href = coupleId ? '/dashboard' : '/link';
             }

@@ -3,12 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
-const getError = (err) => {
-  const d = err.response?.data?.detail;
-  if (typeof d === 'string') return d;
-  if (Array.isArray(d)) return d.map((x) => x.msg).join(', ');
-  return 'Something went wrong. Please try again.';
-};
+import { getApiErrorMessage as getError } from '../utils/apiError';
 
 function Signup() {
   const navigate = useNavigate();

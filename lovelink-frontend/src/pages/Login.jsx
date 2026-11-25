@@ -9,12 +9,7 @@ import AmbientAuraGlow from '../components/ui/AmbientAuraGlow';
 import SpotlightCard from '../components/ui/SpotlightCard';
 import { Heart } from 'lucide-react';
 
-const getError = (err) => {
-  const d = err.response?.data?.detail;
-  if (typeof d === 'string') return d;
-  if (Array.isArray(d)) return d.map((x) => x.msg).join(', ');
-  return 'Something went wrong. Please try again.';
-};
+import { getApiErrorMessage as getError } from '../utils/apiError';
 
 function Login() {
   const navigate = useNavigate();
